@@ -1,0 +1,215 @@
+---
+title: "Air Temperature Daily Mins and Max"
+author: "Elizabeth Van Metre"
+date: '2023-01-26'
+output: html_document
+---
+
+#How to Use This Template
+1. Change "data_path" variable input to file path for air temp data on line #17
+2. Check line #48 for note on an invalid sensor - this column will be excluded
+-> you need to check if this matches up with new data
+3. For calculating degree days, we use a baseline temperature (in °C) to compare daily averages
+-> change DD_baseline on line #18 if using a baseline other than 0°C
+4. Run the code!
+
+```{r}
+data_path = "~/Desktop/Arctic/Season_AIRTMP_6_19_22_9_20_22_2022_09_21_16_21_48_UTC_1.csv"
+DD_baseline = 0
+```
+
+
+##Loading packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(knitr)
+```
+
+
+#Upload air temp data and clean
+```{r}
+airtemps =read.csv(data_path)
+
+names(airtemps) <- sub("Temperature..RXW.THC.", "" ,names(airtemps))
+names(airtemps) <- sub("Temperature..S.THC.", "" ,names(airtemps))
+names(airtemps) <- sub("S.", "" ,names(airtemps))
+names(airtemps) <- sub("....C..RX3000_BRW1", "" ,names(airtemps))
+names(airtemps) <- sub("....C..RX3000_BRW4", "" ,names(airtemps))
+names(airtemps) <- sub("....C..RX3000_BRW5", "" ,names(airtemps))
+names(airtemps) <- sub("....C..RX3000_BRW6", "" ,names(airtemps))
+airtemps$Date <- as.POSIXct(airtemps$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+airtemps = airtemps[-4] #NOTE: column 4 in original data is an invalid Sensor - check for new data
+```
+
+##Remove bad readings (Temp < 100 degrees C)
+```{r}
+for(r in 1:nrow(airtemps)) {
+  for(c in 3:ncol(airtemps)) {
+    if(airtemps[r,c] < -100 | is.na(airtemps[r,c])) {
+      airtemps[r,c] = NA
+    }
+  }
+}
+```
+
+
+#Sensor Reference with Names
+Commented out - uncomment if you need the reference
+Note: does not change for new data - originally for 6/19-9/20 
+```{r}
+
+# c = 3
+# sensorID = NULL
+# columnNum = NULL
+# while(c <= ncol(airtemps)){
+#   sensorID = append(sensorID, names(airtemps)[c])
+#   columnNum = append(columnNum, c)
+#   c = c + 1
+# }
+# location = c("TNHA", "TNHA", "TNHA", "TNHA", "TNHA", "TNHA", "SSMH", "SSMH", "SSMH", "BUECI",
+#              "BUECI", "BUECI", "BUECI", "BUECI", "BUECI", "BEO")
+# ID = c("SA", "??", "SD", "SC", "SB", "B02", "B02", "SB01", "SA01", "SE01", "SB01", "B02", "SD02", "SC01", "SA01", "B02")
+# sensors = data.frame(columnNum, sensorID, location, ID)
+# 
+# kable(sensors)
+
+```
+
+##How might we be able to remove zeroes?
+
+Turn Dates into Day Format
+```{r}
+airtemps$Date = as.Date(airtemps$Date)
+```
+
+Pull Each Sensor
+```{r}
+
+maximum = setNames(aggregate(airtemps[,3], by=list(airtemps$Date),max, na.rm=T), c("Date", paste(sensors[1, 3],           sensors[1,4])))
+minimum = setNames(aggregate(airtemps[,3], by=list(airtemps$Date),min, na.rm=T), c("Date", paste(sensors[1, 3],           sensors[1,4])))
+
+maxs = maximum
+mins = minimum
+
+
+```
+
+While-Loop: Join Mins and Maxes to 1 Table by Date
+```{r}
+i = 4
+
+while(i <= ncol(airtemps)) {
+  
+maximum = setNames(aggregate(airtemps[,i], by=list(airtemps$Date),max, na.rm=T), c("Date", paste(sensors[i-1, 3],           sensors[i-1,4])))
+minimum = setNames(aggregate(airtemps[,i], by=list(airtemps$Date),min, na.rm=T), c("Date", paste(sensors[i-1, 3],           sensors[i-1,4])))
+
+maxs = maxs %>% full_join(maximum, by="Date")
+mins = mins %>% full_join(minimum, by="Date")
+
+i = i + 1
+
+}
+```
+
+#Average Temperature by Site
+
+Convert to Long DataFrame
+```{r}
+
+#Turn wide data frames into long
+mins_long = gather(mins, sensor, min_air_temp, 2:16)
+maxs_long = gather(maxs, sensor, max_air_temp, 2:16)
+
+#Split sensor name and station
+mins_long = cSplit(mins_long, 'sensor', sep=" ", direction = "wide")
+maxs_long = cSplit(maxs_long, 'sensor', sep=" ", direction = "wide")
+#rename resulting columns
+colnames(mins_long)[3:4] <- c("station", "sensor")
+colnames(maxs_long)[3:4] <- c("station", "sensor")
+
+#Combine data frames into one
+min_max = maxs_long[, c(1,3,4,2)]
+min_max = data.frame(min_max, mins_long[,2])
+
+```
+
+Get Average (Don't Run More Than Once!)
+```{r}
+
+avg_temp = (min_max[,4] + min_max[,5])/2
+min_max = data.frame(min_max, avg_temp)
+
+```
+
+Get Daily Air Temperature Average by Station
+```{r}
+
+TNHA = min_max %>% filter(station == "TNHA")
+SSMH = min_max %>% filter(station == "SSMH")
+BUECI = min_max %>% filter(station == "BUECI")
+BEO = min_max %>% filter(station == "BEO")
+
+
+TNHA_avg = aggregate(avg_temp~Date, TNHA, mean, na.rm=T)
+SSMH_avg = aggregate(avg_temp~Date, SSMH, mean, na.rm=T)
+BUECI_avg = aggregate(avg_temp~Date, BUECI, mean, na.rm=T)
+BEO_avg = aggregate(avg_temp~Date, BEO, mean, na.rm=T)
+  
+```
+
+#Degree Days Calculation
+Degree Days = Avg Daily Temp - Baseline Temp
+Our Baseline: 0°C (or otherwise defined at beginning)
+```{r}
+TNHA_DD = TNHA_avg[,2] - DD_baseline
+SSMH_DD = SSMH_avg[,2] - DD_baseline
+BUECI_DD = BUECI_avg[,2] - DD_baseline
+BEO_DD = BEO_avg[,2] - DD_baseline
+
+TNHA_avg = data.frame(TNHA_avg, TNHA_DD)
+SSMH_avg = data.frame(SSMH_avg, SSMH_DD)
+BUECI_avg = data.frame(BUECI_avg, BUECI_DD)
+BEO_avg = data.frame(BEO_avg, BEO_DD)
+```
+
+##Degree Day Totals
+```{r}
+TNHA_DD_tot = sum(TNHA_avg[,3])
+SSMH_DD_tot = sum(SSMH_avg[,3])
+BUECI_DD_tot = sum(BUECI_avg[,3])
+BEO_DD_tot = sum(BEO_avg[,3])
+```
+
+##Output Degree Day Totals
+```{r}
+dr = paste("Date Range:",TNHA_avg[1,1], "to", TNHA_avg[nrow(TNHA_avg),1])
+dr
+```
+
+TNHA:
+```{r}
+TNHA_DD_tot
+```
+
+SSMH:
+```{r}
+SSMH_DD_tot
+```
+
+BUECI:
+```{r}
+BUECI_DD_tot
+```
+
+BEO:
+```{r}
+BEO_DD_tot
+```
+

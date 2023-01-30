@@ -1,0 +1,143 @@
+---
+title: "Check for Gaps in Data"
+author: "Elizabeth Van Metre"
+date: '2023-01-26'
+output: html_document
+---
+
+
+##Change this file path to read a different file
+```{r}
+data_path = "~/Desktop/Arctic/Season_GRNDTMP_6_19_22_9_20_22_2022_09_21_16_19_26_UTC_1.csv"
+```
+
+
+##Loading packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(knitr)
+library(writexl)
+```
+
+#Load and clean data
+```{r}
+df =read.csv(data_path)
+
+names(df) <- sub("Temperature..RXW.THC.", "" ,names(df))
+names(df) <- sub("Temperature..S.THC.", "" ,names(df))
+names(df) <- sub("Temperature..RXW.GP6.", "" ,names(df))
+names(df) <- sub("S.", "" ,names(df))
+names(df) <- sub("....C..RX3000_BRW1", "" ,names(df))
+names(df) <- sub("....C..RX3000_BRW4", "" ,names(df))
+names(df) <- sub("....C..RX3000_BRW5", "" ,names(df))
+names(df) <- sub("....C..RX3000_BRW6", "" ,names(df))
+df$Date <- as.POSIXct(df$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+#THESE ARE BLANK COLUMNS - rewrite if using a different data set
+df = df[,-c(26:36)]
+df = df[,-c(92:201)]
+
+```
+
+Store sensor names for final product
+```{r}
+sensor_names = colnames(df)[3:ncol(df)]
+```
+
+Rename sensors as 1, 2, 3... for easier sorting
+```{r}
+colnames(df)[3:ncol(df)] = seq(1, ncol(df)-2, 1)
+```
+
+Create long data frame of all sensor data
+```{r}
+df_long = gather(df, sensor, data, 3:ncol(df))
+```
+
+#Create list of gaps
+```{r}
+gap_list = data.frame(sensor_name=NA, date_start=NA, date_end=NA, gap_date=NA)[numeric(0), ]
+
+for(sen in 1:ncol(df)) {
+  sensor = df_long %>% filter(sensor == sen)
+  
+  r = 1
+  
+  if(!is.na(sensor[1,4])){
+    date_start = sensor[1,2]
+    date_end = NULL
+    gap_date = NULL
+  }
+  else{
+    date_start = NA
+    date_end = NA
+    gap_date = sensor[1,2]
+  }
+  
+  while(r <= nrow(sensor)){
+    while((!is.na(sensor[r,4]) | (is.na(sensor[r,4]) & !is.na(sensor[r+1, 4]))) & r <= nrow(sensor)){
+      r = r + 1
+    }
+    date_end = append(date_end, sensor[r-1,2])
+    gap_date = append(gap_date, sensor[r, 2])
+    while(is.na(sensor[r,4]) & r <= nrow(sensor)){
+      r = r + 1
+    }
+    date_start = append(date_start, sensor[r, 2])
+     
+  }
+  if(length(date_start) > length(date_end)){
+    date_end = append(date_end, sensor[r-1,2])
+  }
+  # if(length(date_start) < length(date_end)){
+  #   date_start = append(date_start, sensor[r-1,2])
+  # }
+  if(length(gap_date) < length(date_start)){
+    gap_date = append(gap_date, NA)
+  }
+  
+  sensor_name = rep(sen, length(date_start))
+  current_gap = data.frame(sensor_name, date_start, date_end, gap_date)
+  gap_list = rbind(gap_list, current_gap)
+}
+
+```
+
+Rewrite sensor IDs
+```{r}
+for(i in 1:length(sensor_names)){
+  gap_list$sensor_name[which(gap_list$sensor_name == i)] <- sensor_names[i]
+}
+```
+Create copy of sensor IDs
+```{r}
+gap_list = data.frame(gap_list, gap_list[,1])
+```
+Split IDs to station, sensor, and depth
+```{r}
+gap_list= cSplit(gap_list, 5, sep=".", direction = "wide") 
+```
+Organize and Reassign Names for Readability
+```{r}
+colnames(gap_list)[5:7] <- c("station", "sensor", "depth")
+gap_list$station <- as.character(gap_list$station)
+gap_list$sensor <- as.character(gap_list$sensor)
+
+gap_list$station <- revalue(gap_list$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+```
+Reorganize column order
+```{r}
+gap_list = gap_list[,c(1,5,6,7,2,3,4)]
+```
+
+##Export Data Frame to Excel File
+```{r}
+write_xlsx(gap_list,"~/Desktop/Arctic/gap-list.xlsx")
+```
+
