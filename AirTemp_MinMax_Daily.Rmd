@@ -15,7 +15,7 @@ output: html_document
 
 ```{r}
 data_path = "~/Desktop/Arctic/Season_AIRTMP_6_19_22_9_20_22_2022_09_21_16_21_48_UTC_1.csv"
-DD_baseline = 0
+DD_baseline = 0 # setting the baseline at 0 Celcius won't remove any value , so we need to get an average for each station (and then all stations combined) for the entire date range to decide on our baseline temperature
 ```
 
 
