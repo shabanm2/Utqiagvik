@@ -65,20 +65,20 @@ Commented out - uncomment if you need the reference
 Note: does not change for new data - originally for 6/19-9/20 
 ```{r}
 
-# c = 3
-# sensorID = NULL
-# columnNum = NULL
-# while(c <= ncol(airtemps)){
-#   sensorID = append(sensorID, names(airtemps)[c])
-#   columnNum = append(columnNum, c)
-#   c = c + 1
-# }
-# location = c("TNHA", "TNHA", "TNHA", "TNHA", "TNHA", "SSMH", "SSMH", "SSMH", "BUECI",
-#              "BUECI", "BUECI", "BUECI", "BUECI", "BUECI", "BEO")
-# ID = c("SA", "SD", "SC", "SB", "B02", "B02", "SB01", "SA01", "SE01", "SB01", "B02", "SD02", "SC01", "SA01", "B02")
-# sensors = data.frame(columnNum, sensorID, location, ID)
-# 
-# kable(sensors)
+ c = 3
+ sensorID = NULL
+ columnNum = NULL
+ while(c <= ncol(airtemps)){
+   sensorID = append(sensorID, names(airtemps)[c])
+   columnNum = append(columnNum, c)
+   c = c + 1
+ }
+location = c("TNHA", "TNHA", "TNHA", "TNHA", "TNHA", "SSMH", "SSMH", "SSMH", "BUECI",
+              "BUECI", "BUECI", "BUECI", "BUECI", "BUECI", "BEO")
+ID = c("SA", "SD", "SC", "SB", "B02", "B02", "SB01", "SA01", "SE01", "SB01", "B02", "SD02", "SC01", "SA01", "B02")
+sensors = data.frame(columnNum, sensorID, location, ID)
+
+kable(sensors)
 
 ```
 
