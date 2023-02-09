@@ -1,0 +1,209 @@
+---
+title: "Diurnal Cycles"
+author: "Elizabeth Van Metre, Mirella Shaban"
+date: '2023-01-27'
+output: html_document
+---
+
+##Loading packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+```
+
+
+Solar radiation for all sites data prepping
+```{r}
+solarrad = read.csv("~/Desktop/UVA/RESEARCH/Barrow/Data_June17-Aug5/Season_SOLARAD_6_19_22_9_20_22_2022_09_21_16_27_20_UTC_1.csv")
+
+names(solarrad) <- sub("olar.Radiation..RXW.LIB", "" ,names(solarrad))
+names(solarrad) <- sub("olar.Radiation..S.LIB", "" ,names(solarrad))
+names(solarrad) <- sub("S.", "" ,names(solarrad))
+names(solarrad) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solarrad))
+names(solarrad) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solarrad))
+names(solarrad) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solarrad))
+names(solarrad) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solarrad))
+solarrad$Date <- as.POSIXct(solarrad$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+SOLAR RADIATION : LONG DATAFRAME
+```{r fig9, fig.heigt = 14, fig.width = 18}
+raw_data = solarrad
+
+solarrad = gather(solarrad, variable, response, '21401801.21362319.1':'21198259.21398620.1') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+
+
+
+
+
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUCEI-SA", "21398624" = "BUECI-SB", "21362313" = "BUCEI-SC", "21362316" = "BUCEI-SD", "21362320" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-Base"))
+
+```
+
+#Hourly Solar Data for TNHA Sensors
+Note: no data for TNHA-SD
+```{r}
+avghourlysolar = data.frame(Date=NA, value=NA, sensor=NA)[numeric(0), ]
+sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
+datemin = "2022-07-04"
+datemax = "2022-07-10"
+datestep = "6 hours" # "6 hours" works well for 1 week
+dateminstep = "1 hour" #little lines between dates, 1 hour for 1 week
+
+for(sensorName in sensorList){
+  avghourlysolarTNHA = solarrad %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+
+  avghourlysolarTNHA$Date = floor_date(avghourlysolarTNHA$Date, unit = "hours", week_start = getOption("lubridate.week.start",      7))
+
+  avghourlysolarTNHA = aggregate(value ~ Date, avghourlysolarTNHA, mean, na.rm=T)
+  sensor = rep(sensorName, nrow(avghourlysolarTNHA))
+  avghourlysolarTNHA = data.frame(avghourlysolarTNHA, sensor)
+  avghourlysolar = rbind(avghourlysolar, avghourlysolarTNHA)
+}
+
+```
+
+
+```{r}
+avgstation = aggregate(value ~ Date, avghourlysolar, mean, na.rm=T)
+avghourlysolar %>% filter(!sensor == "TNHA-SD")
+sd_station = aggregate(value ~ Date, avghourlysolar, sd, na.rm=T)
+```
+
+#AVERAGE HOURLY SOLAR FIGURE FOR TNHA SENSORS WITH MEAN AND STANDARD DEVIATION
+```{r fig10, fig.height = 6, fig.width = 16}
+
+ggplot() +
+  geom_line(data=avghourlysolar, aes(x=Date, y=value, color = sensor), size = 0.9) +
+  geom_line(data=avgstation, aes(x=Date, y=value, color = "Average Radiation"), size = 3) +
+  geom_line(data=sd_station, aes(x=Date, y=value, color = "Standard Deviation"), size = 3) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  labs(y="W /"~m^2~"",color="Legend") +
+  ggtitle(paste("Diurnal Cycles at TNHA,",datemin,"and",datemax)) +
+  scale_x_datetime(breaks = datestep, minor_breaks = dateminstep) +
+  scale_y_continuous(limits=c(0, 900)) +
+  theme(axis.text.y =element_text(face="bold",size=14,family="Times New Roman") ,axis.text.x=element_text(angle = 45, hjust = 1.0,face = "bold",size = 14,family="Times New Roman"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(axis.title.x = element_text(size=24,family="Times New Roman"), axis.title.y = element_text(size=24,family="Times New Roman"), legend.text = element_text(size=16,family="Times New Roman"), legend.title = element_text(size=24,face="bold",family="Times New Roman")) +
+  theme(plot.title = element_text(hjust = 0.5,size=32,family="Times New Roman"), 
+        plot.caption = element_text(face ="italic")) +
+  scale_color_manual(values =c("TNHA-BASE" = "gray80" ,"TNHA-SA" = "gray69", "TNHA-SB"="gray57", "TNHA-SC" = "gray45", "Average Radiation"="maroon3", "Standard Deviation" = "cyan3"))
+
+
+#Notes for myself: try to figure out spacing of dates/times
+
+```
+```{r}
+avghourlysolar1 = data.frame(Date=NA, value=NA, sensor=NA)[numeric(0), ]
+sensorList = c("BEO-Base")
+datemin = "2022-07-04"
+datemax = "2022-07-10"
+datestep = "6 hours" # "6 hours" works well for 1 week
+dateminstep = "1 hour" #little lines between dates, 1 hour for 1 week
+
+for(sensorName in sensorList){
+  avghourlysolarBEO = solarrad %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+
+  avghourlysolarBEO$Date = floor_date(avghourlysolarBEO$Date, unit = "hours", week_start = getOption("lubridate.week.start",      7))
+
+  avghourlysolarBEO = aggregate(value ~ Date, avghourlysolarBEO, mean, na.rm=T)
+  sensor = rep(sensorName, nrow(avghourlysolarBEO))
+  avghourlysolarBEO = data.frame(avghourlysolarBEO, sensor)
+  avghourlysolar1 = rbind(avghourlysolar1, avghourlysolarBEO)
+}
+
+```
+
+
+```{r}
+avgstationBEO = aggregate(value ~ Date, avghourlysolar1, mean, na.rm=T)
+sd_stationBEO = aggregate(value ~ Date, avghourlysolar1, sd, na.rm=T)
+```
+
+#AVERAGE HOURLY SOLAR FIGURE FOR TNHA SENSORS WITH MEAN AND STANDARD DEVIATION
+
+```{r fig10, fig.height = 6, fig.width = 16}
+
+ggplot() +
+  geom_line(data=avghourlysolar1, aes(x=Date, y=value, color = sensor), size = 0.9) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  labs(y="W /"~m^2~"",color="Legend") +
+  ggtitle(paste("Diurnal Cycles at BEO,",datemin,"and",datemax)) +
+  scale_x_datetime(breaks = datestep, minor_breaks = dateminstep) +
+  scale_y_continuous(limits=c(0, 900)) +
+  theme(axis.text.y =element_text(face="bold",size=14,family="Times New Roman") ,axis.text.x=element_text(angle = 45, hjust = 1.0,face = "bold",size = 14,family="Times New Roman"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(axis.title.x = element_text(size=24,family="Times New Roman"), axis.title.y = element_text(size=24,family="Times New Roman"), legend.text = element_text(size=16,family="Times New Roman"), legend.title = element_text(size=24,face="bold",family="Times New Roman")) +
+  theme(plot.title = element_text(hjust = 0.5,size=32,family="Times New Roman"), 
+        plot.caption = element_text(face ="italic")) +
+  scale_color_manual(values =c("BEO-Base" = "maroon3"))
+```
+```{r}
+avghourlysolar2 = data.frame(Date=NA, value=NA, sensor=NA)[numeric(0), ]
+sensorList = c("SSMH-BASE","SSMH-SA","SSMH-SB")
+datemin = "2022-07-04"
+datemax = "2022-07-10"
+datestep = "6 hours" # "6 hours" works well for 1 week
+dateminstep = "1 hour" #little lines between dates, 1 hour for 1 week
+
+for(sensorName in sensorList){
+  avghourlysolarSSMH = solarrad %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+
+  avghourlysolarSSMH$Date = floor_date(avghourlysolarSSMH$Date, unit = "hours", week_start = getOption("lubridate.week.start",      7))
+
+  avghourlysolarSSMH = aggregate(value ~ Date, avghourlysolarSSMH, mean, na.rm=T)
+  sensor = rep(sensorName, nrow(avghourlysolarSSMH))
+  avghourlysolarSSMH = data.frame(avghourlysolarSSMH, sensor)
+  avghourlysolar2 = rbind(avghourlysolar2, avghourlysolarSSMH)
+}
+
+```
+
+
+```{r}
+avgstationSSMH = aggregate(value ~ Date, avghourlysolar2, mean, na.rm=T)
+sd_stationSSMH = aggregate(value ~ Date, avghourlysolar2, sd, na.rm=T)
+```
+
+#AVERAGE HOURLY SOLAR FIGURE FOR TNHA SENSORS WITH MEAN AND STANDARD DEVIATION
+
+```{r fig10, fig.height = 6, fig.width = 16}
+
+ggplot() +
+  geom_line(data=avghourlysolar2, aes(x=Date, y=value, color = sensor), size = 0.9) +
+   geom_line(data=avgstationSSMH, aes(x=Date, y=value, color = "Average Radiation"), size = 3) +
+  geom_line(data=sd_stationSSMH, aes(x=Date, y=value, color = "Standard Deviation"), size = 3) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  labs(y="W /"~m^2~"",color="Legend") +
+  ggtitle(paste("Diurnal Cycles at SSMH,",datemin,"and",datemax)) +
+  scale_x_datetime(breaks = datestep, minor_breaks = dateminstep) +
+  scale_y_continuous(limits=c(0, 900)) +
+  theme(axis.text.y =element_text(face="bold",size=14,family="Times New Roman") ,axis.text.x=element_text(angle = 45, hjust = 1.0,face = "bold",size = 14,family="Times New Roman"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(axis.title.x = element_text(size=24,family="Times New Roman"), axis.title.y = element_text(size=24,family="Times New Roman"), legend.text = element_text(size=16,family="Times New Roman"), legend.title = element_text(size=24,face="bold",family="Times New Roman")) +
+  theme(plot.title = element_text(hjust = 0.5,size=32,family="Times New Roman"), 
+        plot.caption = element_text(face ="italic")) +
+  scale_color_manual(values =c("SSMH-BASE" = "gray80" ,"SSMH-SA" = "gray69", "SSMH-SB"="gray57", "Average Radiation"="maroon3", "Standard Deviation" = "cyan3"))
+```

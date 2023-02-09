@@ -1,0 +1,125 @@
+---
+title: "Diurnal_Cycles_SOLAR"
+author: "Kiefer Fallin"
+date: "1/28/2023"
+output: html_document
+---
+
+# loading packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape)
+library(naniar)
+library(RColorBrewer)
+library(clock)    #this is a new package that I downloaded to use the date_group() function (basically group_by() but for POSIXct vectors)
+library(timechange)  #my lubridate package would not work unless I loaded this one as well
+library(lubridate)
+```
+
+# solar radiation for all sites data prepping
+
+```{r}
+solarrad619_920 = read.csv("/Users/kieferfallin/Desktop/Research/Season_SOLARAD_6_19_22_9_20_22_2022_09_21_16_27_20_UTC_1.csv")
+names(solarrad619_920) <- sub("olar.Radiation..RXW.LIB", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("olar.Radiation..S.LIB", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("S.", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solarrad619_920))
+solarrad619_920$Date <- as.POSIXct(solarrad619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+# creating long dataset for solar radiation (Mirella's code)
+
+```{r}
+solarrad = gather(solarrad619_920, variable, response, '21401801.21362319.1':'21198259.21398620.1') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUCEI-SA", "21398624" = "BUECI-SB", "21362313" = "BUCEI-SC", "21362316" = "BUCEI-SD", "21362320" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-Base"))
+```
+
+
+# Averaging data by hour per day for sensor over 6/19-6/24 for TNHA-BASE
+```{r}
+# Filter for the specified sensor and date range
+TNHA_BASE_solar <- solarrad %>%
+  filter(sensor == "TNHA-BASE" & 
+         Date >= "2022-06-19 00:00:00" & 
+         Date <= "2022-06-24 23:55:00")
+# for some reason this still excludes observations from 6/19 up to 04:00:00 and includes some 6/25 dates
+
+```
+
+# averging data for TNHA-BASE by hour per day 
+```{r}
+TNHA_BASE_solaravg <- TNHA_BASE_solar %>%
+  group_by(hour = date_group(Date,"hour"), day = date_group(Date, "day")) %>%
+  summarize(mean_solar = mean(value)) #this is the average solar radiation for every hour of every day in the date range
+```
+
+# adding columns that have just the hour and just the day,month, and year
+```{r}
+TNHA_BASE_solaravg$hour_only <- format(TNHA_BASE_solaravg$hour, "%H")
+TNHA_BASE_solaravg$day_only <- format(TNHA_BASE_solaravg$hour, "%m/%d/%y")
+```
+
+# Getting the mean solar radiation for each hour for the week
+```{r}
+TNHA_BASE_daily_hourly_avg <- TNHA_BASE_solaravg %>% 
+  group_by(hour_only) %>% 
+  summarise(hourly_solar_avg = mean(mean_solar))%>%
+  mutate(hour=as.numeric(hour_only))%>%
+  select(hour,hourly_solar_avg)
+
+head(TNHA_BASE_daily_hourly_avg,24)
+```
+
+# Doing the same thing but for all of the stations combined
+
+## Subsetting for just 6-19 to 6-24 for TNHA sites
+```{r}
+TNHAsolar <- solarrad %>%
+  filter(station == "TNHA" & Date >= "2022-06-19 00:00:00" & Date <= "2022-06-24 23:55:00")
+```
+
+# Creating dataset with the average solar radiation at a given hour for TNHA throughout the week
+```{r}
+TNHAsolaravg <- TNHAsolar %>%
+  group_by(hour = date_group(Date,"hour"), day = date_group(Date, "day")) %>%
+  summarize(mean_solar = mean(value))
+
+TNHAsolaravg$hour_only <- format(TNHAsolaravg$hour, "%H")
+TNHAsolaravg$day_only <- format(TNHAsolaravg$hour, "%m/%d/%y")
+
+
+TNHA_daily_hourly_avg <- TNHAsolaravg %>% 
+  group_by(hour_only) %>% 
+  summarise(hourly_solar_avg = mean(mean_solar))%>%
+  mutate(hour=as.numeric(hour_only))%>%
+  select(hour,hourly_solar_avg)
+
+head(TNHA_daily_hourly_avg,24)
+```
+
+
+
+
+
+
+
