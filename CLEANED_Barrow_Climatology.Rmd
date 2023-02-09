@@ -733,9 +733,6 @@ BASEMAXTEMP <- Weekly_Airtemp_MaxMinMed %>% filter(!sensor=="TNHA-SB", !sensor =
 ```
 
 
-```
-
-
 DAILY AVERAGE VALUE: MEAN DAILY AIR TEMPERATURE per sensor at TNHA for summer season
 ```{r}
 bigbet %>% 
