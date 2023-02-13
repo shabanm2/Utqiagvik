@@ -155,7 +155,7 @@ grndtmp$sensor <- revalue(grndtmp$sensor, c("21398585" = "BUECI-BASE", "21398590
 -------Convert to Daily Values-------
 
 ```{r}
-avgdailysolar = data.frame(Date=NA, value=NA, sensor=NA)[numeric(0), ]
+avgdailysolar = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
 sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
 
 
@@ -166,7 +166,8 @@ for(sensorName in sensorList){
 
   daily = aggregate(value ~ Date, daily, mean, na.rm=T)
   sensor = rep(sensorName, nrow(daily))
-  daily = data.frame(daily, sensor)
+  station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD"), "" ,sensorName), nrow(daily))
+  daily = data.frame(daily, station, sensor)
   avgdailysolar = rbind(avgdailysolar, daily)
 }
 
@@ -175,8 +176,7 @@ colnames(avgdailysolar)[2] = "solar"
 ```
 
 ```{r}
-### some kind of issue with the for loop occurring here
-avgdailyground = data.frame(Date=NA, value=NA, sensor=NA)[numeric(0), ]
+avgdailyground = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
 sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
 
 
@@ -189,53 +189,46 @@ if(nrow(daily) > 0){
 
   daily = aggregate(value ~ Date, daily, mean, na.rm=T)
   sensor = rep(sensorName, nrow(daily))
-  daily = data.frame(daily, sensor)
+  station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD"), "" ,sensorName), nrow(daily))
+  daily = data.frame(daily, station, sensor)
   avgdailyground = rbind(avgdailyground, daily)
 }
 
   
 }
 
-colnames(avgdailyground)[2] = "solar"
+colnames(avgdailyground)[2] = "grndtmp"
 
+```
+
+-------Merge Data Frames-------
+
+```{r}
+averages = avgdailysolar %>% full_join(avgdailyground, by=c("Date","sensor","station"))
+solar = averages[,2]
+averages = averages[,-2]
+averages = data.frame(averages, solar)
 ```
 
 -------Graphs for One Week-------
 
--------Example GGPlot2 from Mirella--------
+NOTE: currently displayed as points --> form linear regression?
 
-TNHA only VWC
-```{r fig8, fig.height = 15, fig.width = 18}
-df4 <- df %>% filter(!station == "BUECI", 
-                             !station =="BEO", 
-                             !station == "SSMH")
+```{r fig8, fig.height = 12, fig.width = 18}
+ggplot() +
+  geom_point(data=averages, aes(x=grndtmp, y=solar, color = sensor), size = 3) +
 
-ggplot(subset(df4, 
-              depth %in% c("0:15cm","30:45cm","60:75cm", "75:90cm")), 
-       aes(x=Date, y= response, color = sensor)) + 
-  geom_point(size = 0.5) +
-  guides(color = guide_legend(override.aes = list(size=10))) +
-  facet_grid(depth~station) + 
   theme_bw() +
-  labs(title= "Ground Moisture", y="Volumetric Water Content ("~m^3~"/"~m^3~")",color="Station") + 
-  scale_x_datetime(date_breaks = "1 weeks") +
-  theme(axis.text.y = element_text(size = 15)) +
-  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
-        axis.line = element_line(colour = "black", size =0.5, 
-                                 linetype = "solid")) +
-  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 30), 
-        plot.caption = element_text(face ="italic"),
-        strip.text = element_text(size = 20),
-        axis.title = element_text(size = 20)) +
-  theme(axis.title.y = element_text(margin = margin(r=15))) +
-  theme(axis.title.x = element_text(margin = margin(t=15))) +
-  theme(legend.title = element_text(size = 20),
-        legend.text = element_text(size = 10),
-        legend.key.height = unit(1,'cm')) +
+  labs(title= "Ground Temperature v. Solar Radiation", x="Ground Temperature (°C)", y="Solar Radiation (W/"~m^2~")",color="Station") + 
+  #scale_x_datetime(breaks = datestep, minor_breaks = dateminstep) +
+  
+  
+  theme(axis.text.y =element_text(face="bold",size=16,family="Times New Roman") ,axis.text.x=element_text(face = "bold",size = 16,family="Times New Roman"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(axis.title.x = element_text(size=24,family="Times New Roman"), axis.title.y = element_text(size=24,family="Times New Roman"), legend.text = element_text(size=16,family="Times New Roman"), legend.title = element_text(size=24,face="bold",family="Times New Roman")) +
+  theme(plot.title = element_text(hjust = 0.5,size=32,family="Times New Roman"), 
+        plot.caption = element_text(face ="italic")) +
   scale_colour_hue(breaks=c("TNHA-BASE","TNHA-SA", "TNHA-SC", "TNHA-SD"))
-#SB removed as there is no data tied to it in hobolink
+  
+
 ```
-
-
-
 
