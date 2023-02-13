@@ -49,6 +49,11 @@ grndtmp$Date <-as.POSIXct(grndtmp$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 #Air Temp Sensor - Remove
 grndtmp = grndtmp[,-14]
+
+#THESE ARE BLANK COLUMNS - rewrite if using a different data set
+#NOTE: these have gaps in the BEGINNING part of data collection - may not always be blank
+grndtmp = grndtmp[,-c(26:36)]
+grndtmp = grndtmp[,-c(92:201)]
 ```
 
 
@@ -175,14 +180,19 @@ sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
 
 
 for(sensorName in sensorList){
-  daily = grndtmp %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
-
+  #Make sure sensor has data - otherwise will throw error
+    
+    daily = grndtmp %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+if(nrow(daily) > 0){
   daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
 
   daily = aggregate(value ~ Date, daily, mean, na.rm=T)
   sensor = rep(sensorName, nrow(daily))
   daily = data.frame(daily, sensor)
   avgdailyground = rbind(avgdailyground, daily)
+}
+
+  
 }
 
 colnames(avgdailyground)[2] = "solar"
@@ -224,6 +234,7 @@ ggplot(subset(df4,
   scale_colour_hue(breaks=c("TNHA-BASE","TNHA-SA", "TNHA-SC", "TNHA-SD"))
 #SB removed as there is no data tied to it in hobolink
 ```
+
 
 
 
