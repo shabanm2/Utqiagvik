@@ -175,7 +175,7 @@ colnames(avgdailysolar)[2] = "solar"
 ```
 
 ```{r}
-avgdailyground = data.frame(Date=NA, value=NA, sensor=NA)[numeric(0), ]
+avgdailyground = data.frame(Date=NA, value=NA, sensor=NA)[numeric(0), ] ####
 sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
 
 
