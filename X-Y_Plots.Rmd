@@ -175,6 +175,7 @@ colnames(avgdailysolar)[2] = "solar"
 ```
 
 ```{r}
+### some kind of issue with the for loop occurring here
 avgdailyground = data.frame(Date=NA, value=NA, sensor=NA)[numeric(0), ]
 sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
 
