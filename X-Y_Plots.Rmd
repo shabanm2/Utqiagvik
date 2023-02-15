@@ -109,7 +109,7 @@ solarrad = gather(solarrad, variable, response, '21401801.21362319.1':'21198259.
   mutate(variable = fct_inorder(variable))
 
 solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
-solarrad$variable_3 <- NULL
+solarrad$variable_3 <- NULL # you need to check the dataframe BEFORE running this line to see if this is the row you want to remove -- different on every computer
 colnames(solarrad)[3:5] <- c("value", "station", "sensor")
 solarrad$value <- as.numeric(as.character(solarrad$value)) 
 solarrad$sensor <- as.factor(as.character(solarrad$sensor))
