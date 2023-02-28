@@ -755,10 +755,20 @@ airtemp %>%
   theme(axis.text.y =element_text(face="bold") ,axis.text.x=element_text(angle = 45,
 hjust = 1.0,face = "bold"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) + theme(plot.title = element_text(hjust = 0.5), 
          plot.caption = element_text(face ="italic")) 
-
-  
-  
+ 
 ```
 
 
+# Averaging data for TNHA (all sensors) by hour per day for air temp
+
+```{r}
+TNHA_avg_airtemp <- airtemp %>%
+  group_by(hour = date_group(Date,"hour"), day = date_group(Date, "day"),sensor) %>%
+  summarize(mean_airtemp = mean(value)) #this is the average solar radiation for every hour of every day in the date range
+
+# adding columns that have just the hour and just the day,month, and year
+TNHA_avg_airtemp$hour_only <- format(TNHA_avg_airtemp$hour, "%H")
+TNHA_avg_airtemp$hour <- NULL
+head(TNHA_avg_airtemp,24)
+```
 
