@@ -568,33 +568,21 @@ TNHA_BASE_solar <- solarrad %>%
   filter(sensor == "TNHA-BASE" & 
          Date >= "2022-06-19 00:00:00" & 
          Date <= "2022-06-24 23:55:00")
-# for some reason this still excludes observations from 6/19 up to 04:00:00 and includes some 6/25 dates
 
 ```
 
-# averging data for TNHA-BASE by hour per day 
+# averging data for TNHA (all sensors) by hour per day 
 ```{r}
-TNHA_BASE_solaravg <- TNHA_BASE_solar %>%
-  group_by(hour = date_group(Date,"hour"), day = date_group(Date, "day")) %>%
+TNHA_avgsolar <- solarrad %>%
+  group_by(hour = date_group(Date,"hour"), day = date_group(Date, "day"),sensor) %>%
   summarize(mean_solar = mean(value)) #this is the average solar radiation for every hour of every day in the date range
-```
 
 # adding columns that have just the hour and just the day,month, and year
-```{r}
-TNHA_BASE_solaravg$hour_only <- format(TNHA_BASE_solaravg$hour, "%H")
-TNHA_BASE_solaravg$day_only <- format(TNHA_BASE_solaravg$hour, "%m/%d/%y")
+TNHA_avgsolar$hour_only <- format(TNHA_avgsolar$hour, "%H")
+TNHA_avgsolar$hour <- NULL
+head(TNHA_avgsolar,24)
 ```
 
-# Getting the mean solar radiation for each hour for the week
-```{r}
-TNHA_BASE_daily_hourly_avg <- TNHA_BASE_solaravg %>% 
-  group_by(hour_only) %>% 
-  summarise(hourly_solar_avg = mean(mean_solar))%>%
-  mutate(hour=as.numeric(hour_only))%>%
-  select(hour,hourly_solar_avg)
-
-head(TNHA_BASE_daily_hourly_avg,24)
-```
 ---END KIEFER CODE--
 
 -----------------------------------------------------------------------Air Temp------------------------------------------------------------------------------------
