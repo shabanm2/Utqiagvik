@@ -667,7 +667,7 @@ dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9"
 dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
 
 
-Plotting max, min, med values for air temp per week 
+#Plotting max, min, med values for air temp per week 
 ```
 
 ```{r}
