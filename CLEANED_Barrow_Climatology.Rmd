@@ -668,6 +668,8 @@ dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "4
 
 
 Plotting max, min, med values for air temp per week 
+```
+
 ```{r}
 
 Weekly_Airtemp_MaxMinMed %>% 
