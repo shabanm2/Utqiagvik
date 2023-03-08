@@ -1,0 +1,148 @@
+---
+title: "Thaw_Exposure"
+author: "Kiefer Fallin"
+date: "2/7/2023"
+output: html_document
+---
+
+# loading packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape)
+library(naniar)
+library(RColorBrewer)
+library(clock)    #this is a new package that I downloaded to use the date_group() function (basically group_by() but for POSIXct vectors)
+library(timechange)  #my lubridate package would not work unless I loaded this one as well
+library(lubridate)
+```
+
+# Data prepping for solar radiation, VWC, ground temperature
+```{r}
+#solar radiation dataset
+solarrad619_920 = read.csv("/Users/kieferfallin/Desktop/Research/Season_SOLARAD_6_19_22_9_20_22_2022_09_21_16_27_20_UTC_1.csv")
+names(solarrad619_920) <- sub("olar.Radiation..RXW.LIB", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("olar.Radiation..S.LIB", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("S.", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solarrad619_920))
+solarrad619_920$Date <- as.POSIXct(solarrad619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+#VWC dataset
+mst619_920=read.csv("/Users/kieferfallin/Desktop/Research/Season_VWC_6_19_22_9_20_22_2022_09_21_16_11_28_UTC_1.csv")
+names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst619_920))
+names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst619_920))
+names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW5", "", names(mst619_920))
+names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW6", "", names(mst619_920))
+names(mst619_920) <- sub("..RXW.GP6.", "", names(mst619_920))
+mst619_920$Date <-as.POSIXct(mst619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+#Ground Temperature dataset
+grndtmp619_920=read.csv("/Users/kieferfallin/Desktop/Research/Season_GRNDTMP_6_19_22_9_20_22_2022_09_21_16_19_26_UTC_1.csv")
+names(grndtmp619_920) <- sub("....C..RX3000_BRW1", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW4", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW5", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW6", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub(".RXW.GP6.", "", names(grndtmp619_920))
+grndtmp619_920$Date <-as.POSIXct(grndtmp619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+# Creating long datasets
+
+# Solar
+```{r}
+solarrad = gather(solarrad619_920, variable, response, '21401801.21362319.1':'21198259.21398620.1') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUCEI-SA", "21398624" = "BUECI-SB", "21362313" = "BUCEI-SC", "21362316" = "BUCEI-SD", "21362320" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-Base"))
+```
+
+# VWC
+```{r}
+VWC_long = gather(mst619_920, variable, response, Water.Content21198259.21206939.1:Water.Content21401803.21398591.6) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+df = cSplit(VWC_long, 'variable', sep=".", direction = "wide") 
+colnames(df)[5:7] <- c("station", "sensor", "depth")
+df$variable_1 <- NULL 
+df$depth <- as.factor(as.character(df$depth)) 
+df$station <- as.factor(df$station)
+df$sensor <- as.factor(as.character(df$sensor))
+df$station <- revalue(df$station, c("Content21198259" = "TNHA", "Content21401800" = "BUECI", "Content21401801" = "SSMH", "Content21401803" = "BEO")) 
+df$depth <- revalue(df$depth, c("1" = "0:15cm", "2" = "15:30cm", "3" = "30:45cm", "4" = "45:60cm", "5" = "60:75cm", "6" = "75:90cm"))
+df$sensor <- revalue(df$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05")) 
+```
+
+# Ground Temperature
+```{r}
+grndtmp = gather(grndtmp619_920, variable, response, Temperature.21198259.21206939.7:Temperature.21401803.21398591.17) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+dfgrndtemp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(dfgrndtemp)[3] <- ("value")
+colnames(dfgrndtemp)[5:7] <- c("station", "sensor", "depth")
+dfgrndtemp$V212 <- NULL
+dfgrndtemp$V213 <- NULL
+dfgrndtemp$variable_1 <- NULL
+dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth))
+dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
+dfgrndtemp$station <- as.factor(dfgrndtemp$station)
+dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+```
+
+
+# Plotting hourly averages over the first week of each month for three shallowest VWC depths
+
+# Subsetting data: Only care about first week of each month and depths 0-15cm, 15-30cm, and 30-45cm
+
+```{r}
+VWC_1st_week <- df %>%
+  filter(Date >= as.POSIXct("2022-06-19 00:00:00", tz="UTC") & #I didn't want to completely leave out June since this data does not include the first week of June. Instead, I just filtered for the earliest week in June that we have.
+         Date <= as.POSIXct("2022-06-24 23:59:59", tz="UTC") &
+         depth %in% c("15:30cm", "0:15cm", "30:45cm")) %>% #this filters for the three depths we are concerned with
+  bind_rows(df%>%
+  filter(Date >= as.POSIXct("2022-07-01 00:00:00", tz="UTC") & #this is the same filtering method I used for the diurnal cycles. Except this time I've specified the time zone each date range filter which seems to get rid of the problem where the dataset started at 2022-06-19 04:00:00 instead of 2022-06-19 00:00:00, for example. 
+         Date <= as.POSIXct("2022-07-07 23:59:59", tz="UTC") &
+         depth %in% c("15:30cm", "0:15cm", "30:45cm"))) %>%
+  bind_rows(df %>%
+  filter(Date >= as.POSIXct("2022-08-01 00:00:00", tz="UTC") & 
+         Date <= as.POSIXct("2022-08-07 23:59:59", tz="UTC") &
+         depth %in% c("15:30cm", "0:15cm", "30:45cm"))) %>%
+  bind_rows(df %>%
+  filter(Date >= as.POSIXct("2022-09-01 00:00:00", tz="UTC") & 
+         Date <= as.POSIXct("2022-09-07 23:59:59", tz="UTC") &
+         depth %in% c("15:30cm", "0:15cm", "30:45cm")))
+```
+
+
+# Getting average hourly VWC for each hour of each day for each sensor
+
+```{r}
+VWC_avgs_all_sensors <- VWC_1st_week %>%
+  group_by(sensor, hour = floor_date(Date, "hour"), day = floor_date(Date, "day")) %>%
+  summarize(avg_VWC = mean(response))
+```
+
+
+
+
