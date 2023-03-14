@@ -205,14 +205,36 @@ colnames(avgdailyground)[2] = "grndtmp"
 
 ```
 
+```{r}
+avgdailyair = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
+sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
+
+
+for(sensorName in sensorList){
+  daily = airtemp %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+
+  daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
+
+  daily = aggregate(value ~ Date, daily, mean, na.rm=T)
+  sensor = rep(sensorName, nrow(daily))
+  station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD"), "" ,sensorName), nrow(daily))
+  daily = data.frame(daily, station, sensor)
+  avgdailyair= rbind(avgdailyair, daily)
+}
+
+colnames(avgdailyair)[2] = "airtemp"
+```
+
 
 -------Merge Data Frames-------
 
 ```{r}
-averages = avgdailysolar %>% full_join(avgdailyground, by=c("Date","sensor","station"))
+averages = avgdailysolar %>% full_join(avgdailyground, by=c("Date","sensor","station")) %>%
+filter(!solar == -888.88000)
 solar = averages[,2]
 averages = averages[,-2]
 averages = data.frame(averages, solar)
+averages = averages %>% full_join(avgdailyair, by=c("Date","sensor","station"))
 ```
 
 -------Graphs for One Week-------
@@ -286,3 +308,159 @@ ggplot() +
 
 ```
 
+----- Plotting XY figures of stations grnd tmp vs air tmp against eachother for later gap filling comparisons ------
+
+```{r}
+XY_grnd_air= averages %>% filter(!sensor == "TNHA-BASE", !sensor == "TNHA-SA", !sensor == "TNHA-SB") 
+  ggplot(data = XY_grnd_air, aes(x=airtemp, y = grndtmp, color=sensor)) +
+  geom_point()+
+  theme_bw() + 
+    labs(title= "TNHA-SC vs. TNHA-SD @ 10cm depth, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature (°C) @ 10cm",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 20), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE)  #add a line of best fit
+  
+  #add date min and max
+```
+#
+
+
+```{r}
+XY_grnd_air = averages %>% filter(!sensor == "TNHA-SC", !sensor == "TNHA-SD", !sensor == "TNHA-SB") 
+  ggplot(data = XY_grnd_air, aes(x=airtemp, y = grndtmp, color=sensor)) +
+  geom_point()+
+  theme_bw() + 
+    labs(title= "TNHA-BASE vs. TNHA-SA (°C) @ 10cm, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature (°C) @ 10cm",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 20), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE)
+```
+
+```{r}
+XY_grnd_air = averages %>% filter(!sensor == "TNHA-SB", !sensor == "TNHA-SD", !sensor == "TNHA-SA") 
+  ggplot(data = XY_grnd_air, aes(x=airtemp, y = grndtmp, color=sensor)) +
+  geom_point()+
+  theme_bw() + 
+    labs(title= "TNHA-BASE vs. TNHA-SC (°C) @ 10cm, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature (°C) @ 10cm",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 20), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE)
+```
+
+```{r}
+XY_grnd_air = averages %>% filter(!sensor == "TNHA-BASE", !sensor == "TNHA-SD", !sensor == "TNHA-SB") 
+  ggplot(data = XY_grnd_air, aes(x=airtemp, y = grndtmp, color=sensor)) +
+  geom_point()+
+  theme_bw() + 
+    labs(title= "TNHA-SA vs. TNHA-SC (°C) @ 10cm, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature (°C) @ 10cm",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 20), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE)
+```
+
+
+# see where the data gaps between sensors are occuring for gap filling
+```{r}
+gap_list_adj = gap_list %>% filter(station == "TNHA", !sensor == "TNHA-SB", !sensor == "TNHA-SC", !sensor == "TNHA-SD")
+sideye <- sideye %>%  filter(!sensor == "TNHA-SB", !sensor == "TNHA-SC", !sensor == "TNHA-SD")
+sideye %>%
+  ggplot() +
+  geom_point(aes(x=Date, y = grndtmp, color = sensor)) +
+  geom_point(data = gap_list_adj, aes(x = gap_date, y = gap_date, color = sensor))
+    theme_bw()
+```
+
+```{r}
+dataaa <- grndtmp %>% filter(sensor == "TNHA-SA")
+ggplot_na_gapsize(dataaa)
+```
+
+----- GRND AMPLITUDE -----
+
+```{r}
+grndamp <- grndtmp %>% filter(grndtmp$depth == "10cm", !value == 0.0) 
+grndamp <- grndamp %>%
+  group_by(sensor) %>%
+  mutate(
+    Maxval = max(value, na.rm = T),
+    Minval = min(value, na.rm = T),
+    mean_val = mean(value, na.rm = T),
+    amplitude = (Maxval-Minval)/2
+  ) %>%
+   arrange(sensor)
+
+Aggregated2 = grndamp %>% distinct(sensor, Maxval,Minval, mean_val, amplitude) #over whole smummer season, just the average over the whole season per sensor
+
+#this chunk currently does NOT work
+
+```
+
+
+```{r}
+
+grndamp$airavg <- averages$airtemp
+amp_figs = grndamp %>% filter(!sensor == "TNHA-SB", !sensor == "TNHA-SD", !sensor == "TNHA-SA") 
+  ggplot(data = amp_figs, aes(x=airtemp, y = grndtmp, color=sensor)) +
+  geom_point()+
+  theme_bw() + 
+    labs(title= "TNHA-BASE vs. TNHA-SC, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature Amplitude",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 20), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE)
+
+```
