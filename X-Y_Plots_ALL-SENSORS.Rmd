@@ -140,6 +140,7 @@ solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUCEI-BASE", "213986
                                               "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
                                               "21390415" = "BEO-Base"))
 
+solarrad <- solarrad %>% filter(!value == -888.88000) 
 ```
 
 ```{r fig9, fig.heigt = 14, fig.width = 18}
@@ -163,6 +164,8 @@ grndtmp$station <- revalue(grndtmp$station, c("21198259" = "TNHA", "21401800" = 
 
 grndtmp$sensor <- revalue(grndtmp$sensor, c("21398585" = "BUCEI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUCEI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
 
+grndtmp <- grndtmp %>% filter(!value == -888.88)
+
 ```
 ```{r fig9, fig.heigt = 14, fig.width = 18}
 grndmst = mst
@@ -184,6 +187,8 @@ grndmst$station <- revalue(grndmst$station, c("21198259" = "TNHA", "21401800" = 
 #Find Sensor Values
 
 grndmst$sensor <- revalue(grndmst$sensor, c("21398585" = "BUCEI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUCEI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+
+grndmst <- grndmst %>% filter(!value == -888.88)
 
 ```
 
@@ -268,7 +273,7 @@ colnames(avgdailymst)[2] = "moisture"
 
 ```{r}
 averages = avgdailysolar %>% full_join(avgdailyground, by=c("Date","sensor","station")) %>% 
-  full_join(avgdailymst, by=c("Date","sensor","station"))
+  full_join(avgdailymst, by=c("Date","sensor","station")) 
 solar = averages[,2]
 averages = averages[,-2]
 averages = data.frame(averages, solar)
@@ -295,11 +300,6 @@ averages = data.frame(averages, mstpred)
 summary(mstmodel)
 ```
 
-
-REMOVE BAD VALUES
-```{r}
-averages = na_if(averages, -888.8800)
-```
 
 ```{r}
 averages$sensor = sub(c("TNHA-|SSMH-|BUCEI-|BEO-"), "" ,averages$sensor)
