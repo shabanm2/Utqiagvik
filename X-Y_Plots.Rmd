@@ -250,7 +250,7 @@ averages = data.frame(averages, pred)
 ```
 REMOVE BAD VALUES
 ```{r}
-averages = na_if(averages, -888.8800)
+averages = na_if(averages, -888.8800) #error occurs here, double vs numeric?
 ```
 
 
