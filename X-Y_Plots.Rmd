@@ -1,6 +1,6 @@
 ---
 title: "X-Y_Plots"
-author: "Elizabeth Van Metre"
+authors: "Elizabeth Van Metre, Mirella Shaban"
 date: '2023-02-10'
 output: html_document
 ---
@@ -104,6 +104,24 @@ airtemp$Date <- as.POSIXct(airtemp$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 
 -------Convert to Long DataFrame-------
+#Air Temperature
+```{r fig9, fig.heigt = 14, fig.width = 18}
+raw_air = airtemp
+
+airtemp = gather(airtemp, variable, response, "21198259.21380919.1":"21401803.21397541.1") %>%
+  mutate(variable = fct_inorder(variable))
+airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+airtemp$variable_3 <- NULL
+colnames(airtemp)[3:5] <- c("value", "station", "sensor")
+airtemp$value <- as.numeric(as.character(airtemp$value)) 
+airtemp$sensor <- as.factor(as.character(airtemp$sensor))
+airtemp$station <- as.factor(airtemp$station)
+airtemp$station <- revalue(airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671" = "BUCEI-SA", "21362254" = "BUECI-SB", "21398668" = "BUCEI-SC", "21398660" = "BUCEI-SD", "21187245" = "BUCEI-SE",
+                                            "21390849" ="SSMH-BASE","21393049" = "SSMH-SD", "21398670" = "SSMH-SA", "21398665" = "SSMH-SB",
+                                            "21218018" = "TNHA-BASE", "21380919" = "TNHA-SA" , "21398676"="TNHA-SB","21398666" = "TNHA-SD", "21398674" = "TNHA-SC", "21397541" = "BEO-BASE"))
+#TNHA-A and TNHA-B are GUESSES - need metadata on ground
+```
 
 #Solar Radiation
 ```{r fig9, fig.heigt = 14, fig.width = 18}
