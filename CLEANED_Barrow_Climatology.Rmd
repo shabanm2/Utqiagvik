@@ -611,7 +611,7 @@ airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671
 
 Daily average air temperature per sensor at station "X"
 ```{r}
-tnha_airmean <- airtemp %>% subset(station == c("SSMH")) %>% select(value,sensor,Date) %>% filter(!value == "0.0") 
+tnha_airmean <- airtemp %>% subset(station == c("TNHA")) %>% select(value,sensor,Date) %>% filter(!value == "0.0", !value == "-888.8", !sensor == "21398664") 
 
 tnha_airmean %>%
   mutate(date = day(Date))  %>%
@@ -625,7 +625,7 @@ tnha_airmean$time <- format(as.Date(
 tnha_airmean$day <- as.Date(tnha_airmean$Date)
 
 
-bigbet <- tnha_airmean %>% 
+Daily_average_airtmp_per_sensor <- tnha_airmean %>% 
   group_by(sensor, day) %>% filter(!sensor == '21398664') %>%
   aggregate(value ~ sensor + day, mean)
 #this gives us the daily mean air temp for each sensor at TNHA in summer season
@@ -655,23 +655,23 @@ newairtemp = gather(Weekly_Airtemp_MaxMinMed, variable, response, Max, Min, p) %
 
 newairtemp1= cSplit(newairtemp, 'variable', sep=".", direction = "wide") 
 
-dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth))
-dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
+newairtemp1$depth <- as.factor(as.character(newairtemp1$depth))
+newairtemp1$sensor <- as.factor(as.character(newairtemp1$sensor))
 
 
-dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
-dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+newairtemp1$station <- revalue(newairtemp1$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+newairtemp1$sensor <- revalue(newairtemp1$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
 
-dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+newairtemp1$depth <- revalue(newairtemp1$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
 
-dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+newairtemp1$depth = factor(newairtemp1$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+
 
 
 #Plotting max, min, med values for air temp per week 
 ```
 
 ```{r}
-
 Weekly_Airtemp_MaxMinMed %>% 
 ggplot(aes(x = time, y = p, ymin = Min, ymax = Max, color = sensor)) + 
     geom_pointrange() +
@@ -725,7 +725,7 @@ BASEMAXTEMP <- Weekly_Airtemp_MaxMinMed %>% filter(!sensor=="TNHA-SB", !sensor =
 
 DAILY AVERAGE VALUE: MEAN DAILY AIR TEMPERATURE per sensor at TNHA for summer season
 ```{r}
-bigbet %>% 
+Daily_average_airtmp_per_sensor %>% 
   ggplot() +
   geom_line(aes(x=day, y=value, color = sensor), size = 0.9) +
   guides(color = guide_legend(override.aes = list(size=10)))+
@@ -735,15 +735,15 @@ bigbet %>%
   theme(axis.text.y =element_text(face="bold") ,axis.text.x=element_text(angle = 45, hjust = 1.0,face = "bold"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
   theme(plot.title = element_text(hjust = 0.5), 
         plot.caption = element_text(face ="italic")) +
-  scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E"))
+  scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E"))
 
 ```
 
 
-#air temp average for TNHA,BEO,SSMH
+#air temp average comparisons for TNHA
 ```{r fig13, fig.height = 6, fig.width = 16}
 airtemp %>%
-  subset(station == c("BEO","SSMH","TNHA")) %>% filter(!sensor == "21398664") %>%
+  subset(station == c("TNHA")) %>% filter(!sensor == "21398664") %>%
   aggregate(value ~ Date + station + sensor , mean) %>%
   ggplot() +
   geom_line(aes(x=Date, y=value, color = sensor), size = 0.5) +
@@ -755,9 +755,16 @@ airtemp %>%
   theme(axis.text.y =element_text(face="bold") ,axis.text.x=element_text(angle = 45,
 hjust = 1.0,face = "bold"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) + theme(plot.title = element_text(hjust = 0.5), 
          plot.caption = element_text(face ="italic")) 
- 
-```
 
+airtemp %>%
+  subset(station == c("TNHA")) %>% filter(!sensor == "21398664") %>%
+  aggregate(value ~ Date + station + sensor , mean) %>%
+  ggplot(aes(x=sensor, y = value)) + 
+  geom_boxplot() +
+  stat_summary(fun.data=mean_cl_boot, geom="errorbar", colour="red", width=0.1) +
+  stat_summary(fun.y=mean, geom="point", colour="red")
+  
+```
 
 # Averaging data for TNHA (all sensors) by hour per day for air temp
 
@@ -771,4 +778,14 @@ TNHA_avg_airtemp$hour_only <- format(TNHA_avg_airtemp$hour, "%H")
 TNHA_avg_airtemp$hour <- NULL
 head(TNHA_avg_airtemp,24)
 ```
+```{r}
+TNHA_avg_airtemp$mean_airtemp <- as.factor(TNHA_avg_airtemp$mean_airtemp)
+TNHA_avg_airtemp$hour_only <- as.numeric(TNHA_avg_airtemp$hour_only)
 
+new <- TNHA_avg_airtemp %>% subset(sensor == "TNHA-BASE", sensor == "	TNHA-SA")
+
+model <- aov(TNHA_avg_airtemp$hour_only ~ TNHA_avg_airtemp$mean_airtemp, data = new)
+
+#view output of ANOVA
+summary(model)
+```
