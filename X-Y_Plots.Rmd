@@ -248,11 +248,6 @@ pred <- predict(model, averages)
 averages = data.frame(averages, pred)
 
 ```
-REMOVE BAD VALUES
-```{r}
-averages = na_if(averages, -888.8800) #error occurs here, double vs numeric?
-```
-
 
 NOTE: currently displayed as points --> form linear regression?
 
@@ -429,7 +424,7 @@ grndamp <- grndamp %>%
     Maxval = max(value, na.rm = T),
     Minval = min(value, na.rm = T),
     mean_val = mean(value, na.rm = T),
-    amplitude = (Maxval-Minval)/2
+    amplitude = (Maxval-Minval)
   ) %>%
    arrange(sensor)
 
