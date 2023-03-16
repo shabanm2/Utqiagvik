@@ -23,6 +23,7 @@ depthcm = "10 cm"
 -------------DATA SETUP AND CLEANING-------------
 
 ```{r}
+
 library(ggplot2)
 library(plyr)
 library(dplyr)
@@ -49,15 +50,12 @@ names(grndtmp) <- sub("....C..RX3000_BRW6", "", names(grndtmp))
 names(grndtmp) <- sub(".RXW.GP6.", "", names(grndtmp))
 names(grndtmp) <- sub("Temperature.", "", names(grndtmp))
 grndtmp$Date <-as.POSIXct(grndtmp$Date,format="%m/%d/%y %H:%M",tz="UTC")
-
 #Air Temp Sensor - Remove
 grndtmp = grndtmp[,-14]
-
 #THESE ARE BLANK COLUMNS - rewrite if using a different data set
 #NOTE: these have gaps in the BEGINNING part of data collection - may not always be blank
 grndtmp = grndtmp[,-c(26:36)]
 grndtmp = grndtmp[,-c(92:201)]
-
 raw_ground = grndtmp
 ```
 
@@ -104,24 +102,6 @@ airtemp$Date <- as.POSIXct(airtemp$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 
 -------Convert to Long DataFrame-------
-#Air Temperature
-```{r fig9, fig.heigt = 14, fig.width = 18}
-raw_air = airtemp
-
-airtemp = gather(airtemp, variable, response, "21198259.21380919.1":"21401803.21397541.1") %>%
-  mutate(variable = fct_inorder(variable))
-airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
-airtemp$variable_3 <- NULL
-colnames(airtemp)[3:5] <- c("value", "station", "sensor")
-airtemp$value <- as.numeric(as.character(airtemp$value)) 
-airtemp$sensor <- as.factor(as.character(airtemp$sensor))
-airtemp$station <- as.factor(airtemp$station)
-airtemp$station <- revalue(airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
-airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671" = "BUCEI-SA", "21362254" = "BUECI-SB", "21398668" = "BUCEI-SC", "21398660" = "BUCEI-SD", "21187245" = "BUCEI-SE",
-                                            "21390849" ="SSMH-BASE","21393049" = "SSMH-SD", "21398670" = "SSMH-SA", "21398665" = "SSMH-SB",
-                                            "21218018" = "TNHA-BASE", "21380919" = "TNHA-SA" , "21398676"="TNHA-SB","21398666" = "TNHA-SD", "21398674" = "TNHA-SC", "21397541" = "BEO-BASE"))
-#TNHA-A and TNHA-B are GUESSES - need metadata on ground
-```
 
 #Solar Radiation
 ```{r fig9, fig.heigt = 14, fig.width = 18}
@@ -149,6 +129,7 @@ solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "213986
                                               "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
                                               "21390415" = "BEO-Base"))
 
+solarrad <- solarrad %>% filter(!value == -888.88)
 ```
 
 ```{r fig9, fig.heigt = 14, fig.width = 18}
@@ -163,21 +144,46 @@ colnames(grndtmp)[3:6] <- c("value", "station", "sensor","depth")
 grndtmp$value <- as.numeric(as.character(grndtmp$value)) 
 grndtmp$sensor <- as.factor(as.character(grndtmp$sensor))
 grndtmp$station <- as.factor(grndtmp$station)
-
+grndtmp$depth <- as.factor(grndtmp$depth)
 grndtmp$station <- revalue(grndtmp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
-
+grndtmp$depth <- revalue(grndtmp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11"
+                                          = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" =
+                                            "75cm", "16" = "85cm", "17" = "90cm"))
 
 
 #Find Sensor Values
 
 grndtmp$sensor <- revalue(grndtmp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
 
+grndtmp <- grndtmp %>% filter(!value == -888.88)
 ```
 
+
+
+```{r fig9, fig.heigt = 14, fig.width = 18}
+raw_air = airtemp
+
+airtemp = gather(airtemp, variable, response, "21198259.21380919.1":"21401803.21397541.1") %>%
+  mutate(variable = fct_inorder(variable))
+airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+airtemp$variable_3 <- NULL
+colnames(airtemp)[3:5] <- c("value", "station", "sensor")
+airtemp$value <- as.numeric(as.character(airtemp$value)) 
+airtemp$sensor <- as.factor(as.character(airtemp$sensor))
+airtemp$station <- as.factor(airtemp$station)
+airtemp$station <- revalue(airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671" = "BUCEI-SA", "21362254" = "BUECI-SB", "21398668" = "BUCEI-SC", "21398660" = "BUCEI-SD", "21187245" = "BUCEI-SE",
+                                            "21390849" ="SSMH-BASE","21393049" = "SSMH-SD", "21398670" = "SSMH-SA", "21398665" = "SSMH-SB",
+                                            "21218018" = "TNHA-BASE", "21380919" = "TNHA-SA" , "21398676"="TNHA-SB","21398666" = "TNHA-SD", "21398674" = "TNHA-SC", "21397541" = "BEO-BASE"))
+#TNHA-A and TNHA-B are GUESSES - need metadata on ground
+
+airtemp <- airtemp %>% filter(!value == -888.88)
+
+```
 -------Convert to Daily Values-------
 
 ```{r}
-avgdailysolar = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
+avgdailysolar_TNHA = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
 sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
 
 
@@ -185,46 +191,48 @@ for(sensorName in sensorList){
   daily = solarrad %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
 
   daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
-
+           
   daily = aggregate(value ~ Date, daily, mean, na.rm=T)
   sensor = rep(sensorName, nrow(daily))
   station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD"), "" ,sensorName), nrow(daily))
   daily = data.frame(daily, station, sensor)
-  avgdailysolar = rbind(avgdailysolar, daily)
+  avgdailysolar_TNHA = rbind(avgdailysolar_TNHA, daily)
 }
 
-colnames(avgdailysolar)[2] = "solar"
+colnames(avgdailysolar_TNHA)[2] = "solar"
 
 ```
 
 ```{r}
-avgdailyground = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
-sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
+#grndtmp_3.5cm <- grndtmp %>% filter(depth == "10cm")
+avgdailyground_TNHA = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
+sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SC", "TNHA-SD")
 
 
 for(sensorName in sensorList){
   #Make sure sensor has data - otherwise will throw error
     
-    daily = grndtmp %>% filter(sensor==sensorName) %>% filter(depth == bestdepth) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+    daily = grndtmp_3.5cm %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%
+      filter(as.Date(Date, "%Y-%m-%d") >= datemin)
 if(nrow(daily) > 0){
   daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
 
   daily = aggregate(value ~ Date, daily, mean, na.rm=T)
   sensor = rep(sensorName, nrow(daily))
-  station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD"), "" ,sensorName), nrow(daily))
+  station = rep(sub(c("-BASE|-SA|-SC|-SD"), "" ,sensorName), nrow(daily))
   daily = data.frame(daily, station, sensor)
-  avgdailyground = rbind(avgdailyground, daily)
+  avgdailyground_TNHA = rbind(avgdailyground_TNHA, daily)
 }
 
   
 }
 
-colnames(avgdailyground)[2] = "grndtmp"
+colnames(avgdailyground_TNHA)[2] = "grndtmp"
 
 ```
 
 ```{r}
-avgdailyair = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
+avgdailyair_TNHA = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
 sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
 
 
@@ -237,35 +245,45 @@ for(sensorName in sensorList){
   sensor = rep(sensorName, nrow(daily))
   station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD"), "" ,sensorName), nrow(daily))
   daily = data.frame(daily, station, sensor)
-  avgdailyair= rbind(avgdailyair, daily)
+  avgdailyair_TNHA= rbind(avgdailyair_TNHA, daily)
 }
 
-colnames(avgdailyair)[2] = "airtemp"
+colnames(avgdailyair_TNHA)[2] = "airtemp"
 ```
-
 
 -------Merge Data Frames-------
 
 ```{r}
-averages = avgdailysolar %>% full_join(avgdailyground, by=c("Date","sensor","station")) %>%
-filter(!solar == -888.88000)
+averages = avgdailysolar_TNHA %>% full_join(avgdailyground_TNHA, by=c("Date","sensor","station"))
 solar = averages[,2]
 averages = averages[,-2]
 averages = data.frame(averages, solar)
-averages = averages %>% full_join(avgdailyair, by=c("Date","sensor","station"))
+
+averages = averages %>% full_join(avgdailyair_TNHA, by=c("Date","sensor","station"))
 ```
 
 -------Graphs for One Week-------
 
 ```{r}
-model = train(grndtmp~solar, averages, method="lm", na.action = na.exclude)
+model = train(solar~airtemp, averages, method="lm", na.action = na.exclude)
 summary(model)
 
 pred <- predict(model, averages)
 
 averages = data.frame(averages, pred)
 
+#one week time span
 ```
+
+```{r}
+model1 = train(grndtmp~airtemp, averages, method="lm", na.action = na.exclude)
+summary(model1)
+pred1 <- predict(model1,averages)
+head(pred)
+averages = data.frame(averages,pred1)
+```
+
+
 
 NOTE: currently displayed as points --> form linear regression?
 
@@ -283,7 +301,7 @@ ggplot() +
   
 
   theme_bw() +
-  labs(title= paste("Ground Temperature v. Solar Radiation (",datemin,"to",datemax,"at",depthcm,")"), x="Solar Radiation (W/"~m^2~")", y="Ground Temperature (°C)",color="Station") + 
+  labs(title= paste("Ground Temperature v. Solar Radiation (",datemin,"to",datemax,"at",depthcm,")"), x="Solar Radiation (W/"~m^2~")", y="Ground Temperature (°C) @ 10cm ",color="Station") + 
   #scale_x_datetime(breaks = datestep, minor_breaks = dateminstep) +
   
   stat_summary(fun.data= mean_cl_normal) + 
@@ -320,8 +338,61 @@ ggplot() +
   
 
 ```
+# Are we testing each sensors ground temp vs its own solar rad? (ABOVE-- yes we are)
+```{r fig8, fig.height = 9, fig.width = 16}
+ymax = round(max(averages$grndtmp, na.rm = TRUE),-1) + 2.5
+ymin = round_any(min(averages$grndtmp, na.rm = TRUE),10, f=floor)
+xmax = round(max(averages$airtemp, na.rm = TRUE),-2)
+xmin = round_any(min(averages$airtemp, na.rm = TRUE),100, f=floor)-40
 
------ Plotting XY figures of stations grnd tmp vs air tmp against eachother for later gap filling comparisons ------
+ggplot() +
+  geom_point(data=averages, aes(x=airtemp, y=grndtmp, color = sensor), size = 5) +
+  
+  geom_line(data=averages, aes(x=airtemp, y=pred, color="red"), size=1) +
+  
+  
+
+  theme_bw() +
+  labs(title= paste("Ground Temperature v. Solar Radiation (",datemin,"to",datemax,"at",depthcm,")"), x="Air Temperature", y="Ground Temperature (°C) @ 10cm",color="Station") + 
+  #scale_x_datetime(breaks = datestep, minor_breaks = dateminstep) +
+  
+  stat_summary(fun.data= mean_cl_normal) + 
+  geom_smooth(method='lm', formula = y ~ x, na.rm = TRUE) +
+  
+  theme(axis.text.y =element_text(face="bold",size=20,family="Times New Roman"),
+        axis.text.x=element_text(face = "bold",size = 20,family="Times New Roman"), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(axis.title.x = element_text(size=32,family="Times New Roman"), 
+        axis.title.y = element_text(size=32,family="Times New Roman"), 
+        legend.text = element_text(size=32,family="Times New Roman"), 
+        legend.title = element_text(size=38,face="bold",family="Times New Roman")) +
+  
+  theme(plot.title = element_text(hjust = 0.5,size=46,family="Times New Roman"), 
+        plot.caption = element_text(face ="italic")) +
+  scale_y_continuous(limits=c(ymin, ymax), minor_breaks = seq(0, ymax+1, by = 0.25)) +
+  scale_x_continuous(limits=c(xmin, xmax), minor_breaks = seq(-20, xmax+20, by = 10)) +
+  scale_colour_hue(breaks=c("TNHA-BASE","TNHA-SA", "TNHA-SC", "TNHA-SD")) +
+  
+  annotate("rect", xmin = xmin, xmax = xmin+100, ymin = ymax-3.5, ymax = ymax,
+  alpha = .8, fill = "black") +
+  annotate("rect", xmin = xmin+2, xmax = xmin+98, ymin = ymax-3.4, ymax = ymax-0.1,
+  alpha = 1, fill = "lightgray") +
+  annotate("text", x = xmin+50, y = (ymax-1.7), label = paste("Simple Linear Regression",
+                                                  "\ny =",round(model$finalModel$coefficients[1],2),"+",
+                                                  round(model$finalModel$coefficients[2],4),"(x)",
+                                                  "\nR-Squared =",round(model$results$Rsquared,4),
+                                                  "\nRMSE =",round(model$results$RMSE,4),
+                                                  "\nF-Statistic =",round(summary(model)$fstatistic[1],4),"df =",
+                                                  round(summary(model)$fstatistic[2]), ",", round(summary(model)$fstatistic[3]),
+                                                  "\np-value =",pf(summary(model)$fstatistic[1], summary(model)$fstatistic[2],
+                                                                   summary(model)$fstatistic[3], lower.tail = FALSE)),
+           size=11, family="Times New Roman")
+  
+
+
+```
+
+# Plotting XY figures of stations grnd tmp vs air tmp against eachother for later gap filling comparisons
 
 ```{r}
 XY_grnd_air= averages %>% filter(!sensor == "TNHA-BASE", !sensor == "TNHA-SA", !sensor == "TNHA-SB") 
@@ -414,8 +485,6 @@ XY_grnd_air = averages %>% filter(!sensor == "TNHA-BASE", !sensor == "TNHA-SD", 
         legend.key.height = unit(1,'cm')) +
     geom_smooth(method=lm, se=TRUE)
 ```
-
-
 # see where the data gaps between sensors are occuring for gap filling
 ```{r}
 gap_list_adj = gap_list %>% filter(station == "TNHA", !sensor == "TNHA-SB", !sensor == "TNHA-SC", !sensor == "TNHA-SD")
@@ -432,7 +501,7 @@ dataaa <- grndtmp %>% filter(sensor == "TNHA-SA")
 ggplot_na_gapsize(dataaa)
 ```
 
------ GRND AMPLITUDE -----
+----- AMPLITUDE -----
 
 ```{r}
 grndamp <- grndtmp %>% filter(grndtmp$depth == "10cm", !value == 0.0) 
@@ -448,7 +517,9 @@ grndamp <- grndamp %>%
 
 Aggregated2 = grndamp %>% distinct(sensor, Maxval,Minval, mean_val, amplitude) #over whole smummer season, just the average over the whole season per sensor
 
-#this chunk currently does NOT work
+```
+
+```{r}
 
 ```
 
