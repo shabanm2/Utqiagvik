@@ -204,7 +204,7 @@ colnames(avgdailysolar_TNHA)[2] = "solar"
 ```
 
 ```{r}
-#grndtmp_3.5cm <- grndtmp %>% filter(depth == "10cm")
+#grndtmp_10cm <- grndtmp %>% filter(depth == "10cm")
 avgdailyground_TNHA = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
 sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SC", "TNHA-SD")
 
@@ -212,7 +212,7 @@ sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SC", "TNHA-SD")
 for(sensorName in sensorList){
   #Make sure sensor has data - otherwise will throw error
     
-    daily = grndtmp_3.5cm %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%
+    daily = grndtmp %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%
       filter(as.Date(Date, "%Y-%m-%d") >= datemin)
 if(nrow(daily) > 0){
   daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
@@ -221,14 +221,14 @@ if(nrow(daily) > 0){
   sensor = rep(sensorName, nrow(daily))
   station = rep(sub(c("-BASE|-SA|-SC|-SD"), "" ,sensorName), nrow(daily))
   daily = data.frame(daily, station, sensor)
-  avgdailyground_TNHA = rbind(avgdailyground_TNHA, daily)
+  grndtmp_10cm = rbind(grndtmp_10cm, daily)
 }
 
   
 }
 
 colnames(avgdailyground_TNHA)[2] = "grndtmp"
-
+# i dont believe this chunk works ----> currently NOT VITAL TO THE SCRIPT.
 ```
 
 ```{r}
@@ -251,6 +251,32 @@ for(sensorName in sensorList){
 colnames(avgdailyair_TNHA)[2] = "airtemp"
 ```
 
+----- AMPLITUDE -----
+
+```{r}
+grndamp <- grndtmp %>% filter(grndtmp$depth == "10cm", !value == 0.0) 
+grndamp <- grndamp %>%
+  group_by(Date) %>%
+  mutate(
+    Max_grnd = max(value, na.rm = T),
+    Min_grnd = min(value, na.rm = T),
+    mean_grnd = mean(value, na.rm = T),
+    amplitude = (Max_grnd-Min_grnd)
+  ) %>%
+   arrange(sensor)
+
+grndamp$Date <- as.Date(grndamp_clean$Date)
+
+grndamp_averages <- grndamp %>% group_by(Date, sensor, Date = as.Date(Date)) %>% summarise(across(c(Max_grnd, Min_grnd, mean_grnd, amplitude), mean))
+
+#grndamp2 <- grndamp %>% tidyr::pivot_wider(id_cols = Date, names_from = sensor, values_from = amplitude, values_fn = function(x) mean(x, na.rm = T))
+
+#grndamp2 does the same as grndamp1 but as a wide dataframe !!!!
+
+
+# consider using xts for apply.weekly, apply.mothly etc. actions to aggregate data over time
+```
+
 -------Merge Data Frames-------
 
 ```{r}
@@ -260,6 +286,7 @@ averages = averages[,-2]
 averages = data.frame(averages, solar)
 
 averages = averages %>% full_join(avgdailyair_TNHA, by=c("Date","sensor","station"))
+averages = averages %>% full_join(grndamp_averages, by=c("Date", "sensor"))
 ```
 
 -------Graphs for One Week-------
@@ -282,7 +309,6 @@ pred1 <- predict(model1,averages)
 head(pred)
 averages = data.frame(averages,pred1)
 ```
-
 
 
 NOTE: currently displayed as points --> form linear regression?
@@ -501,42 +527,20 @@ dataaa <- grndtmp %>% filter(sensor == "TNHA-SA")
 ggplot_na_gapsize(dataaa)
 ```
 
------ AMPLITUDE -----
-
-```{r}
-grndamp <- grndtmp %>% filter(grndtmp$depth == "10cm", !value == 0.0) 
-grndamp <- grndamp %>%
-  group_by(sensor) %>%
-  mutate(
-    Maxval = max(value, na.rm = T),
-    Minval = min(value, na.rm = T),
-    mean_val = mean(value, na.rm = T),
-    amplitude = (Maxval-Minval)
-  ) %>%
-   arrange(sensor)
-
-Aggregated2 = grndamp %>% distinct(sensor, Maxval,Minval, mean_val, amplitude) #over whole smummer season, just the average over the whole season per sensor
-
-```
+--- AMPLTIUDE GRAPHS ---
 
 ```{r}
 
-```
-
-
-```{r}
-
-grndamp$airavg <- averages$airtemp
-amp_figs = grndamp %>% filter(!sensor == "TNHA-SB", !sensor == "TNHA-SD", !sensor == "TNHA-SA") 
-  ggplot(data = amp_figs, aes(x=airtemp, y = grndtmp, color=sensor)) +
+XY_grnd_avgs = averages %>% filter(station == "TNHA", !sensor == "TNHA-SA", !sensor == "TNHA-BASE", !sensor == "TNHA-SB") 
+  ggplot(data = XY_grnd_avgs, aes(x=airtemp, y = amplitude, color=sensor)) +
   geom_point()+
   theme_bw() + 
-    labs(title= "TNHA-BASE vs. TNHA-SC, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature Amplitude",color="Station") + 
+    labs(title= "TNHA-SC vs. TNHA-SD (°C) @ 10cm, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature Amplitude (°C) @ 10cm",color="Station") + 
   theme(axis.text.y = element_text(size = 15)) +
   theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
         axis.line = element_line(colour = "black", size =0.5, 
                                  linetype = "solid")) +
-  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 20), 
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
         plot.caption = element_text(face ="italic"),
         strip.text = element_text(size = 15),
         axis.title = element_text(size = 15)) +
@@ -548,3 +552,36 @@ amp_figs = grndamp %>% filter(!sensor == "TNHA-SB", !sensor == "TNHA-SD", !senso
     geom_smooth(method=lm, se=TRUE)
 
 ```
+----- WIDE DATA FRAME FOR AIR TEMP COMPARISONS AMONG SENSORS ------
+
+```{r}
+wide_airtemp<- averages %>% tidyr::pivot_wider(id_cols = Date, names_from = sensor, values_from = airtemp)
+#this isnt necesssary , can IGNORE
+```
+
+#air temp vs air temp figures
+```{r}
+
+XY_air_avgs = averages %>% filter(station == "TNHA",!sensor == "TNHA-SA", !sensor == "TNHA-SC", !sensor == "TNHA-SB") 
+  ggplot(data = XY_air_avgs, aes(x=airtemp, y = airtemp, color=sensor)) +
+  geom_point()+
+  theme_bw() + 
+    labs(title= "Daily Avg., TNHA-BASE vs. TNHA-SD (°C) @ 10cm, 6/19/22-9/19/22", x = "Air Temperature", y="Air Temperature",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE)
+
+```
+
+
