@@ -19,7 +19,7 @@ library(RColorBrewer)
 ```
 
 ```{r}
-batterylvl = read.csv("~/Desktop/UVA/RESEARCH/Barrow/Data_Sep21-Nov19/Fall_batterylvl_2023_03_15_19_24_06_UTC_1.csv")
+batterylvl = read.csv("~/Desktop/UVA/RESEARCH/Barrow/Data_Sep21-Nov19/Fall_winter_batterylvl_base_2023_04_05_01_53_36_UTC_1.csv")
 
 names(batterylvl) <- sub("Level..RXW.BATT", "" ,names(batterylvl))
 names(batterylvl) <- sub(".B......RX3000_BRW1", "" ,names(batterylvl))
@@ -35,57 +35,45 @@ names(batterylvl) <- sub(".B...V..RX3000_BRW4", "" ,names(batterylvl))
 names(batterylvl) <- sub(".B...V..RX3000_BRW5", "" ,names(batterylvl))
 names(batterylvl) <- sub(".B...V..RX3000_BRW6", "" ,names(batterylvl))
 batterylvl$Date <- as.POSIXct(batterylvl$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+#batterylvl$Battery.21198259.21198259 <- revalue(("Battery.21198259.21198259" = "TNHA"))
+#colnames(batterylvl)[3:6] <- c("TNHA","SSMH", "BUECI", "BEO")
 ```
 
 ```{r}
-longdf_Battery = gather(batterylvl, variable, response, "Battery..21198259.21181033" :"Battery.21401802.21401802") %>%
+longdf_Battery = gather(batterylvl, variable, response, "Battery.21198259.21198259" :"Battery.21401803.21401803") %>%
   filter(!is.na(response)) %>%
   mutate(variable = fct_inorder(variable))
 
 df = cSplit(longdf_Battery, 'variable', sep=".", direction = "wide") 
 df$variable_1 <- NULL 
 df$variable_2 <- NULL 
-colnames(df)[3:5] <- c("value","station", "sensor")
+colnames(df)[3:4] <- c("value","station")
 df$station <- as.factor(df$station)
-df$sensor <- as.factor(as.character(df$sensor))
 
-df$station <- revalue(df$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+df$station <- revalue(df$station, c("21198259" = "TNHA", "21401800_BUECI" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
 
 #df$sensor <- revalue(df$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21166008" = "SSMH-SC" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398712" = "TNHA-SD.wind", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05")) 
 
-unique(df$sensor)
+unique(df$station)
 ```
+
 ```{r}
 df$Date = as.Date(df$Date)
 ```
 
+
+Average by day
 ```{r}
-datemin = "2022-09-21"
-datemax = "2022-11-19"
-
-avgdailybattery = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
-sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD")
-
-
-for(sensorName in sensorList){
-  daily = df %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
-
-  daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
-
-  daily = aggregate(value ~ Date, daily, mean, na.rm=T)
-  sensor = rep(sensorName, nrow(daily))
-  station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD"), "" ,sensorName), nrow(daily))
-  daily = data.frame(daily, station, sensor)
-  avgdailybattery = rbind(avgdailybattery, daily)
-}
-
-colnames(avgdailybattery)[2] = "battery"
-
+daily_battery_lvls <- df %>% 
+  group_by(Date = as.Date(Date),station) %>% 
+  summarise(across(c(value), mean))
 ```
 
+
 ```{r}
-df %>% filter(station == "TNHA") %>% 
-  ggplot(aes(x=Date, y=value, color = sensor)) +
+daily_battery_lvls  %>% 
+  ggplot(aes(x=Date, y=value, color = station)) +
   geom_point() +
   theme_bw()
 ```
