@@ -1,0 +1,92 @@
+---
+title: "Fall_Barrow_Climatology"
+author: "Mirella Shaban"
+date: "2023-02-13"
+output: html_document
+---
+
+---
+ Loading packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) 
+library(naniar)
+library(RColorBrewer)
+```
+
+
+Ground Temperatures for all sites data prepping
+```{r}
+# importing ground temp data for 6-19 through 9-20
+grndtmp921_1119=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Data_Sep21-Nov19/FALL_Season_GRNDTMP_2023_02_13_18_50_05_UTC_1.csv")
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW1", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW4", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW5", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW6", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub(".RXW.GP6.", "", names(grndtmp921_1119))
+grndtmp921_1119$Date <-as.POSIXct(grndtmp921_1119$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+Remove Sneaky Air Temperature from ground temp data (*)
+```{r}
+airtemp921_1119 = airtemp921_1119[,-14]
+### check if this is still necessary for the Fall data
+```
+
+## Return Sensor ID of Each Sensor by Placement Number
+NOTE: the sensor IDs do not match up for each serial number - this is an attempt
+to identify inconsistencies.
+**Not necessary to run, just to understand how many sensors there are!
+```{r}
+c = 3
+sensorID = NULL
+columnNum = NULL
+while(c <= ncol(grndtmp921_1119)){
+  sensorID = append(sensorID, names(grndtmp921_1119)[c])
+  columnNum = append(columnNum, c)
+  c = c + 11
+}
+
+location = c(rep("TNHA",5),rep("SSMH",3),rep("BUECI",4),rep("BEO",2))
+ID = c("")
+## ADJUST LOCATION AND ID ##
+sensors = data.frame(columnNum, sensorID,location,ID)
+kable(sensors)
+```
+
+Removing ground temp zeroes occuring at multiple (3) consecutive depths for loop
+```{r}
+c = 3 
+zeroes = 0
+while(c <= ncol(grndtmp619_920)-10){
+  sensorGroup = grndtmp619_920 %>% select(2,c, c+1, c+2, c+3, c+4, c+5, c+6, c+7, c+8, c+9, c+10)
+  for(r in 1:nrow(sensorGroup)) {
+    zeroes = 0
+    col = 2
+    while(col <= 12){
+      if(sensorGroup[r,col] == 0 | is.na(sensorGroup[r,col])) { 
+        if(!is.na(sensorGroup[r,col])){
+          zeroes = zeroes + 1 
+        }
+      }
+      col = col + 1
+    }
+    if(zeroes >= 3){ 
+      for(columnn in 2:ncol(sensorGroup)){
+      if(sensorGroup[r,columnn] == 0 | is.na(sensorGroup[r,columnn])) { 
+        grndtmp619_920[r,columnn+c] = NA
+      }
+    }
+    }
+  }
+  c = c + 11 
+}
+## Depending on the loop in the chunk above, this may need to be adjusted too ##
+```
+
