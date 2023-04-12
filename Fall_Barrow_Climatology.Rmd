@@ -1,7 +1,7 @@
 ---
 title: "Fall_Barrow_Climatology"
 author: "Mirella Shaban"
-date: "2023-02-13, Updated 2023-04-06"
+date: "2023-02-13, Updated 2023-04-06, Updated 2023-04-12"
 output: html_document
 ---
 
@@ -23,7 +23,7 @@ library(clock)
 
 Ground Moisture for all sites data prepping
 ```{r}
-moisture=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Fall_VWC_2023_04_06_12_35_08_UTC_1.csv")
+moisture=read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_VWC_2023_04_06_12_35_08_UTC_1.csv")
 names(moisture) <- sub("...m.3.m.3..RX3000_BRW1", "", names(moisture))
 names(moisture) <- sub("...m.3.m.3..RX3000_BRW4", "", names(moisture))
 names(moisture) <- sub("...m.3.m.3..RX3000_BRW5", "", names(moisture))
@@ -34,7 +34,7 @@ moisture$Date <-as.POSIXct(moisture$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 Solar radiation for all sites data prepping
 ```{r}
-solar = read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Fall_solar_2023_04_06_13_09_45_UTC_1.csv")
+solar = read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_solar_2023_04_06_13_09_45_UTC_1.csv")
 names(solar) <- sub("olar.Radiation..RXW.LIB", "" ,names(solar))
 names(solar) <- sub("olar.Radiation..S.LIB", "" ,names(solar))
 names(solar) <- sub("S.", "" ,names(solar))
@@ -47,7 +47,7 @@ solar$Date <- as.POSIXct(solar$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 Air temp for all sites data prepping
 ```{r}
-airtemp =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Fall_airtemp_2023_04_06_12_01_15_UTC_1.csv")
+airtemp =read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_airtemp_2023_04_06_12_01_15_UTC_1.csv")
 names(airtemp) <- sub("Temperature..RXW.THC.", "" ,names(airtemp))
 names(airtemp) <- sub("Temperature..S.THC.", "" ,names(airtemp))
 names(airtemp) <- sub("S.", "" ,names(airtemp))
@@ -62,7 +62,7 @@ airtemp$Date <- as.POSIXct(airtemp$Date,format="%m/%d/%y %H:%M",tz="UTC")
 Ground Temperatures for all sites data prepping
 ```{r}
 # importing ground temp data for 6-19 through 9-20
-grndtmp921_1119=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Fall_grndtmp_2023_04_06_12_19_52_UTC_1.csv")
+grndtmp921_1119=read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_grndtmp_2023_04_06_12_19_52_UTC_1.csv")
 names(grndtmp921_1119) <- sub("....C..RX3000_BRW1", "", names(grndtmp921_1119))
 names(grndtmp921_1119) <- sub("....C..RX3000_BRW4", "", names(grndtmp921_1119))
 names(grndtmp921_1119) <- sub("....C..RX3000_BRW5", "", names(grndtmp921_1119))
@@ -98,7 +98,7 @@ sensors$Station <- revalue(sensors$Station, c("21198259" = "TNHA", "21401800" = 
 
 #Find Sensor Values
 
-sensors$Sensor <- revalue(sensors$Sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+sensors$Sensor <- revalue(sensors$Sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
 
 ```
 
@@ -151,12 +151,7 @@ df$sensor <- as.factor(as.character(df$sensor))
 df$station <- revalue(df$station, c("Content21198259" = "TNHA", "Content21401800" = "BUECI", "Content21401801" = "SSMH", "Content21401803" = "BEO")) 
 df$depth <- revalue(df$depth, c("1" = "0:15cm", "2" = "15:30cm", "3" = "30:45cm", "4" = "45:60cm", "5" = "60:75cm", "6" = "75:90cm"))
 
-df$sensor <- revalue(df$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05")) 
-```
-
-# Removing 0's (only run this chunk if you would like perfect values of 0 removed from the VWC data)
-```{r}
-df[df == 0.000] <- NA
+df$sensor <- revalue(df$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05")) 
 ```
 
 TEMPLATE: ALL depths VWC (select sensors w/  %>% filter(!sensor =="" to remove) etc.)
@@ -172,8 +167,8 @@ ggplot(subset(df, depth %in% c("0:15cm", "15:30cm", "30:45cm", "45:60cm", "60:75
         plot.caption = element_text(face ="italic")) +
   scale_colour_hue(breaks=c("TNHA-BASE","TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD",
                                "SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD",
-                               "BUCEI-BASE", "BUCEI-SA", "BUCEI-SB", "BUCEI-SC", "BUCEI-SD", "BUCEI-SE",
-                               "BUCEI-SF.01", "BUCEI-SF.02",
+                               "BUECI-BASE", "BUECI-SA", "BUECI-SB", "BUECI-SC", "BUECI-SD", "BUECI-SE",
+                               "BUECI-SF.01", "BUECI-SF.02",
                                "BEO-B05", "BEO-B06"))
 
 ### need to adjust colors to the color brewer specificed colors for consistency
@@ -181,7 +176,7 @@ ggplot(subset(df, depth %in% c("0:15cm", "15:30cm", "30:45cm", "45:60cm", "60:75
 
 TEMPLATE: SELECT STATIONS AND SENSORS VWC AT ALL DEPTHS
 ```{r fig2, fig.height = 18, fig.width = 20}
-df1 <- df %>% filter(!station == "BUECI", !station == "BEO", !station == "SSMH", !sensor == "TNHA-BASE", !sensor == "TNHA-SB", !sensor == "TNHA-SA", !sensor == "TNHA-SC")
+df1 <- df %>% filter(!station == "BUECI", !station == "BEO", !station == "SSMH",)
 ggplot(subset(df1, depth %in% c("0:15cm", "15:30cm", "30:45cm", "45:60cm", "60:75cm", "75:90cm")), aes(x=Date, y= response, color = sensor)) + 
   geom_point(size = 0.5) +
   guides(color = guide_legend(override.aes = list(size=10))) +
@@ -203,8 +198,8 @@ ggplot(subset(df1, depth %in% c("0:15cm", "15:30cm", "30:45cm", "45:60cm", "60:7
         legend.text = element_text(size = 15),
         legend.key.height = unit(1,'cm')) +
   scale_colour_hue(breaks=c("TNHA-BASE","TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD","SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD",
-                               "BUCEI-BASE", "BUCEI-SA", "BUCEI-SB", "BUCEI-SC", "BUCEI-SD", "BUCEI-SE",
-                               "BUCEI-SF.01", "BUCEI-SF.02",
+                               "BUECI-BASE", "BUECI-SA", "BUECI-SB", "BUECI-SC", "BUECI-SD", "BUECI-SE",
+                               "BUECI-SF.01", "BUECI-SF.02",
                                "BEO-B05", "BEO-B06"))
 
 #who is this red sensor?
@@ -294,7 +289,7 @@ dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth))
 dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
 dfgrndtemp$station <- as.factor(dfgrndtemp$station)
 dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
-dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
 
 dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
 
@@ -320,8 +315,8 @@ ggplot(subset(dfgrndtemp, depth %in% c("3.5cm","10cm", "20cm", "30cm", "40cm", "
         plot.caption = element_text(face ="italic")) +
   scale_colour_hue(breaks=c("TNHA-BASE","TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD",
                                "SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD",
-                               "BUCEI-BASE", "BUCEI-SA", "BUCEI-SB", "BUCEI-SC", "BUCEI-SD", "BUCEI-SE",
-                               "BUCEI-SF.01", "BUCEI-SF.02",
+                               "BUECI-BASE", "BUECI-SA", "BUECI-SB", "BUECI-SC", "BUECI-SD", "BUECI-SE",
+                               "BUECI-SF.01", "BUECI-SF.02",
                                "BEO-B05", "BEO-B06"))
 
 #add a color palette for BUECI in scale_color_manual
@@ -461,13 +456,6 @@ Aggregated = tnhagrnd_maxmin %>% distinct(sensor,Maxval,Minval, mean_val)
 --------------------------------------------------------------------Solar Radiation---------------------------------------------------------------------------------
 
 
-
-### ALL BELOW THIS POINT NEED TO BE ADJUSTED FOR FALL NAMING SCHEMA
-EVERYTHING BELOW HERE NEEDS TO BE ADJUSTED FOR FALL DATES (AXIS, TITLES, ETC.)
-
-####################################################################
-
-
 SOLAR RADIATION : LONG DATAFRAME
 ```{r fig9, fig.heigt = 14, fig.width = 18}
 solarrad = gather(solar, variable, response, '21198259.21176526.1':'21401800.21398623.1') %>%
@@ -482,7 +470,7 @@ solarrad$sensor <- as.factor(as.character(solarrad$sensor))
 solarrad$station <- as.factor(solarrad$station)
 
 solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
-solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUCEI-SA", "21398624" = "BUECI-SB", "21362313" = "BUCEI-SC", "21362316" = "BUCEI-SD", "21362320" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", 
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
                                               "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
                                               "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
                                               "21390415" = "BEO-Base"))
@@ -611,7 +599,7 @@ airtemp$station <- as.factor(airtemp$station)
 airtemp$station <- revalue(airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
 
 
-airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671" = "BUCEI-SA", "21362254" = "BUECI-SB", "21398668" = "BUCEI-SC", "21398660" = "BUCEI-SD", "21187245" = "BUCEI-SE",
+airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671" = "BUECI-SA", "21362254" = "BUECI-SB", "21398668" = "BUECI-SC", "21398660" = "BUECI-SD", "21187245" = "BUECI-SE",
                                             "21390849" ="SSMH-BASE","21393049" = "SSMH-SD", "21398670" = "SSMH-SA", "21398665" = "SSMH-SB",
                                             "21218018" = "TNHA-BASE", "21380919" = "TNHA-SA" , "21398676"="TNHA-SB","21398666" = "TNHA-SD", "21398674" = "TNHA-SC", "21397541" = "BEO-BASE"))
 #TNHA-A and TNHA-B are GUESSES - need metadata on ground
@@ -670,7 +658,7 @@ dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
 
 
 dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
-dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
 
 dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
 
@@ -761,7 +749,7 @@ airtemp %>%
   theme_bw() +
   labs(y="Temperature (°C)",color="Station") +
   scale_x_datetime(date_breaks = "1 weeks") +
-  scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5,10,12.5,15,20,25),limits=c(-2.5, 25)) +
+  scale_y_continuous(breaks=c(-5,-2.5,0,2.5,5,7.5,10,12.5,15),limits=c(-5, 15)) +
   theme(axis.text.y =element_text(face="bold") ,axis.text.x=element_text(angle = 45,
 hjust = 1.0,face = "bold"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) + theme(plot.title = element_text(hjust = 0.5), 
          plot.caption = element_text(face ="italic")) 
@@ -781,4 +769,3 @@ TNHA_avg_airtemp$hour_only <- format(TNHA_avg_airtemp$hour, "%H")
 TNHA_avg_airtemp$hour <- NULL
 head(TNHA_avg_airtemp,24)
 ```
-
