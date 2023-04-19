@@ -1,0 +1,178 @@
+---
+title: "Ground Temp Models for Gap Filling"
+author: "Elizabeth Van Metre"
+date: "2023-04-13"
+output: html_document
+---
+
+
+
+-------------IMPORTANT FILE PATHS/VALUES-------------
+
+```{r}
+curseason = "summer"
+
+#Which Station(s) We Are Looking At
+curstation = "TNHA"
+sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SC", "TNHA-SD")
+
+sensor1 = "TNHA-BASE"
+sensor2 = "TNHA-SA"
+
+#Set to prefix of your processed data location
+filepath = paste("~/Desktop/Arctic/X-Y_Plots/data/processed/",curseason,"/",sep="") 
+filename = paste("Ground_Temp_",curseason,"_",curstation,sep="") #Set to name of exported graph; note: ".png" suffix not needed
+
+#Where to export graph
+exportpath = "~/Desktop/Arctic/X-Y_Plots/output/"
+
+#Date Range
+datemin = "2022-06-19"
+datemax = "2022-09-20"
+```
+
+-------------IMPORT DATA-------------
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+Read CSV Files
+```{r}
+ground_raw=read.csv(paste(filepath,"grndtmp_long.csv",sep = ""))
+```
+
+Hourly Data
+```{r}
+daterange = ground_raw %>% filter(station==curstation) %>% filter(as.Date(Date) >= datemin) %>% filter(as.Date(Date) <= datemax)
+daterange$Date = as.POSIXlt(daterange$Date)
+daterange$Date = floor_date(daterange$Date, unit = "hour", week_start = getOption("lubridate.week.start",7))
+hourly = daterange %>% group_by(Date, station, sensor, depth) %>% summarise(avg = mean(value))
+hourly$Date = as.POSIXct(hourly$Date)
+```
+
+
+Linear Regression Model for Each Sensor Pair
+
+1) Pick sensor pairs and data
+2) Create one df
+3) Create model
+4) Create predictions for air temp values based on model (predict sensor 2 based on sensor 1)
+5) Create a summary of the model
+6) Add to combined dataframe for plotting
+
+```{r}
+Date = hourly$Date[1]
+sen1 = NA
+depth = NA
+temp1 = NA
+sen2 = NA
+temp2 = NA
+pred = NA
+reg_model = NA
+
+ground = hourly
+for(curdepth in c(8:17)){
+    tmp1 = ground %>% filter(sensor == sensor1) %>% filter(depth == curdepth)
+    tmp2 = ground %>% filter(sensor == sensor2) %>% filter(depth == curdepth)
+    ground_df = full_join(tmp1, tmp2, by="Date")
+    colnames(ground_df)[c(3,4,5,7,9)] = c("sensor1","depth", "temp1", "sensor2", "temp2")
+    
+    Date = append(Date, ground_df$Date)
+    sen1 = append(sen1, ground_df$sensor1)
+    sen2 = append(sen2, ground_df$sensor2)
+    temp1 = append(temp1, ground_df$temp1)
+    temp2 = append(temp2, ground_df$temp2)
+    depth = append(depth, ground_df$depth)
+    
+    
+    model = train(temp2~temp1, ground_df, method="lm", na.action = na.exclude)
+    summary(model)
+    ground_df = data.frame(ground_df, predict(model, ground_df, na.action = na.pass))
+    pred <- append(pred, ground_df$pred)
+  
+    p_value = round(pf(summary(model)$fstatistic[1], summary(model)$fstatistic[2],
+                     summary(model)$fstatistic[3], lower.tail = FALSE),4)
+    if(p_value == 0){
+      p_value = "<0.0001"
+    }
+    
+    regr_model = rep(paste("Simple Linear Regression",
+                          "\ny = ",round(model$finalModel$coefficients[1],2)," + ",
+                          round(model$finalModel$coefficients[2],4),"(x)",
+                          "\nR-Squared = ",round(model$results$Rsquared,4),
+                          "\nRMSE = ",round(model$results$RMSE,4),
+                          "\nF-Statistic = ",round(summary(model)$fstatistic[1],4)," df = ",
+                          round(summary(model)$fstatistic[2]), ", ",
+                          round(summary(model)$fstatistic[3]),
+                          "\np-value = ",p_value,sep=""), nrow(ground_df))
+    ground_df = data.frame(ground_df, regr_model)
+    reg_model = append(reg_model, ground_df$regr_model)
+
+}
+comparisons = data.frame(Date, depth, sen1, temp1, sen2, temp2, pred, reg_model)
+comparisons = na.omit(comparisons) 
+```
+
+```{r}
+models = comparisons$reg_model %>% unique()
+print(models)
+```
+
+
+Plot Air Temperature Data for Each Sensor Pair
+
+```{r fig8, fig.height = 24, fig.width = 16}
+dat = comparisons #This is so that we graph based on the dat df
+
+ymax = round(max(dat$temp2, na.rm = TRUE),1)
+ymin = round_any(min(dat$temp2, na.rm = TRUE),1, f=floor)
+xmax = round(max(dat$temp1, na.rm = TRUE), 1)
+xmin = round_any(min(dat$temp1, na.rm = TRUE), 1, f=floor)
+
+ggplot() +
+  geom_point(data=dat, aes(x=temp1, y=temp2), size = 4, color="firebrick1", alpha=0.5) +
+  geom_line(data=dat, aes(x=temp1, y=pred), color="firebrick1", size=2) +
+  
+  theme_classic() +
+  labs(title= paste(" Average Daily Air Temperature Comparisons for ",curstation, " Sensor Pairs \n(", datemin, " to ", datemax,")",sep=""), x="Mean Daily Air Temperature (°C)", y="Mean Daily Air Temperature (°C)") + 
+
+  
+  theme(axis.text.y =element_text(face="bold",size=20,family="Apple SD Gothic Neo"),
+        axis.text.x=element_text(face = "bold",size = 20,family="Apple SD Gothic Neo"), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(axis.title.x = element_text(size=32,family="Apple SD Gothic Neo"), 
+        axis.title.y = element_text(size=32,family="Apple SD Gothic Neo"), 
+        legend.text = element_text(size=32,family="Apple SD Gothic Neo"), 
+        legend.title = element_text(size=38,face="bold",family="Apple SD Gothic Neo")) +
+  
+  theme(plot.title = element_text(hjust = 0.5,size=46,family="Apple SD Gothic Neo",face="bold"), 
+        plot.caption = element_text(face ="italic")) +
+
+   scale_y_continuous(limits=c(ymin, ymax)) +
+  scale_x_continuous(limits=c(xmin, xmax)) +
+  coord_cartesian(clip = 'off') +
+
+  
+  geom_text(x = (xmin + (xmax-xmin)*0.3), y = (ymin + (ymax-ymin)*0.75), aes(label = reg_model), data = dat,size=6, family="Apple SD Gothic Neo")+
+  facet_wrap(~ depth, ncol= 2, strip.position="right", scales="free")+
+  theme(strip.text.y = element_text(size = 24, family="Apple SD Gothic Neo"))
+
+```
+
+Save plot to a file.
+
+```{r}
+ggsave(path=exportpath, filename=paste(filename,".png", sep=""), height = 48, width = 32)
+```
+
+
