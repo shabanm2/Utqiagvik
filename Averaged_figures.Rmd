@@ -1,7 +1,7 @@
 ---
 title: "Averaged_Figures"
 author: "Mirella Shaban"
-date: "2023-04-12"
+date: "2023-04-12, updated 2023-04-24"
 output: html_document
 ---
 
@@ -692,5 +692,88 @@ airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671
                                             "21218018" = "TNHA-BASE", "21380919" = "TNHA-SA" , "21398676"="TNHA-SB","21398666" = "TNHA-SD", "21398674" = "TNHA-SC", "21397541" = "BEO-BASE"))
 #TNHA-A and TNHA-B are GUESSES - need metadata on ground
 airtemp <- airtemp %>% filter(!value == -888.88)
+```
+Daily average grnd temperature per sensor at station "X"
+```{r}
+grndmean <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "10cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+#this gives us the daily mean air temp for each sensor at TNHA in summer season
+
+#Below -- exports as a csv to folder of choice 
+
+#write.csv(Daily_average_grnd_per_sensor, "~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer.csv")
+
+
+```
+
+```{r fig14, fig.height = 8, fig.width = 18}
+Daily_average_grnd_per_sensor %>% filter(!sensor =="SSMH-BASE", !sensor =="SSMH-SA", !sensor =="SSMH-SB", !sensor =="SSMH-SC", !sensor =="SSMH-SD", !sensor =="BUECI-BASE", !sensor=="BUECI-SA", !sensor =="BUECI-SB", !sensor =="BUECI-SC", !sensor =="BUECI-SD", !sensor == "BUECI-SE", !sensor =="BUECI-SF.01",!sensor =="BUECI-SF.02") %>%
+  ggplot() +
+  geom_line(aes(x=day, y=value, color = sensor), size = 0.9) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  labs(title = "Daily average ground temperatures at TNHA and BEO (10cm depth)",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-15,-12.5,-10,-7.5,-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-15, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 35),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 30)) +
+  scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E","BEO-B05"="#6BAED6", "BEO-B06"= "#084594"))
+```
+
+
+```{r}
+averaged_by_site_TNHA <- Daily_average_grnd_per_sensor %>% filter(sensor == "TNHA-BASE" | sensor == "TNHA-SA" | sensor == "TNHA-SB"| sensor == "TNHA-SC" | sensor == "TNHA-SD") %>% aggregate(value~day, mean)
+averaged_by_site_TNHA$station <- c("TNHA")
+
+averaged_by_site_BEO <- Daily_average_grnd_per_sensor %>% filter(sensor == "BEO-B06") %>% aggregate(value~day, mean)
+averaged_by_site_BEO$station <- c("BEO") 
+
+averaged_by_site_SSMH <- Daily_average_grnd_per_sensor %>% filter(sensor == "SSMH-BASE" | sensor == "SSMH-SA" | sensor == "SSMH-SB"| sensor == "SSMH-SC" | sensor == "SSMH-SD") %>% aggregate(value~day, mean)
+averaged_by_site_SSMH$station <- c("SSMH")
+
+averaged_BEO_TNHA_SSMH <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
+```
+
+```{r fig14, fig.height = 8, fig.width = 18}
+averaged_BEO_TNHA_SSMH %>%
+ggplot() +
+  geom_line(aes(x=day, y = value, colour = station)) +
+  theme_bw() +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  labs(title = "Daily average ground temperature (10cm depth )",y="Temperature (°C)",x="Week",color="Station") +
+   scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-2.5, 15)) +
+  theme(axis.text.y =element_text(face="bold") ,axis.text.x=element_text(angle = 45, hjust = 1.0,face = "bold"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+   theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 30),plot.title = element_text(hjust = 0.5, size = 30), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 20),
+        axis.title = element_text(size = 20)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(plot.title = element_text(hjust = 0.5), 
+        plot.caption = element_text(face ="italic"))
 ```
 
