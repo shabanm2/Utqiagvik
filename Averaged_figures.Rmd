@@ -1,7 +1,7 @@
 ---
 title: "Averaged_Figures"
 author: "Mirella Shaban"
-date: "2023-04-12, updated 2023-04-24"
+date: "2023-04-12"
 output: html_document
 ---
 
@@ -188,21 +188,6 @@ airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671
 #TNHA-A and TNHA-B are GUESSES - need metadata on ground
 ```
 
-MADMINMED AIR TEMPERATURE : LONG DATAFRAME
-```{r}
-newairtemp = gather(Weekly_Airtemp_MaxMinMed, variable, response, Max, Min, p) %>%
-  filter(!is.na(response)) %>%
-  mutate(variable = fct_inorder(variable))
-
-
-newairtemp1= cSplit(newairtemp, 'variable', sep=".", direction = "wide") 
-
-newairtemp1$sensor <- as.factor(as.character(newairtemp1$sensor))
-
-
-
-#Plotting max, min, med values for air temp per week 
-```
 
 
 
@@ -244,7 +229,21 @@ maxminmedair$End_of_Week <- maxminmedair$day + (6 - maxminmedair$Week_Day)
 Weekly_Airtemp_MaxMinMed <- maxminmedair %>% group_by(sensor, time = as.Date(End_of_Week)) %>% summarise(across(c(Max, Min, p), mean))
 
 ```
+MADMINMED AIR TEMPERATURE : LONG DATAFRAME
+```{r}
+newairtemp = gather(Weekly_Airtemp_MaxMinMed, variable, response, Max, Min, p) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
 
+
+newairtemp1= cSplit(newairtemp, 'variable', sep=".", direction = "wide") 
+
+newairtemp1$sensor <- as.factor(as.character(newairtemp1$sensor))
+
+
+
+#Plotting max, min, med values for air temp per week 
+```
 
 
 AVERAGING OF SOLAR RAD DATA, AVERAGE DAILY VALUES (all sensors combined)
@@ -490,6 +489,53 @@ Daily_average_grnd_per_sensor %>% filter( !sensor =="BUECI-BASE", !sensor=="BUEC
   scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E","BEO-B05"="#6BAED6", "BEO-B06"= "#084594","SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6", "SSMH-SC"= "#DD3497", "SSMH-SD"="#7A0177"))
 
 ```
+```{r}
+averaged_by_site_TNHA <- Daily_average_grnd_per_sensor %>% filter(sensor == "TNHA-BASE" | sensor == "TNHA-SA" | sensor == "TNHA-SB"| sensor == "TNHA-SC" | sensor == "TNHA-SD") %>% aggregate(value~day, mean)
+averaged_by_site_TNHA$station <- c("TNHA")
+
+averaged_by_site_BEO <- Daily_average_grnd_per_sensor %>% filter(sensor == "BEO-B06") %>% aggregate(value~day, mean)
+averaged_by_site_BEO$station <- c("BEO") 
+
+averaged_by_site_SSMH <- Daily_average_grnd_per_sensor %>% filter(sensor == "SSMH-BASE" | sensor == "SSMH-SA" | sensor == "SSMH-SB"| sensor == "SSMH-SC" | sensor == "SSMH-SD") %>% aggregate(value~day, mean)
+averaged_by_site_SSMH$station <- c("SSMH")
+
+averaged_BEO_TNHA_SSMH <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
+```
+
+```{r fig14, fig.height = 8, fig.width = 18}
+averaged_BEO_TNHA_SSMH %>%
+ggplot() +
+  geom_line(aes(x=day, y = value, colour = station)) +
+  theme_bw() +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  labs(title = "Daily average ground temperature (10cm depth )",y="Temperature (°C)",x="Week",color="Station") +
+   scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-2.5, 15)) +
+  theme(axis.text.y =element_text(face="bold") ,axis.text.x=element_text(angle = 45, hjust = 1.0,face = "bold"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+   theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 30),plot.title = element_text(hjust = 0.5, size = 30), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 20),
+        axis.title = element_text(size = 20)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(plot.title = element_text(hjust = 0.5), 
+        plot.caption = element_text(face ="italic")) 
+```
+```{r}
+#repeat measures anova for ground temperatures
+data <- averaged_BEO_TNHA_SSMH
+time <- averaged_BEO_TNHA_SSMH$day
+value <- averaged_BEO_TNHA_SSMH$value
+station <- averaged_BEO_TNHA_SSMH$station
+
+model <- aov(value~factor(time) + Error(factor(station)), data = data)
+summary(model)
+
+```
 
 ---------------------
 
@@ -537,7 +583,6 @@ airtemp$Date <- as.POSIXct(airtemp$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 Ground Temperatures for all sites data prepping
 ```{r}
-# importing ground temp data for 6-19 through 9-20
 grndtmp921_1119=read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_grndtmp_2023_04_06_12_19_52_UTC_1.csv")
 names(grndtmp921_1119) <- sub("....C..RX3000_BRW1", "", names(grndtmp921_1119))
 names(grndtmp921_1119) <- sub("....C..RX3000_BRW4", "", names(grndtmp921_1119))
@@ -693,6 +738,8 @@ airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671
 #TNHA-A and TNHA-B are GUESSES - need metadata on ground
 airtemp <- airtemp %>% filter(!value == -888.88)
 ```
+-------
+
 Daily average grnd temperature per sensor at station "X"
 ```{r}
 grndmean <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "10cm") 
@@ -774,6 +821,17 @@ ggplot() +
   theme(axis.title.y = element_text(margin = margin(r=15))) +
   theme(axis.title.x = element_text(margin = margin(t=15))) +
   theme(plot.title = element_text(hjust = 0.5), 
-        plot.caption = element_text(face ="italic"))
+        plot.caption = element_text(face ="italic")) 
+```
+```{r}
+#repeat measures anova for ground temperatures
+data <- averaged_BEO_TNHA_SSMH
+time <- averaged_BEO_TNHA_SSMH$day
+value <- averaged_BEO_TNHA_SSMH$value
+station <- averaged_BEO_TNHA_SSMH$station
+
+model <- aov(value~factor(time) + Error(factor(station)), data = data)
+summary(model)
+
 ```
 
