@@ -1,0 +1,30 @@
+---
+title: "Sensor_Aspect_Differences"
+author: "Mirella Shaban"
+date: "2023-07-27"
+output: html_document
+---
+
+*Run Multidepth_Averaging_and_Plotting script for data loading prior to running this*
+
+# need cleaned data input prior to running
+
+*Max, mins, and averages for dataset*
+```{r}
+df2_tnha <- dfgrndtemp %>% filter(!station == "BUECI", depth == "90cm")
+
+tnhagrnd_maxmin <- df2_tnha %>% # at 10cm depths for TNHA what are each sensors maximum and minimum values
+  group_by(sensor) %>%
+  mutate(
+    Maxval = max(value, na.rm = T),
+    Minval = min(value, na.rm = T),
+    mean_val = mean(value, na.rm = T)
+  ) %>%
+  arrange(sensor)
+
+#below, all of these yield the same average for the season!
+tnhagrnd_maxmin %>% distinct(sensor,Maxval,Minval,mean_val)
+tnhagrnd_maxmin %>% aggregate(mean_val ~ sensor,mean)
+
+```
+

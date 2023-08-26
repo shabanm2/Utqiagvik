@@ -1,0 +1,672 @@
+---
+title: "Multi-depth averaging and plotting - ground temp"
+author: "Mirella Shaban"
+date: "2023-07-14"
+output: html_document
+---
+
+Loading packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) 
+library(naniar)
+library(RColorBrewer)
+library(clock)
+library(readr)
+```
+
+
+*SUMMER 2022 DATA*
+10 cm depth 
+
+Ground Temperatures for all sites data prepping
+```{r}
+# importing ground temp data for 6-19 through 9-20
+grndtmp619_920=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_grndtmp_2023_04_06_12_21_30_UTC_1.csv")
+names(grndtmp619_920) <- sub("....C..RX3000_BRW1", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW4", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW5", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW6", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub(".RXW.GP6.", "", names(grndtmp619_920))
+grndtmp619_920$Date <-as.POSIXct(grndtmp619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+grndtmp = gather(grndtmp619_920, variable, response, Temperature.21198259.21206939.7:Temperature..RXW.THC.21401800.21398671.1) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+dfgrndtemp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(dfgrndtemp)[3] <- ("value")
+colnames(dfgrndtemp)[5:7] <- c("station", "sensor", "depth")
+
+dfgrndtemp$variable_1 <- NULL
+dfgrndtemp$variable_5 <- NULL
+dfgrndtemp$variable_6 <- NULL
+dfgrndtemp$variable_7 <- NULL
+dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth))
+dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
+dfgrndtemp$station <- as.factor(dfgrndtemp$station)
+dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+
+dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+
+dfgrndtemp <- dfgrndtemp %>% filter(!value == -888.88)
+```
+
+
+*Daily average ground temperature grouped by sensor at station "X"*
+```{r}
+grndmean <- dfgrndtemp %>% subset() %>% select(value,station,sensor,Date,depth) %>% filter( !value == "-888.8", depth %in% "10cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value,depth,station) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor_10 <- grndmean %>% 
+  group_by(sensor, day, depth) %>%
+  aggregate(value ~ sensor + day + depth + station, mean)
+#this gives us the daily mean air temp for each sensor at TNHA in summer season
+
+#Below -- exports as a csv to folder of choice 
+
+#write.csv(Daily_average_grnd_per_sensor_10, "~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_10.csv")
+
+```
+
+*Add sequential dates to where dates are missing in the .csv to avoid connecting lines and add NA values*
+This bullshit is giving me issues as the Date object isn't registering as literal dates but rather characters?
+*DON'T RUN*
+```{r}
+#Daily_average_grnd_per_sensor_1$day_test <- Daily_average_grnd_per_sensor$day_1
+
+Daily_average_grnd_per_sensor_10 <- Daily_average_grnd_per_sensor_10 %>%
+  mutate(day = as.POSIXct(day)) %>%
+  complete(day = seq.POSIXt(min(day), max(day), by="day", na= NA)) %>% group_by(sensor, day) %>% cSplit("day", sep= " ", direction = "wide") 
+Daily_average_grnd_per_sensor_10$day_2 <- NULL
+
+Daily_average_grnd_per_sensor$day <- as.POSIXct(Daily_average_grnd_per_sensor$day)
+
+### this stopped working, but originally gave me the NA values I needed for this shit to work.
+```
+
+
+*Write csv of filtered and subset data at multiple depths, add NA values, reimport to get rid of line connections in figures where there is no data*
+#### THIS CHUNK BELOW IS NOT NECESSARY IF YOU RUN THE COMPLETE FUNCTION. THIS IS JUST HERE FOR REFERENCE BECAUSE I SPENT TIME MAKING IT..... ####### 
+
+really annoying data cleaning. Added in NA values in excel, then imported the csv, removed quotation marks they imported with and changed the commas to periods. Made the date a date object in R and then rounded to 2 decimal places
+```{r}
+#write.csv(Daily_average_grnd_per_sensor_10, "~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_10.csv")
+
+#once exported, use text to columns in excel to sepearate by " and then change the thousands separator to commas. Reimport and change commas to periods. To do this in code rather than in the files tab, run the next line below
+
+Daily_Averages_Ground_Temps_Summer_10 <- read_csv("~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_10.csv", na = "NA")
+
+
+
+Daily_Averages_Ground_Temps_Summer_10$day <-as.POSIXct(Daily_Averages_Ground_Temps_Summer_10$day,format="%m/%d/%y",tz="UTC")
+
+removeQuotes <- function(x) gsub("\"", "", x)
+commatoperiod <- function(y) gsub(",",".", y)
+
+Daily_Averages_Ground_Temps_Summer_10_noquote <- Daily_Averages_Ground_Temps_Summer_10 %>%
+    mutate_if(is.character, removeQuotes)
+Daily_Averages_Ground_Temps_Summer_10_noquote_nocomma <- Daily_Averages_Ground_Temps_Summer_10_noquote %>%
+  mutate_if(is.character, commatoperiod)
+
+Daily_Averages_Ground_Temps_Summer_10_noquote_nocomma$day<-as.POSIXct(Daily_Averages_Ground_Temps_Summer_10_noquote_nocomma$day,format="%m/%d/%y",tz="UTC")
+
+#give it a shorter name...
+CLEAN_BEO_TNHA_10 <- Daily_Averages_Ground_Temps_Summer_10_noquote_nocomma
+CLEAN_BEO_TNHA_10$day <- as.POSIXct(CLEAN_BEO_TNHA_10$day, format="%m/%d/%y",tz="UTC")
+CLEAN_BEO_TNHA_10$day <- as.Date(CLEAN_BEO_TNHA_10$day, format = "%m/%d/%y", tz="UTC")
+CLEAN_BEO_TNHA_10$value <- as.numeric(CLEAN_BEO_TNHA_10$value)
+round(CLEAN_BEO_TNHA_10$value, digits= 2)
+
+#removerandomtime <- function(w) gsub(" 19:00:00", "", w)
+#CLEAN_BEO_TNHA_10 <- CLEAN_BEO_TNHA_10 %>% mutate_if(is.POSIXct, removerandomtime)
+```
+
+
+Dates before value >0
+```{r}
+before_thaw <- CLEAN_BEO_TNHA_10 %>% filter(value > 0 | value == 0)
+```
+
+
+```{r fig14, fig.height = 6, fig.width = 14}
+CLEAN_BEO_TNHA_10_select <- CLEAN_BEO_TNHA_10%>% filter(sensor == "TNHA-BASE" | sensor == "TNHA-SA" | sensor == "TNHA-SC" | sensor == "BEO-B06")
+
+CLEAN_BEO_TNHA_10_select %>%
+  ggplot(aes(x=day, y=value, color = sensor), size = 0.9) +
+  geom_line() +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size=20)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 20),legend.text = element_text(size = 10)) +
+  labs(title = "Summer 2022 daily average ground temperatures at 10cm depth, control vs. N&S facing sensors",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-2.5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 35),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 30)) +
+  scale_color_manual(name = "Station",values =c("TNHA-BASE" = "#1B9E77", "TNHA-SC" ="#E7298A", "BEO-B06"= "#084594","TNHA-SA" = "#D95F02", labels = c("BEO (Control)", "TNHA-BASE (South Facing)", "TNHA-SA (South Facing)", "TNHA-SC (North Facing)")))
+
+```
+
+
+SUMMER 2022 DATA
+
+### 30 cm
+
+Daily average grnd temperature per sensor at station "X" 
+*-- DONT RUN, IMPORT CSV "Daily_Averages_Ground_Temps_Summer_30.csv" INSTEAD, IN CHUNK BELOW -- *
+```{r}
+grndmean30 <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "30cm") 
+
+grndmean30 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean30$time <- format(as.Date(
+  grndmean30$Date),format = "%H:%M:%S")
+grndmean30$day <- as.Date(grndmean30$Date)
+
+
+Daily_average_grnd_per_sensor_30 <- grndmean30 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+#this gives us the daily mean air temp for each sensor at TNHA in summer season
+
+#Below -- exports as a csv to folder of choice 
+
+#write.csv(Daily_average_grnd_per_sensor, "~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_NEW.csv")
+
+
+
+
+
+
+```
+
+
+*run below for figure of 30cm*
+```{r fig13, fig.height = 6, fig.width = 14}
+#imported this file, saved with NA;s in it
+Daily_Averages_Ground_Temps_Summer_30 <- read_csv("~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_30.csv", na = "NA")
+
+Daily_Averages_Ground_Temps_Summer_30$day <- as.Date(Daily_Averages_Ground_Temps_Summer_30$day, format = "%m/%d/%y")
+
+Daily_average_grnd_per_sensor_30 %>% filter(sensor == "TNHA-BASE" | sensor == "TNHA-SA" | sensor == "TNHA-SC" | sensor == "TNHA-SB" |sensor == "TNHA-SD" | sensor == "BEO-B06") %>%
+  ggplot(aes(x=day, y=value, color = sensor), size = 0.9) +
+  geom_line() +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size=20)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 20),legend.text = element_text(size = 10)) +
+  labs(title = "Summer 2022 daily average ground temperatures at 55cm depth, control vs. N&S facing sensors",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-15,-10,-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-15, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 35),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 30)) +
+  scale_color_manual(name = "Station",values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E", "BEO-B06"= "#084594", labels = c("BEO (Control)", "TNHA-BASE (South Facing)", "TNHA-SA (South Facing)", "TNHA-SC (North Facing)")))
+
+```
+
+
+
+
+really annoying data cleaning. Added in NA values in excel, then imported the csv, removed quotation marks they imported with and changed the commas to periods. Made the date a date object in R and then rounded to 2 decimal places
+
+*dont run*
+```{r}
+TNHABEOCOMPGRND_30$day <-as.POSIXct(TNHABEOCOMPGRND_30$day,format="%m/%d/%y",tz="UTC")
+
+removeQuotes <- function(x) gsub("\"", "", x)
+commatoperiod <- function(y) gsub(",",".", y)
+
+TNHABEOCOMPGRND_SUMMER22_noquote <- TNHABEOCOMPGRND_30 %>%
+    mutate_if(is.character, removeQuotes)
+TNHABEOCOMPGRND_SUMMER22_noquote_nocomma <- TNHABEOCOMPGRND_SUMMER22_noquote %>%
+  mutate_if(is.character, commatoperiod)
+
+TNHABEOCOMPGRND_SUMMER22_noquote_nocomma$day<-as.POSIXct(TNHABEOCOMPGRND_SUMMER22_noquote_nocomma$day,format="%m/%d/%y",tz="UTC")
+
+#give it a shorter name...
+CLEAN_BEO_TNHA <- TNHABEOCOMPGRND_SUMMER22_noquote_nocomma
+CLEAN_BEO_TNHA$day <- as.POSIXct(CLEAN_BEO_TNHA$day, format="%m/%d/%y",tz="UTC")
+CLEAN_BEO_TNHA$day <- as.Date(CLEAN_BEO_TNHA$day, format = "%m/%d/%y", tz="UTC")
+CLEAN_BEO_TNHA$value <- as.numeric(CLEAN_BEO_TNHA$value)
+round(CLEAN_BEO_TNHA$value, digits= 2)
+
+#removerandomtime <- function(w) gsub(" 19:00:00", "", w)
+#CLEAN_BEO_TNHA <- CLEAN_BEO_TNHA %>% mutate_if(is.POSIXct, removerandomtime)
+```
+
+```{r fig14, fig.height = 6, fig.width = 14}
+CLEAN_BEO_TNHA %>%
+  ggplot(aes(x=day, y=value, color = sensor), size = 0.9) +
+  geom_line() +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size=20)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 20),legend.text = element_text(size = 10)) +
+  labs(title = "Summer 2022 daily average ground temperatures, control vs. N&S facing sensors (30cm)",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-2.5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 35),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 30)) +
+  scale_color_manual(name = "Station",values =c("TNHA-BASE" = "#1B9E77", "TNHA-SC" ="#E7298A", "BEO-B06"= "#084594","TNHA-SA" = "#D95F02", labels = c("BEO (Control)", "TNHA-BASE (South Facing)", "TNHA-SA (South Facing)", "TNHA-SC (North Facing)")))
+
+```
+
+SUMMER 2022 DATA
+##### 65 cm
+
+
+Daily average grnd temperature per sensor at station "X"
+```{r}
+grndmean65 <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "65cm") 
+
+grndmean65 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean65$time <- format(as.Date(
+  grndmean65$Date),format = "%H:%M:%S")
+grndmean65$day <- as.Date(grndmean65$Date)
+
+
+Daily_average_grnd_per_sensor_65 <- grndmean65 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+#this gives us the daily mean air temp for each sensor at TNHA in summer season
+
+#Below -- exports as a csv to folder of choice 
+
+#write.csv(Daily_average_grnd_per_sensor_65, "~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_65.csv")
+
+
+```
+
+
+
+```{r}
+Daily_Averages_Ground_Temps_Summer_65 <- read_csv("~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_65.csv", na = "NA")
+
+Daily_Averages_Ground_Temps_Summer_65$day<-as.POSIXct(Daily_Averages_Ground_Temps_Summer_65$day,format="%m/%d/%y",tz="UTC")
+
+removeQuotes <- function(x) gsub("\"", "", x)
+commatoperiod <- function(y) gsub(",",".", y)
+
+Daily_Averages_Ground_Temps_Summer_65_noquote <- Daily_Averages_Ground_Temps_Summer_65 %>%
+    mutate_if(is.character, removeQuotes)
+Daily_Averages_Ground_Temps_Summer_65_noquote_nocomma <- Daily_Averages_Ground_Temps_Summer_65_noquote %>%
+  mutate_if(is.character, commatoperiod)
+
+Daily_Averages_Ground_Temps_Summer_65_noquote_nocomma$day<-as.POSIXct(Daily_Averages_Ground_Temps_Summer_65_noquote_nocomma$day,format="%m/%d/%y",tz="UTC")
+
+#give it a shorter name...
+CLEAN_BEO_TNHA_65 <- Daily_Averages_Ground_Temps_Summer_65_noquote_nocomma
+CLEAN_BEO_TNHA_65$day <- as.POSIXct(CLEAN_BEO_TNHA_65$day, format="%m/%d/%y",tz="UTC")
+CLEAN_BEO_TNHA_65$day <- as.Date(CLEAN_BEO_TNHA_65$day, format = "%m/%d/%y", tz="UTC")
+CLEAN_BEO_TNHA_65$value <- as.numeric(CLEAN_BEO_TNHA_65$value)
+round(CLEAN_BEO_TNHA_65$value, digits= 2)
+```
+
+```{r fig3, fig.height = 6, fig.width = 14}
+CLEAN_BEO_TNHA_65 %>% filter(sensor == "TNHA-BASE" | sensor == "TNHA-SA" | sensor == "TNHA-SC" | sensor == "BEO-B06") %>%
+  ggplot(aes(x=day, y=value, color = sensor), size = 0.9) +
+  geom_line() +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size=20)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 20),legend.text = element_text(size = 10)) +
+  labs(title = "Summer 2022 daily average ground temperatures at 65cm depth, control vs. N&S facing sensors",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-2.5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 35),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 30)) +
+  scale_color_manual(name = "Station",values =c("TNHA-BASE" = "#1B9E77", "TNHA-SC" ="#E7298A", "BEO-B06"= "#084594","TNHA-SA" = "#D95F02", labels = c("BEO (Control)", "TNHA-BASE (South Facing)", "TNHA-SA (South Facing)", "TNHA-SC (North Facing)")))
+
+```
+
+#####
+
+SUMMER 2022 DATA
+##### 90 cm
+
+
+Daily average grnd temperature per sensor at station "X"
+```{r}
+grndmean90 <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "90cm") 
+
+grndmean90 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean90$time <- format(as.Date(
+  grndmean90$Date),format = "%H:%M:%S")
+grndmean90$day <- as.Date(grndmean90$Date)
+
+
+Daily_average_grnd_per_sensor_90 <- grndmean90 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+#this gives us the daily mean air temp for each sensor at TNHA in summer season
+
+#Below -- exports as a csv to folder of choice 
+
+#write.csv(Daily_average_grnd_per_sensor_90, "~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_90.csv")
+
+
+```
+
+```{r}
+Daily_Averages_Ground_Temps_Summer_90 <- read_csv("~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_90.csv", na = "NA")
+
+Daily_Averages_Ground_Temps_Summer_90$day <-as.POSIXct(Daily_Averages_Ground_Temps_Summer_90$day,format="%m/%d/%y",tz="UTC")
+
+removeQuotes <- function(x) gsub("\"", "", x)
+commatoperiod <- function(y) gsub(",",".", y)
+
+Daily_Averages_Ground_Temps_Summer_90_noquote <- Daily_Averages_Ground_Temps_Summer_90 %>%
+    mutate_if(is.character, removeQuotes)
+Daily_Averages_Ground_Temps_Summer_90_noquote_nocomma <- Daily_Averages_Ground_Temps_Summer_90_noquote %>%
+  mutate_if(is.character, commatoperiod)
+
+Daily_Averages_Ground_Temps_Summer_90_noquote_nocomma$day<-as.POSIXct(Daily_Averages_Ground_Temps_Summer_90_noquote_nocomma$day,format="%m/%d/%y",tz="UTC")
+
+#give it a shorter name...
+CLEAN_BEO_TNHA_90 <- Daily_Averages_Ground_Temps_Summer_90_noquote_nocomma
+CLEAN_BEO_TNHA_90$day <- as.POSIXct(CLEAN_BEO_TNHA_90$day, format="%m/%d/%y",tz="UTC")
+CLEAN_BEO_TNHA_90$day <- as.Date(CLEAN_BEO_TNHA_90$day, format = "%m/%d/%y", tz="UTC")
+CLEAN_BEO_TNHA_90$value <- as.numeric(CLEAN_BEO_TNHA_90$value)
+round(CLEAN_BEO_TNHA_90$value, digits= 2)
+```
+
+```{r fig13, fig.height = 6, fig.width = 14}
+
+#Daily_Averages_Ground_Temps_Summer_90 <- read_csv("Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer_90.csv", na = "NA")
+
+
+CLEAN_BEO_TNHA_90 %>% filter(sensor == "TNHA-BASE" | sensor == "TNHA-SA" | sensor == "TNHA-SC" | sensor == "BEO-B06") %>%
+  ggplot(aes(x=day, y=value, color = sensor), size = 0.9) +
+  geom_line() +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size=20)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 20),legend.text = element_text(size = 10)) +
+  labs(title = "Summer 2022 daily average ground temperatures at 90cm depth, control vs. N&S facing sensors",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-2.5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 35),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 30)) +
+  scale_color_manual(name = "Station",values =c("TNHA-BASE" = "#1B9E77", "TNHA-SC" ="#E7298A", "BEO-B06"= "#084594","TNHA-SA" = "#D95F02", labels = c("BEO (Control)", "TNHA-BASE (South Facing)", "TNHA-SA (South Facing)", "TNHA-SC (North Facing)"))) 
+
+```
+
+Dates before value >0
+```{r}
+before_thaw <- Daily_average_grnd_per_sensor_65 %>% filter(value > 0, sensor == "SSMH-SD")
+```
+
+
+
+Subsetting TNHA-SA, TNHA-SC, & BEO-B06 for 07-04-2022 through 09-01-2022 for means over season where no data gaps occur & same the start date 
+
+```{r}
+#10cm
+subset10new <- CLEAN_BEO_TNHA_10[CLEAN_BEO_TNHA_10$day >= "2022-07-04" & CLEAN_BEO_TNHA_10$day <= "2022-09-01", ]
+aggregate(value~sensor, subset10new, mean)
+#30cm
+subset30new <- Daily_average_grnd_per_sensor_30[Daily_average_grnd_per_sensor_30$day >= "2022-07-04" & Daily_average_grnd_per_sensor_30$day <= "2022-09-01", ]
+aggregate(value~sensor, subset30new, mean)
+#65cm
+subset65new <- CLEAN_BEO_TNHA_65[CLEAN_BEO_TNHA_65$day >= "2022-07-04" & CLEAN_BEO_TNHA_65$day <= "2022-09-01", ]
+aggregate(value~sensor, subset65new, mean)
+#90cm
+subset90new <- CLEAN_BEO_TNHA_90[CLEAN_BEO_TNHA_90$day >= "2022-07-04" & CLEAN_BEO_TNHA_90$day <= "2022-09-01", ]
+aggregate(value~sensor, subset90new, mean)
+
+```
+
+
+####
+Fall Data
+
+
+*Ground Temperatures for all sites data prepping*
+```{r}
+# importing ground temp data for 6-19 through 9-20
+grndtmp921_1119=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Fall_grndtmp_2023_04_06_12_19_52_UTC_1.csv")
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW1", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW4", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW5", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW6", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub(".RXW.GP6.", "", names(grndtmp921_1119))
+grndtmp921_1119$Date <-as.POSIXct(grndtmp921_1119$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+ 
+
+*GROUND TEMPERATURE CSV ADJUSTMENTS, LONG DATAFRAME*
+```{r}
+grndtmp = gather(grndtmp921_1119, variable, response, Temperature.21198259.21206939.7:Temperature.21401800.21398576.17) %>%
+  mutate(variable = fct_inorder(variable))
+dfgrndtemp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(dfgrndtemp)[3] <- ("value")
+colnames(dfgrndtemp)[5:7] <- c("station", "sensor", "depth")
+
+dfgrndtemp$variable_1 <- NULL
+dfgrndtemp$variable_5 <- NULL
+dfgrndtemp$variable_6 <- NULL
+dfgrndtemp$variable_7 <- NULL
+dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth))
+dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
+dfgrndtemp$station <- as.factor(dfgrndtemp$station)
+dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+
+dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+
+dfgrndtemp <- dfgrndtemp %>% filter(!value == -888.88)
+
+```
+
+
+*****
+
+*Daily average grnd temperature per sensor at station "X" at depth "X"*
+```{r}
+grndmean <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "10cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+#this gives us the daily mean air temp for each sensor at TNHA in summer season
+
+#Below -- exports as a csv to folder of choice 
+
+#write.csv(Daily_average_grnd_per_sensor, "~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer.csv")
+
+```
+
+
+Dates before value >0
+```{r}
+before_thaw <- Daily_average_grnd_per_sensor %>% filter(value < 0 | value == 0 )
+```
+
+
+
+```{r fig14, fig.height = 6, fig.width = 14}
+Daily_average_grnd_per_sensor %>% filter(sensor == "TNHA-BASE" | sensor == "TNHA-SA" | sensor == "TNHA-SC" |sensor == "TNHA-SB" | sensor == "TNHA-SD" | sensor == "BEO-B06") %>%
+  ggplot(aes(x=day, y=value, color = sensor), size = 0.9) +
+  geom_line() +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  labs(title = "Fall 2022 daily average ground temperatures at 10cm depth, control vs. N&S facing sensors",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-15,-10,-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-15, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 23),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 30)) +
+  scale_color_manual(name = "Station",values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E", "BEO-B06"= "#084594"))
+
+
+  #scale_color_manual(name = "Station",values =c("TNHA-BASE" = "#1B9E77", "TNHA-SC" ="#E7298A", "BEO-B06"= "#084594","TNHA-SA" = "#D95F02", labels = c("BEO (Control)", "TNHA-BASE (South Facing)", "TNHA-SA (South Facing)", "TNHA-SC (North Facing)")))
+```
+
+
+
+
+Spring Data ##########
+
+Ground Temperatures for all sites data prepping
+```{r}
+# importing ground temp data for 6-19 through 9-20
+grndtmp619_920=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Spring_meteorological_grndtmp_2023_07_14_22_32_10_UTC_1.csv")
+names(grndtmp619_920) <- sub("....C..RX3000_BRW1", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW4", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW5", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW6", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub(".RXW.GP6.", "", names(grndtmp619_920))
+grndtmp619_920$Date <-as.POSIXct(grndtmp619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+grndtmp = gather(grndtmp619_920, variable, response, Temperature.21198259.21206939.7_TNHA:Temperature.21401803.21398591.17_BEO) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+dfgrndtemp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(dfgrndtemp)[3] <- ("value")
+colnames(dfgrndtemp)[5:7] <- c("station", "sensor", "depth")
+
+dfgrndtemp$variable_5 <- NULL
+dfgrndtemp$variable_6 <- NULL
+dfgrndtemp$variable_7 <- NULL
+dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth))
+dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
+dfgrndtemp$station <- as.factor(dfgrndtemp$station)
+dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+
+dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7_TNHA" = "3.5cm", "8_TNHA" = "10cm", "9_TNHA" = "20cm", "10_TNHA" = "30cm", "11_TNHA" = "40cm", "12_TNHA" = "50cm", "13_TNHA" = "55cm", "14_TNHA" = "65cm", "15_TNHA" = "75cm", "16_TNHA" = "85cm", "17_TNHA" = "90cm", "7_BEO" = "3.5cm", "8_BEO" = "10cm", "9_BEO" = "20cm", "10_BEO" = "30cm", "11_BEO" = "40cm", "12_BEO" = "50cm", "13_BEO" = "55cm", "14_BEO" = "65cm", "15_BEO" = "75cm", "16_BEO" = "85cm", "17_BEO" = "90cm","7_BUECI" = "3.5cm", "8_BUECI" = "10cm", "9_BUECI" = "20cm", "10_BUECI" = "30cm", "11_BUECI" = "40cm", "12_BUECI" = "50cm", "13_BUECI" = "55cm", "14_BUECI" = "65cm", "15_BUECI" = "75cm", "16_BUECI" = "85cm", "17_BUECI" = "90cm","7_SSMH" = "3.5cm", "8_SSMH" = "10cm", "9_SSMH" = "20cm", "10_SSMH" = "30cm", "11_SSMH"= "40cm", "12_SSMH" = "50cm", "13_SSMH" = "55cm", "14_SSMH" = "65cm", "15_SSMH" = "75cm", "16_SSMH" = "85cm", "17_SSMH" = "90cm"))
+
+dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+
+dfgrndtemp <- dfgrndtemp %>% filter(!value == -888.88)
+```
+*Daily average grnd temperature per sensor at station "X" at depth "X"*
+```{r}
+grndmean <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "65cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+#this gives us the daily mean air temp for each sensor at TNHA in summer season
+  
+
+#Below -- exports as a csv to folder of choice 
+
+#write.csv(Daily_average_grnd_per_sensor, "~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Daily_Averages_Ground_Temps_Summer.csv")
+
+```
+
+
+
+
+
+```{r fig14, fig.height = 6, fig.width = 14}
+Daily_average_grnd_per_sensor %>% filter(sensor == "TNHA-BASE" | sensor == "TNHA-SA" | sensor == "TNHA-SC" | sensor == "BEO-B06") %>%
+  ggplot(aes(x=day, y=value, color = sensor), size = 0.9) +
+  geom_line() +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  labs(title = "Spring 2023 daily average ground temperatures at 65cm depth, control vs. N&S facing sensors",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-20,-15,-10,-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-20, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 23),
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 30)) +
+  scale_color_manual(name = "Station",values =c("TNHA-BASE" = "#1B9E77", "TNHA-SC" ="#E7298A", "BEO-B06"= "#084594","TNHA-SA" = "#D95F02", labels = c("BEO (Control)", "TNHA-BASE (South Facing)", "TNHA-SA (South Facing)", "TNHA-SC (North Facing)")))
+```
