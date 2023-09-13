@@ -1,0 +1,279 @@
+---
+title: "PCA_TNHA"
+author: "Kiefer Fallin"
+date: "9/12/2023"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) 
+library(naniar)
+library(RColorBrewer)
+library(clock)
+```
+
+Data prepping for all variables: getting daily TNHA average for all variables of interest
+
+Starting with air temperature
+```{r}
+airtemp_summer =read.csv("/Users/kieferfallin/Desktop/Research/Fall 2023 Work/Meteorological_Seasons_Data/Summer 2023 Data/Summer_airtemp_2023_04_06_11_59_55_UTC_1.csv")
+names(airtemp_summer) <- sub("Temperature..RXW.THC.", "" ,names(airtemp_summer))
+names(airtemp_summer) <- sub("Temperature..S.THC.", "" ,names(airtemp_summer))
+names(airtemp_summer) <- sub("S.", "" ,names(airtemp_summer))
+names(airtemp_summer) <- sub("....C..RX3000_BRW1", "" ,names(airtemp_summer))
+names(airtemp_summer) <- sub("....C..RX3000_BRW4", "" ,names(airtemp_summer))
+names(airtemp_summer) <- sub("....C..RX3000_BRW5", "" ,names(airtemp_summer))
+names(airtemp_summer) <- sub("....C..RX3000_BRW6", "" ,names(airtemp_summer))
+airtemp_summer$Date <- as.POSIXct(airtemp_summer$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+# we only want TNHA with daily averages for this first PCA
+airtemp_TNHA <- airtemp_summer%>%
+  select(Date,`21198259.21218018.1`,`21198259.21380919.1`,`21198259.21398676.1`,`21198259.21398674.1`,`21198259.21398666.1`)%>%
+  group_by(Date)%>%
+  summarize(Avg_Temperature = mean(c(`21198259.21218018.1`,`21198259.21380919.1`,`21198259.21398676.1`,`21198259.21398674.1`,`21198259.21398666.1`), na.rm = TRUE))
+
+# furthermore, we want daily averages
+airtemp_TNHA_daily <- airtemp_TNHA %>%
+  mutate(Date = as.Date(Date)) %>%  # Convert the date column to Date format (removing time)
+  group_by(Date) %>%  # Group by date (day)
+  summarise(Daily_Avg_Temperature = mean(Avg_Temperature, na.rm = TRUE))
+```
+
+Solar Radiation
+```{r}
+solarrad_summer= read.csv("/Users/kieferfallin/Desktop/Research/Fall 2023 Work/Meteorological_Seasons_Data/Summer 2023 Data/Summer_solar_2023_04_06_13_16_22_UTC_1.csv")
+names(solarrad_summer) <- sub("olar.Radiation..RXW.LIB", "" ,names(solarrad_summer))
+names(solarrad_summer) <- sub("olar.Radiation..S.LIB", "" ,names(solarrad_summer))
+names(solarrad_summer) <- sub("S.", "" ,names(solarrad_summer))
+names(solarrad_summer) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solarrad_summer))
+names(solarrad_summer) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solarrad_summer))
+names(solarrad_summer) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solarrad_summer))
+names(solarrad_summer) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solarrad_summer))
+solarrad_summer$Date <- as.POSIXct(solarrad_summer$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+solarrad_TNHA <- solarrad_summer%>%
+  select(Date,`21198259.21176526.1`,`21198259.21362315.1`,`21198259.21362317.1`,`21198259.21398620.1`,`21198259.21398620.1`,`21198259.21398616.1`)%>%
+  group_by(Date)%>%
+  summarize(Avg_Rad = mean(c(`21198259.21176526.1`,`21198259.21362315.1`,`21198259.21362317.1`,`21198259.21398620.1`,`21198259.21398620.1`,`21198259.21398616.1`), na.rm = TRUE))
+
+solarrad_TNHA_daily <- solarrad_TNHA %>%
+  mutate(Date = as.Date(Date)) %>%  
+  group_by(Date) %>%  
+  summarize(Daily_Avg_Solar_Rad = mean(Avg_Rad, na.rm = TRUE))
+```
+
+VWC daily average for TNHA
+```{r}
+vwc_summer=read.csv("/Users/kieferfallin/Desktop/Research/Fall 2023 Work/Meteorological_Seasons_Data/Summer 2023 Data/Summer_VWC_2023_04_06_12_33_54_UTC_1.csv")
+names(vwc_summer) <- sub("...m.3.m.3..RX3000_BRW1", "", names(vwc_summer))
+names(vwc_summer) <- sub("...m.3.m.3..RX3000_BRW4", "", names(vwc_summer))
+names(vwc_summer) <- sub("...m.3.m.3..RX3000_BRW5", "", names(vwc_summer))
+names(vwc_summer) <- sub("...m.3.m.3..RX3000_BRW6", "", names(vwc_summer))
+names(vwc_summer) <- sub("..RXW.GP6.", "", names(vwc_summer))
+names(vwc_summer) <- sub("Water.Content", "", names(vwc_summer))
+vwc_summer$Date <-as.POSIXct(vwc_summer$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+vwc_TNHA <- vwc_summer%>%
+  select(Date,`21198259.21206939.2`,`21198259.21393047.2`,`21198259.21398593.2`,`21198259.21398601.2`)%>%
+  group_by(Date)%>%
+  summarize(Avg_VWC = mean(c(`21198259.21206939.2`,`21198259.21393047.2`,`21198259.21398593.2`,`21198259.21398601.2`), na.rm = TRUE))
+
+vwc_TNHA_daily <- vwc_TNHA %>%
+  mutate(Date = as.Date(Date)) %>%  
+  group_by(Date) %>%  
+  summarize(Daily_Avg_VWC = mean(Avg_VWC, na.rm = TRUE))
+```
+
+Ground Temperature 30 cm
+```{r}
+gtemp_summer=read.csv("/Users/kieferfallin/Desktop/Research/Fall 2023 Work/Meteorological_Seasons_Data/Summer 2023 Data/Summer_grndtmp_2023_04_06_12_21_30_UTC_1.csv")
+names(gtemp_summer) <- sub("....C..RX3000_BRW1", "", names(gtemp_summer))
+names(gtemp_summer) <- sub("....C..RX3000_BRW4", "", names(gtemp_summer))
+names(gtemp_summer) <- sub("....C..RX3000_BRW5", "", names(gtemp_summer))
+names(gtemp_summer) <- sub("....C..RX3000_BRW6", "", names(gtemp_summer))
+names(gtemp_summer) <- sub(".RXW.GP6.", "", names(gtemp_summer))
+gtemp_summer$Date <-as.POSIXct(gtemp_summer$Date,format="%m/%d/%y %H:%M",tz="UTC")
+names(gtemp_summer) <- sub("Temperature.", "", names(gtemp_summer))
+names(gtemp_summer) <- sub(".RXW.THC.", "", names(gtemp_summer))
+
+# sneaky air temp
+gtemp_summer = gtemp_summer[,-14]
+
+# removing false 0s
+c = 3 
+zeroes = 0
+while(c <= ncol(gtemp_summer)-10){
+  sensorGroup = gtemp_summer %>% select(2,c, c+1, c+2, c+3, c+4, c+5, c+6, c+7, c+8, c+9, c+10)
+  for(r in 1:nrow(sensorGroup)) {
+    zeroes = 0
+    col = 2
+    while(col <= 12){
+      if(sensorGroup[r,col] == 0 | is.na(sensorGroup[r,col])) { 
+        if(!is.na(sensorGroup[r,col])){
+          zeroes = zeroes + 1 
+        }
+      }
+      col = col + 1
+    }
+    if(zeroes >= 3){ 
+      for(columnn in 2:ncol(sensorGroup)){
+      if(sensorGroup[r,columnn] == 0 | is.na(sensorGroup[r,columnn])) { 
+        gtemp_summer[r,columnn+c] = NA
+      }
+    }
+    }
+  }
+  c = c + 11 
+}
+
+gtemp_TNHA <- gtemp_summer%>%
+  select(Date,`21198259.21206939.10`,`21198259.21393047.10`,`21198259.21398593.10`,`21198259.21398601.10`)%>%
+  group_by(Date)%>%
+  summarize(Avg_Gtemp = mean(c(`21198259.21206939.10`,`21198259.21393047.10`,`21198259.21398593.10`,`21198259.21398601.10`), na.rm = TRUE))
+
+gtemp_TNHA_daily <- gtemp_TNHA %>%
+  mutate(Date = as.Date(Date)) %>%  
+  group_by(Date) %>%  
+  summarize(Daily_Avg_Gtemp = mean(Avg_Gtemp, na.rm = TRUE))
+```
+
+Wind Speed
+```{r}
+wspeed_summer=read.csv("/Users/kieferfallin/Desktop/Research/Fall 2023 Work/Meteorological_Seasons_Data/Summer 2023 Data/Summer22_Summer23_Wind_Speed_2023_09_07_19_43_04_UTC_1.csv")
+names(wspeed_summer) <- sub("Wind.Speed..", "", names(wspeed_summer))
+names(wspeed_summer) <- sub("RXW.WCF.", "", names(wspeed_summer))
+names(wspeed_summer) <- sub("S.WSB.", "", names(wspeed_summer))
+names(wspeed_summer) <- sub("...m.s..RX3000_", "", names(wspeed_summer))
+names(wspeed_summer) <- sub("BRW1", "", names(wspeed_summer))
+names(wspeed_summer) <- sub("BRW4", "", names(wspeed_summer))
+names(wspeed_summer) <- sub("_SSMH", "", names(wspeed_summer))
+names(wspeed_summer) <- sub("BRW6", "", names(wspeed_summer))
+names(wspeed_summer) <- sub("_BEO", "", names(wspeed_summer))
+wspeed_summer$Date <-as.POSIXct(wspeed_summer$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+
+wspeed_TNHA <- wspeed_summer%>%
+  select(Date,`21198259.21176861.1`,`21198259.21398709.1`,`21198259.21398715.1`,`21198259.21206909.1`,`21198259.21398712.1`)%>% #why are there multiple vectors for the same serial number?
+  group_by(Date)%>%
+  summarize(Avg_Wspeed = mean(c(`21198259.21176861.1`,`21198259.21398709.1`,`21198259.21398715.1`,`21198259.21206909.1`,`21198259.21398712.1`), na.rm = TRUE))
+
+wspeed_TNHA_daily <- wspeed_TNHA %>%
+  mutate(Date = as.Date(Date)) %>%  
+  group_by(Date) %>%  
+  summarize(Daily_Avg_Wspeed = mean(Avg_Wspeed, na.rm = TRUE))
+
+wspeed_TNHA_daily <- wspeed_TNHA_daily%>%
+  filter(Date >= "2022-06-19" & 
+         Date <= "2022-09-01")
+```
+
+Wind Direction
+```{r}
+wdir_summer=read.csv("/Users/kieferfallin/Desktop/Research/Fall 2023 Work/Meteorological_Seasons_Data/Summer 2023 Data/Summer22_Summer23_Wind_Dir_2023_09_07_19_32_22_UTC_1.csv")
+names(wdir_summer) <- sub("Wind.Direction..", "", names(wdir_summer))
+names(wdir_summer) <- sub("RXW.WCF.", "", names(wdir_summer))
+names(wdir_summer) <- sub("S.WDA.", "", names(wdir_summer))
+names(wdir_summer) <- sub("......RX3000_", "", names(wdir_summer))
+names(wdir_summer) <- sub("BRW1", "", names(wdir_summer))
+names(wdir_summer) <- sub("BRW4", "", names(wdir_summer))
+names(wdir_summer) <- sub("_SSMH", "", names(wdir_summer))
+names(wdir_summer) <- sub("BRW6", "", names(wdir_summer))
+names(wdir_summer) <- sub("_BEO", "", names(wdir_summer))
+wdir_summer$Date <-as.POSIXct(wdir_summer$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+
+wdir_TNHA <- wdir_summer%>%
+  select(Date,`21198259.21167037.1`,`21198259.21398709.3`,`21198259.21398715.3`,`21198259.21206909.3`,`21198259.21398712.3`)%>% #why are there multiple vectors for the same serial number?
+  group_by(Date)%>%
+  summarize(Avg_Wdir = mean(c(`21198259.21167037.1`,`21198259.21398709.3`,`21198259.21398715.3`,`21198259.21206909.3`,`21198259.21398712.3`), na.rm = TRUE))
+
+wdir_TNHA_daily <- wdir_TNHA %>%
+  mutate(Date = as.Date(Date)) %>%  
+  group_by(Date) %>%  
+  summarize(Daily_Avg_Wdir = mean(Avg_Wdir, na.rm = TRUE))
+
+wdir_TNHA_daily <- wdir_TNHA_daily%>%
+  filter(Date >= "2022-06-19" & 
+         Date <= "2022-09-01")
+```
+
+
+Joining all the daily averaged TNHA variables
+```{r}
+TNHA_allvar <- inner_join(solarrad_TNHA_daily, airtemp_TNHA_daily, by = "Date")%>%
+  inner_join(vwc_TNHA_daily, by = "Date")%>%
+  inner_join(gtemp_TNHA_daily, by = "Date")%>%
+  inner_join(wspeed_TNHA_daily, by = "Date")%>%
+  inner_join(wdir_TNHA_daily, by = "Date")
+```
+
+PCA
+```{r}
+TNHA_allvar_no_date <- TNHA_allvar%>%
+  select(-Date) # I removed the date because I figured it would not work to incorporate it as an actual variable rather than just having it to initially sort the values
+
+TNHA_pca <- prcomp(TNHA_allvar_no_date, scale.=TRUE)
+
+sd <- TNHA_pca$sdev
+loadings <- TNHA_pca$rotation
+rownames(loadings) <- colnames(TNHA_allvar_no_date)
+scores <- TNHA_pca$x
+```
+
+PCA Figures
+
+1) Scree plot of variance for each PC
+
+```{r}
+var <- sd^2
+varPercent <- var/sum(var) * 100
+dev.new()
+ 
+barplot(varPercent, xlab="Principle Components", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="black")
+ 
+abline(h=1/ncol(TNHA_allvar_no_date)*100, col="red")
+```
+
+```{r}
+varPercent[1:2]
+sum(varPercent[1:2])
+# How much of total variance do PC 1 and 2 (the ones above that are greater than if each variable contributed equally) account for? 59.54%
+```
+
+Creating table of loadings
+```{r}
+loadings
+sqrt(1/ncol(TNHA_allvar_no_date))
+```
+
+Correlation biplots
+```{r}
+dev.new(height=7, width=7)
+biplot(scores[, 1:2], loadings[, 1:2], cex=0.7, pc.biplot=TRUE)
+```
+
+
+```{r}
+dev.new(height=7, width=7)
+ 
+plot(scores[, 1]/sd[1], scores[, 2]/sd[2], xlab="PCA 1", ylab="PCA 2", type="n", las=1)
+ 
+scaling <- 2
+textNudge <- 1.2
+ 
+arrows(0, 0, loadings[, 1]*sd[1]*scaling, loadings[, 2]*sd[2]*scaling, length=0.1, angle=20, col="red")
+ 
+text(loadings[, 1]*sd[1]*scaling*textNudge, loadings[, 2]*sd[2]*scaling*textNudge, rownames(loadings), col="red", cex=0.7)
+ 
+text(scores[, 1]/sd[1], scores[, 2]/sd[2], rownames(scores), col="blue", cex=0.7)
+```
+
+
+
