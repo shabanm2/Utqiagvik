@@ -114,6 +114,8 @@ for(file in gtfiles){
 airtemp_daily = data.frame(matrix(nrow = 0, ncol = 5))
 colnames(airtemp_daily) = c("date", "station", "sensor", "depth", "airavg")
 
+file = "Spring_airtemp_2023_09_14_19_34_54_UTC_1.csv"
+
 for(file in airfiles){
   
   #read file into temporary storage df
@@ -139,7 +141,7 @@ for(file in airfiles){
   names(temp) <- sub("_SSMH", "", names(temp))
   names(temp) <- sub("_BUECI", "", names(temp))
   names(temp) <- sub("_BEO", "", names(temp))
-  
+  names(temp) <- sub("_MH", "", names(temp))
   
   
   #turn into long df
@@ -155,6 +157,10 @@ for(file in airfiles){
   
   temp$station <- revalue(temp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
   temp$sensor <- revalue(temp$sensor, c("21390851" = "BUECI-BASE", "21398671" = "BUECI-SA","21398659"="BUECI-SA", "21362254" = "BUECI-SB", "21398668" = "BUECI-SC","21397542"="BUECI-SC","21398661" = "BUECI-SD", "21362256" = "BUECI-SD", "21187245" = "BUECI-SE", "21390849" ="SSMH-BASE", "21398670" = "SSMH-SA", "21398665" = "SSMH-SB", "21218018" = "TNHA-BASE", "21380919" = "TNHA-SA", "21398676"="TNHA-SB","21398666" = "TNHA-SD","21398664"="TNHA-SD", "21398674" = "TNHA-SC", "21397541" = "BEO-B02"))
+  
+  #there is wind speed for BUECI
+  #need to remove
+  temp = temp %>% filter(sensor != "21398660")
   
   temp <- temp %>% mutate(day = substr(Date, 1, 10))
   #tempavg = data.frame(tapply(temp$value, list(temp$day,temp$station,temp$sensor,temp$depth), mean))
@@ -211,10 +217,13 @@ for(file in solarfiles){
   temp$station <- as.factor(temp$station)
   
   temp$station <- revalue(temp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
-  temp$sensor <- revalue(temp$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
+  temp$sensor <- revalue(temp$sensor, c("21390411" = "BUECI-BASE","21390414"="BUECI-BASE","21398621"="BUECI-SB", "21398618" = "BUECI-SA","21398617"="BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC","21362314"="BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
                                         "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
-                                        "211768" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                        "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", "21362318"="TNHA-SC",
                                         "21390415" = "BEO-BASE"))
+  
+  #Not a Solar Sensor
+  temp = temp %>% filter(sensor != "21398623")
   
   temp <- temp %>% mutate(day = substr(Date, 1, 10))
   #tempavg = data.frame(tapply(temp$value, list(temp$day,temp$station,temp$sensor,temp$depth), mean))
@@ -271,7 +280,8 @@ for(file in vwcfiles){
   temp$station <- as.factor(temp$station)
   
   temp$station <- revalue(temp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
-  temp$sensor <- revalue(temp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+  temp$sensor <- revalue(temp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" ,
+                                        "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
   
   temp <- temp %>% mutate(day = substr(Date, 1, 10))
   #tempavg = data.frame(tapply(temp$value, list(temp$day,temp$station,temp$sensor,temp$depth), mean))
