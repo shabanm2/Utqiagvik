@@ -1,0 +1,572 @@
+---
+title: "X-Y Multisite Comparison Plots"
+author: "Mirella Shaban"
+date: '2023-04-24'
+output: html_document
+---
+
+-------------IMPORTANT FILE PATHS/VALUES-------------
+
+```{r}
+filepath = "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/" #Set to prefix of your file location
+
+#Daily Step
+datemin = "2022-06-19"
+datemax = "2022-09-19"
+
+#Depth of Interest
+bestdepth = 8 #8 == 10cm
+depthcm = "10 cm"
+```
+
+
+-------------DATA SETUP AND CLEANING-------------
+
+```{r}
+
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+Ground Temperatures for all sites data prepping
+```{r}
+# importing ground temp data for 6-19 through 9-20
+grndtmp=read.csv(paste(filepath,"Summer_grndtmp_2023_04_06_12_21_30_UTC_1.csv",sep = ""))
+ 
+# data cleaning for dataset
+names(grndtmp) <- sub("....C..RX3000_BRW1", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW4", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW5", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW6", "", names(grndtmp))
+names(grndtmp) <- sub(".RXW.GP6.", "", names(grndtmp))
+names(grndtmp) <- sub("Temperature.", "", names(grndtmp))
+grndtmp$Date <-as.POSIXct(grndtmp$Date,format="%m/%d/%y %H:%M",tz="UTC")
+#Air Temp Sensor - Remove
+grndtmp = grndtmp[,-14]
+#THESE ARE BLANK COLUMNS - rewrite if using a different data set
+#NOTE: these have gaps in the BEGINNING part of data collection - may not always be blank
+#grndtmp = grndtmp[,-c(26:36)]
+#grndtmp = grndtmp[,-c(92:201)]
+raw_ground = grndtmp
+grndtmp$.RXW.THC.21198259.21398666.1 <- NULL
+grndtmp$.RXW.THC.21198259.21398676.1 <- NULL
+```
+
+
+Ground Moisture for all sites data prepping
+```{r}
+mst=read.csv(paste(filepath,"Summer_VWC_2023_04_06_12_33_54_UTC_1.csv",sep = ""))
+
+names(mst) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst))
+names(mst) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst))
+names(mst) <- sub("...m.3.m.3..RX3000_BRW5", "", names(mst))
+names(mst) <- sub("...m.3.m.3..RX3000_BRW6", "", names(mst))
+names(mst) <- sub("..RXW.GP6.", "", names(mst))
+mst$Date <-as.POSIXct(mst$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+Solar radiation for all sites data prepping
+```{r}
+solarrad = read.csv(paste(filepath,"Summer_solar_2023_04_06_13_16_22_UTC_1.csv",sep = ""))
+
+names(solarrad) <- sub("olar.Radiation..RXW.LIB", "" ,names(solarrad))
+names(solarrad) <- sub("olar.Radiation..S.LIB", "" ,names(solarrad))
+names(solarrad) <- sub("S.", "" ,names(solarrad))
+names(solarrad) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solarrad))
+names(solarrad) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solarrad))
+names(solarrad) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solarrad))
+names(solarrad) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solarrad))
+solarrad$Date <- as.POSIXct(solarrad$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+#Upload = data and clean
+Ground Temperatures for all sites data prepping
+```{r}
+# importing ground temp data for 6-19 through 9-20
+grndtmp619_920=read.csv(paste(filepath,"Summer_grndtmp_2023_04_06_12_21_30_UTC_1.csv", sep=""))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW1", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW4", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW5", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub("....C..RX3000_BRW6", "", names(grndtmp619_920))
+names(grndtmp619_920) <- sub(".RXW.GP6.", "", names(grndtmp619_920))
+grndtmp619_920$Date <-as.POSIXct(grndtmp619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+Ground Moisture for all sites data prepping
+```{r}
+mst619_920=read.csv(paste(filepath, "Summer_VWC_2023_04_06_12_33_54_UTC_1.csv", sep=""))
+names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst619_920))
+names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst619_920))
+names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW5", "", names(mst619_920))
+names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW6", "", names(mst619_920))
+names(mst619_920) <- sub("..RXW.GP6.", "", names(mst619_920))
+mst619_920$Date <-as.POSIXct(mst619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+Solar radiation for all sites data prepping
+```{r}
+solarrad619_920 = read.csv(paste(filepath,"Summer_solar_2023_04_06_13_16_22_UTC_1.csv", sep= ""))
+names(solarrad619_920) <- sub("olar.Radiation..RXW.LIB", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("olar.Radiation..S.LIB", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("S.", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solarrad619_920))
+names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solarrad619_920))
+solarrad619_920$Date <- as.POSIXct(solarrad619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+airtemp=read.csv(paste(filepath,"Summer_airtemp_2023_04_06_11_59_55_UTC_1.csv",sep = ""))
+
+names(airtemp) <- sub("Temperature..RXW.THC.", "" ,names(airtemp))
+names(airtemp) <- sub("Temperature..S.THC.", "" ,names(airtemp))
+names(airtemp) <- sub("S.", "" ,names(airtemp))
+names(airtemp) <- sub("....C..RX3000_BRW1", "" ,names(airtemp))
+names(airtemp) <- sub("....C..RX3000_BRW4", "" ,names(airtemp))
+names(airtemp) <- sub("....C..RX3000_BRW5", "" ,names(airtemp))
+names(airtemp) <- sub("....C..RX3000_BRW6", "" ,names(airtemp))
+airtemp$Date <- as.POSIXct(airtemp$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+-------Convert to Long DataFrame-------
+
+#Solar Radiation
+```{r fig9, fig.heigt = 14, fig.width = 18}
+raw_solar = solarrad
+
+solarrad = gather(solarrad, variable, response, '21198259.21176526.1':'21401800.21390411.1') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+
+
+
+
+
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-BASE"))
+
+solarrad <- solarrad %>% filter(!value == -888.88)
+```
+
+```{r fig9, fig.heigt = 14, fig.width = 18}
+grndtmp = raw_ground
+
+grndtmp = gather(grndtmp, variable, response, 3:ncol(grndtmp)) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+grndtmp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") # texttocols, 
+colnames(grndtmp)[3:6] <- c("value", "station", "sensor","depth")
+grndtmp$value <- as.numeric(as.character(grndtmp$value)) 
+grndtmp$sensor <- as.factor(as.character(grndtmp$sensor))
+grndtmp$station <- as.factor(grndtmp$station)
+grndtmp$depth <- as.factor(grndtmp$depth)
+grndtmp$variable_4 <- NULL
+grndtmp$variable_5 <- NULL
+grndtmp$variable_6 <- NULL
+grndtmp$station <- revalue(grndtmp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+grndtmp$depth <- revalue(grndtmp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11"
+                                          = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" =
+                                            "75cm", "16" = "85cm", "17" = "90cm"))
+
+
+#Find Sensor Values
+
+grndtmp$sensor <- revalue(grndtmp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21398591" = "BEO-BASE"))
+
+#BEO-BASE here is actually BEO B05 for the XY plots to work
+grndtmp <- grndtmp %>% filter(!value == -888.88, !depth == "THC")
+```
+
+
+
+```{r fig9, fig.heigt = 14, fig.width = 18}
+raw_air = airtemp
+
+airtemp = gather(airtemp, variable, response, 3:ncol(airtemp)) %>%
+  mutate(variable = fct_inorder(variable))
+airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+airtemp$variable_3 <- NULL
+colnames(airtemp)[3:5] <- c("value", "station", "sensor")
+airtemp$value <- as.numeric(as.character(airtemp$value)) 
+airtemp$sensor <- as.factor(as.character(airtemp$sensor))
+airtemp$station <- as.factor(airtemp$station)
+airtemp$station <- revalue(airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671" = "BUECI-SA", "21362254" = "BUECI-SB", "21398668" = "BUECI-SC", "21398660" = "BUECI-SD", "21187245" = "BUECI-SE",
+                                            "21390849" ="SSMH-BASE","21393049" = "SSMH-SD", "21398670" = "SSMH-SA", "21398665" = "SSMH-SB",
+                                            "21218018" = "TNHA-BASE", "21380919" = "TNHA-SA" , "21398676"="TNHA-SB","21398666" = "TNHA-SD", "21398674" = "TNHA-SC", "21397541" = "BEO-BASE"))
+#TNHA-A and TNHA-B are GUESSES - need metadata on ground
+
+airtemp <- airtemp %>% filter(!value == -888.88)
+
+```
+-------Convert to Daily Values-------
+
+```{r}
+avgdailysolar = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
+sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD", "BEO-BASE", "SSMH-BASE", "SSMH-SA", "SSMH-SB")
+#adjusted to include other stations -- change back to just TNHA***
+
+for(sensorName in sensorList){
+  daily = solarrad %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+
+  daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
+           
+  daily = aggregate(value ~ Date, daily, mean, na.rm=T)
+  sensor = rep(sensorName, nrow(daily))
+  station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD"), "" ,sensorName), nrow(daily))
+  daily = data.frame(daily, station, sensor)
+  avgdailysolar = rbind(avgdailysolar, daily)
+}
+
+colnames(avgdailysolar)[2] = "solar"
+
+```
+#adjust sensorList for BEO-B05, BEO-B06 if comparing ground temp to ground temp for XY. Set equal to BEO-BASE if comparing air temp to ground temp xY
+```{r}
+grndtmp_10cm <- grndtmp %>% filter(depth == "10cm")
+avgdailyground = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
+sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB","TNHA-SC","TNHA-SD", "BEO-BASE", "SSMH-BASE", "SSMH-SA", "SSMH-SB")
+
+
+for(sensorName in sensorList){
+    
+    daily = grndtmp_10cm %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%
+      filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+if(nrow(daily) > 0){
+  daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
+
+  daily = aggregate(value ~ Date, daily, mean, na.rm=T)
+  sensor = rep(sensorName, nrow(daily))
+  station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD|-B05|-B06"), "" ,sensorName), nrow(daily))
+  daily = data.frame(daily, station, sensor)
+  avgdailyground = rbind(avgdailyground, daily)
+}
+
+  
+}
+
+colnames(avgdailyground)[2] = "grndtmp"
+
+```
+
+```{r}
+avgdailyair = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
+sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD", "BEO-BASE", "SSMH-BASE", "SSMH-SA", "SSMH-SB")
+
+
+for(sensorName in sensorList){
+  daily = airtemp %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%                 filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+
+  daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
+
+  daily = aggregate(value ~ Date, daily, mean, na.rm=T)
+  sensor = rep(sensorName, nrow(daily))
+  station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD"), "" ,sensorName), nrow(daily))
+  daily = data.frame(daily, station, sensor)
+  avgdailyair= rbind(avgdailyair, daily)
+}
+
+colnames(avgdailyair)[2] = "airtemp"
+```
+----- AMPLITUDE -----
+
+```{r}
+grndamp <- grndtmp %>% filter(grndtmp$depth == "10cm", !value == 0.0) 
+grndamp <- grndamp %>%
+  group_by(Date) %>%
+  mutate(
+    Max_grnd = max(value, na.rm = T),
+    Min_grnd = min(value, na.rm = T),
+    mean_grnd = mean(value, na.rm = T),
+    amplitude = (Max_grnd-Min_grnd)
+  ) %>%
+   arrange(sensor)
+
+grndamp$Date <- as.Date(grndamp$Date)
+
+grndamp_averages <- grndamp %>% group_by(Date, sensor, Date = as.Date(Date)) %>% summarise(across(c(Max_grnd, Min_grnd, mean_grnd, amplitude), mean))
+
+#grndamp2 <- grndamp %>% tidyr::pivot_wider(id_cols = Date, names_from = sensor, values_from = amplitude, values_fn = function(x) mean(x, na.rm = T))
+
+#grndamp2 does the same as grndamp1 but as a wide dataframe !!!!
+
+
+# consider using xts for apply.weekly, apply.mothly etc. actions to aggregate data over time
+```
+
+-------Merge Data Frames-------
+
+```{r}
+averages = avgdailysolar %>% full_join(avgdailyground, by=c("Date","sensor","station"))
+solar = averages[,2]
+averages = averages[,-2]
+averages = data.frame(averages, solar)
+
+averages = averages %>% full_join(avgdailyair, by=c("Date","sensor","station"))
+averages = averages %>% full_join(grndamp_averages, by=c("Date", "sensor"))
+
+```
+
+-------Graphs for One Week-------
+
+```{r}
+model = train(solar~airtemp, averages, method="lm", na.action = na.exclude)
+summary(model)
+
+pred <- predict(model, averages)
+
+#averages = data.frame(averages, pred)
+
+#one week time span
+```
+
+```{r}
+model1 = train(grndtmp~airtemp, averages, method="lm", na.action = na.exclude)
+summary(model1)
+pred1 <- predict(model1,averages)
+head(pred)
+#averages = data.frame(averages,pred1)
+```
+
+# Plotting XY figures of stations grnd tmp vs air tmp against eachother for later gap filling comparisons
+
+```{r}
+XY_grnd_air= averages %>% filter(station == "TNHA" | station == "BEO", !sensor == "TNHA-SD", !sensor == "TNHA-SB", !sensor == "TNHA-SA", !sensor == "TNHA-SC",!sensor == "TNHA-BASE") 
+
+  ggplot(data = XY_grnd_air, aes(x=airtemp, y = amplitude, color=sensor)) +
+  geom_point()+
+    guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= "BEO-B05 10cm @ depth AMP, 6/19/22-9/19/22", x = "Air Temperature (°C)", y="Ground Temperature (°C) @ 10cm",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    scale_x_continuous(breaks=c(0,2,4,6,8,10,12)) +
+  scale_y_continuous(breaks=c(0,2,4,6,8,10,12), limits = c(0,12)) +
+    geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+    scale_color_manual(values =c("BEO-BASE"= "#084594"))
+  
+  #"TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E",
+  
+  #add date min and max
+```
+
+
+linear regression of XY plot above
+```{r}
+#adjust the XY_grnd_air filter in the plotting chunk above to adjust which sensors you're comparing
+fit1 <- lm(amplitude ~ airtemp, data = XY_grnd_air)
+summary(fit1)
+corfit <- cor(XY_grnd_air$airtemp,XY_grnd_air$amplitude, use = 'complete.obs')
+print("Correlation coefficint")
+print(corfit)
+#summary(fit1)$r.squared
+```
+
+Comparing BEO (control) vs TNHA 
+-- note that you must set BEO-B06 or BEO-B05 (one at a time) = to "BEO-BASE" in the ground temperature long datarfame conversion chunk above. Name of air temp and ground temp station/sensor must MATCH for XY comparison
+```{r}
+XY_grnd_air= averages %>% filter(station == "TNHA" | station == "BEO", !sensor == "TNHA-BASE", !sensor == "TNHA-SD", !sensor == "TNHA-SB") 
+
+  ggplot(data = XY_grnd_air, aes(x=airtemp, y = grndtmp, color=sensor)) +
+  geom_point()+
+    guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= "TNHA-SA(S), TNHA-SC(N) vs. BEO-B06 @ 10cm depth, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature (°C) @ 10cm",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+    scale_color_manual(values =c("TNHA-SA" = "#D95F02","TNHA-SC"="#E7298A" ,"BEO-BASE"= "#084594"))
+  
+#color references:  "TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E",
+
+```
+
+All TNHA sites vs BEO-B06 comparisons
+
+```{r}
+XY_grnd_air= averages %>% filter(station == "TNHA" | station == "BEO") 
+
+  ggplot(data = XY_grnd_air, aes(x=airtemp, y = grndtmp, color=sensor)) +
+  geom_point()+
+    guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= "TNHA stations vs. BEO @ 10cm depth, 6/19/22-9/19/22", x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    scale_x_continuous(breaks = c(0,2,4,6,8,10,12), limits = c(0,12)) +
+    scale_y_continuous(breaks = c(0,2,4,6,8,10,12), limits = c(0,12))+
+    geom_smooth(method=lm, se=TRUE) + #add a line of best fit +
+    geom_abline(intercept = 0, slope = 1, colour = "red") +
+    scale_color_manual(name = "Station",values =c("TNHA-BASE" = "#1B9E77", "TNHA-SA" = "#D95F02","TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E","BEO-BASE"= "#084594", labels = c( "TNHA-BASE (South Facing)", "TNHA-A (South Facing)", "TNHA-C (North Facing)", "TNHA-D (East Facing)","BEO (Control)")))
+  
+  #
+      scale_color_manual(values =c("TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E","BEO-BASE"= "#084594"))
+  
+#color references:  "TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E",
+
+```
+
+--- AMPLTIUDE GRAPHS ---
+```{r}
+
+XY_grnd_avgs = averages %>% filter(station == "TNHA"| station == "BEO", !sensor == "TNHA-SA", !sensor == "TNHA-BASE", !sensor == "TNHA-SB") 
+  ggplot(data = XY_grnd_avgs, aes(x=airtemp, y = amplitude, color=sensor)) +
+  geom_point()+
+  theme_bw() + 
+    labs(title= "TNHA-SC vs. TNHA-SD (°C) @ 10cm, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature Amplitude (°C) @ 10cm",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE)
+
+```
+SOLAR RADIATION VS GROUND TEMP
+
+```{r}
+XY_grnd_sol= averages %>% filter(station == "TNHA" | station == "BEO", !sensor == "TNHA-SD", !sensor == "TNHA-SC", !sensor == "TNHA-BASE", !sensor == "TNHA-SB",!sensor == "BEO-BASE") 
+
+  ggplot(data = XY_grnd_sol, aes(x=solar, y = amplitude, color=sensor)) +
+    geom_point()+
+    guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= "TNHA-SA 10cm @ depth AMP, 6/19/22-9/19/22", y = "Ground Temperature (°C)", x="W /"~m^2~"",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+   scale_x_continuous(breaks=c(0,100,200,300), limits = c(0,300)) +
+  scale_y_continuous(breaks=c(0,2,4,6,8,10,12), limits = c(0,12)) +
+    geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+    scale_color_manual(values =c("TNHA-SA"= "#D95F02"))
+  
+  #"TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E",
+  
+  #add date min and max
+```
+
+
+linear regression of XY plot above
+```{r}
+#adjust the XY_grnd_air filter in the plotting chunk above to adjust which sensors you're comparing
+fit1 <- lm(solar ~ amplitude, data = XY_grnd_sol)
+summary(fit1)
+corfit <- cor(XY_grnd_sol$amplitude,XY_grnd_sol$solar, use = 'complete.obs')
+print("Correlation coefficint")
+print(corfit)
+#summary(fit1)$r.squared
+```
+
+GROUND TEMP VS GROUND TEMP
+
+```{r}
+XY_grnd_vs_grnd= averages %>% filter(station == "TNHA" | station == "BEO", !sensor == "TNHA-SA", !sensor == "TNHA-SB", !sensor == "TNHA-SC",!sensor =="TNHA-SD", !sensor =="TNHA-BASE", !sensor == "BEO-BASE") 
+
+  ggplot(data = XY_grnd_vs_grnd, aes(x=grndtmp, y = grndtmp, color=sensor)) +
+  geom_point()+
+    guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= "BEO-B05 vs. BEO-B06 @ 10cm depth, 6/19/22-9/19/22", x = "Ground Temperature (°C) @ 10cm", y="Ground Temperature (°C) @ 10cm",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15), plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+    scale_color_manual(values =c("BEO-B05"="#6BAED6", "BEO-B06"= "#084594"))
+  
+  #"TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E", "BEO-B05"="#6BAED6", "BEO-B06"= "#084594"
+  
+  #add date min and max
+```
+
+
+linear regression of XY plot above
+```{r}
+#adjust the XY_grnd_grnd filter in the plotting chunk above to adjust which sensors you're comparing
+fit2 <- lm(grndtmp ~ grndtmp, data = XY_grnd_vs_grnd)
+summary(fit2)
+```
