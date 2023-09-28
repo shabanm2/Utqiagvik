@@ -1,0 +1,317 @@
+---
+title: "PCA Daily Seasons"
+author: "Elizabeth Van Metre"
+date: "2023-09-21"
+output: html_document
+---
+
+Meteorological Fall: September 1 - November 30
+
+```{r}
+#github raw filepath
+#https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/airtemp_daily.csv
+
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/"
+
+gtfile = "grndtemp_daily.csv"
+airfile = "airtemp_daily.csv"
+vwcfile = "vwc_daily.csv"
+solfile = "solar_daily.csv"
+windspeed = "windspeed_daily.csv"
+winddir = "winddir_daily.csv"
+
+
+#30 cm depth
+#15-30 VWC
+#average sites
+```
+
+
+##Loading packages
+```{r}
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+```
+
+
+Load Data
+```{r}
+grndtmp = read.csv(url((paste0(filepath, gtfile)))
+airtmp = read.csv(url(paste0(filepath, airfile)))
+vwc = read.csv(url(paste0(filepath, vwcfile)))
+solar = read.csv(url(paste0(filepath, solfile)))
+wind = read.csv(url(paste0(filepath, windspeed)))
+```
+
+
+Temporal Range: Summer
+Vertical Spatial Range: 30 cm
+Horizontal Spatial Range: by site
+  --> Average Total Site
+  --> North vs South
+
+
+# PCA - TNHA Site
+
+## Picking
+
+```{r}
+tnha_ground = grndtmp %>% filter(station == "TNHA") %>% filter(depth == 10)
+tnha_air = airtmp %>% filter(station == "TNHA")
+tnha_wind = wind %>% filter(station == "TNHA")
+tnha_solar = solar %>% filter(station == "TNHA")
+tnha = full_join(tnha_ground, tnha_air, by=c("date", "station", "sensor")) %>% select(c(2:4,6,9))
+colnames(tnha)[2:5] = c("station","sensor","groundtemp", "airtemp")
+tnha = full_join(tnha, tnha_wind, by=c("date", "station", "sensor")) %>% select(c(1:5,8))
+colnames(tnha)[c(2:3,6)] = c("station","sensor","windspeed")
+tnha = full_join(tnha, tnha_solar, by=c("date", "station", "sensor")) %>% select(c(1:6,9))
+colnames(tnha)[c(2:3,7)] = c("station","sensor","solar")
+```
+
+Get Rid of Rows with NAs
+```{r}
+tnha = na.omit(tnha)
+```
+
+
+## PCA
+```{r}
+tnha_pca <- prcomp(tnha[,4:7], center=TRUE, scale.=TRUE)
+
+#take out variables
+sd <- tnha_pca$sdev
+loadings <- tnha_pca$rotation
+rownames(loadings) <- colnames(tnha[4:7])
+scores <- tnha_pca$x
+
+var <- sd^2
+varPercent <- var/sum(var) * 100
+dev.new() #not sure what this does
+```
+
+### Show Results
+```{r}
+barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="gray")
+abline(h=1/ncol(tnha[4:7])*100, col="red")
+```
+
+### Loadings
+```{r}
+loadings
+sqrt(1/ncol(tnha[4:7])) # cutoff for "important" loadings
+```
+Eigenvectors and Eigenvalues
+```{r}
+eigenvectors <- tnha_pca$rotation
+print("Eigenvectors (Loadings):")
+print(eigenvectors)
+
+# Access the eigenvalues (variances of the principal components)
+eigenvalues <- (tnha_pca$sdev)^2
+print("Eigenvalues:")
+print(eigenvalues)
+```
+
+
+
+### Bi-plots
+```{r}
+dev.new(height=7, width=7)
+biplot(scores[, 1:2], loadings[, 1:2], cex=0.7)
+```
+
+Select a value on here - what are its eigenvalues and eigenvector? What station? Sensor/location?
+
+
+Clustering
+```{r}
+pc_data <- tnha_pca$x
+
+# Select the first two principal components
+pc_to_use <- pc_data[, 1:2]
+
+# Perform k-means clustering
+kmeans_result <- kmeans(pc_to_use, centers = 3)  # Change 'centers' based on your specific case
+```
+
+```{r}
+# Run k-means for different numbers of clusters
+wcss <- numeric()
+for (k in 1:10) {
+  kmeans_result <- kmeans(pc_to_use, centers = k)
+  wcss[k] <- kmeans_result$tot.withinss
+}
+
+# Plot the results
+plot(1:10, wcss, type = "b", xlab = "Number of Clusters", ylab = "Within-Cluster Sum of Squares")
+```
+We can use 2-3 clusters (where the change in slope drops off)
+
+
+```{r}
+kmeans_result <- kmeans(pc_to_use, centers = 3)  # Change 'centers' based on your specific case
+
+# Add cluster assignments to the data
+clustered_data <- data.frame(pc_to_use, cluster = kmeans_result$cluster)
+
+# Plot the clusters
+ggplot(clustered_data, aes(x = PC1, y = PC2, color = factor(cluster))) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Clusters in Principal Component Space")
+```
+
+Find Each Data Point
+```{r}
+#Want to look at clustered data
+
+cluster_sensors = data.frame(clustered_data, tnha$sensor)
+
+cluster1 = filter(cluster_sensors, cluster == 1)
+cluster2 = filter(cluster_sensors, cluster == 2)
+cluster3 = filter(cluster_sensors, cluster == 3)
+
+cluster_sensors$cluster = as.factor(cluster_sensors$cluster)
+
+ggplot(cluster_sensors, aes(x = tnha.sensor, fill = cluster)) +
+  geom_bar(position = "dodge") +
+  theme_minimal() +
+  labs(title = "Number of Instances in Each Group",
+       x = "Category",
+       y = "Count")
+
+```
+
+```{r}
+ggplot(cluster_sensors, aes(x = PC1, y = PC2, shape = cluster)) +
+  geom_point(aes(color = tnha.sensor), size = 2) +
+  scale_shape_manual(values = c(16, 17, 18)) +  # Set shapes manually
+  theme_minimal() +
+  labs(title = "Biplot with Custom Point Symbols",
+       x = "PC1",
+       y = "PC2")#+ 
+  #geom_segment(data = as.data.frame(eigenvectors), aes(x = 0, y = 0, xend = PC1, yend = PC2),
+                # arrow = arrow(type = "closed", length = unit(0.2, "inches")),
+                 #size = 0.5, color = "black") +
+  #geom_text(data = as.data.frame(eigenvectors), aes(x = PC1, y = PC2, label = variable), vjust = -1, hjust = -1)
+
+
+```
+
+
+
+# PCA - TNHA North vs South
+## TNHA-A vs TNHA-SC
+
+
+## Picking
+
+```{r}
+tnha_ground = grndtmp %>% filter(station == "TNHA") %>% filter(depth == 10) %>% 
+  filter(sensor=="TNHA-SA" | sensor=="TNHA-SC")
+
+tnha_air = airtmp %>% filter(station == "TNHA") %>% filter(sensor=="TNHA-SA" | sensor=="TNHA-SC")
+
+tnha_wind = wind %>% filter(station == "TNHA") %>% filter(sensor=="TNHA-SA" | sensor=="TNHA-SC")
+
+tnha_solar = solar %>% filter(station == "TNHA") %>% filter(sensor=="TNHA-SA" | sensor=="TNHA-SC")
+#tnha_solar$sensor[tnha_solar$sensor=="21398620"] = "TNHA-SA"
+
+tnha = full_join(tnha_ground, tnha_air, by=c("date","station","sensor")) %>% select(c(2:4,6,9))
+colnames(tnha)[4:5] = c("groundtemp", "airtemp")
+tnha = full_join(tnha, tnha_wind, by=c("date","station","sensor")) %>% select(c(1:5,8))
+colnames(tnha)[6] = "windspeed"
+tnha = full_join(tnha, tnha_solar, by=c("date","station","sensor")) %>% select(c(1:6,9))
+colnames(tnha)[7] = "solar"
+```
+
+
+
+```{r}
+tnha = na.omit(tnha)
+```
+
+
+
+
+## PCA
+```{r}
+tnha_pca <- prcomp(tnha[,4:7], scale.=TRUE)
+
+#take out variables
+sd <- tnha_pca$sdev
+loadings <- tnha_pca$rotation
+rownames(loadings) <- colnames(tnhasd)
+scores <- tnha_pca$x
+
+var <- sd^2
+varPercent <- var/sum(var) * 100
+dev.new() #not sure what this does
+```
+
+### Show Results
+```{r}
+barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="gray")
+abline(h=1/ncol(tnhasd)*100, col="red")
+```
+
+### Loadings
+```{r}
+loadings
+sqrt(1/ncol(tnhasd)) # cutoff for "important" loadings
+```
+
+
+### Bi-plots
+```{r}
+dev.new(height=7, width=7)
+TNHA_SA <- tnha$sensor == "TNHA-SA"
+TNHA_SC <- tnha$sensor == "TNHA-SC"
+ 
+plot(scores[, 1], scores[, 2], xlab="PCA 1", ylab="PCA 2", type="n", asp=1, las=1)
+
+scaling <- 4
+textNudge <- 1.05
+ 
+points(scores[TNHA_SA, 1], scores[TNHA_SA, 2], pch=16, cex=0.7, col="lightblue")
+ 
+points(scores[TNHA_SC, 1], scores[TNHA_SC, 2], pch=16, cex=0.7, col="pink")
+ 
+
+arrows(0, 0, loadings[, 1]* scaling, loadings[, 2]* scaling, length=0.1, angle=20, col="darkred")
+ 
+text(loadings[, 1]*scaling*textNudge, loadings[, 2]*scaling*textNudge, rownames(loadings), col="darkred", cex=0.7)
+
+ 
+
+text(1, 2, "TNHA-SA \n(south)", col="darkblue")
+text(-4, 2, "TNHA-SC \n(north)", col="darkred")
+```
+
+# PCA - SSMH
+
+Average
+```{r}
+
+```
+
+
+North vs South
+SSMH-D vs SSMH-SB
+```{r}
+
+```
+
+
+# PCA - BEO
+
+JUST ONE SENSOR
+BEO-6
+```{r}
+
+```
+
+
+
+
