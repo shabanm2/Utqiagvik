@@ -23,7 +23,8 @@ library(clock)
 
 Ground Moisture for all sites data prepping
 ```{r}
-moisture=read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_VWC_2023_04_06_12_35_08_UTC_1.csv")
+#moisture=read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_VWC_2023_04_06_12_35_08_UTC_1.csv")
+moisture=read.csv("/Users/emvanmetre/Desktop/Arctic/X-Y_Plots/data/raw/Meteorological_Seasons_Data/Fall_VWC_2023_04_06_12_35_08_UTC_1.csv")
 names(moisture) <- sub("...m.3.m.3..RX3000_BRW1", "", names(moisture))
 names(moisture) <- sub("...m.3.m.3..RX3000_BRW4", "", names(moisture))
 names(moisture) <- sub("...m.3.m.3..RX3000_BRW5", "", names(moisture))
@@ -34,7 +35,8 @@ moisture$Date <-as.POSIXct(moisture$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 Solar radiation for all sites data prepping
 ```{r}
-solar = read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_solar_2023_04_06_13_09_45_UTC_1.csv")
+#solar = read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_solar_2023_04_06_13_09_45_UTC_1.csv")
+solar = read.csv("/Users/emvanmetre/Desktop/Arctic/X-Y_Plots/data/raw/Meteorological_Seasons_Data/Fall_solar_2023_04_06_13_09_45_UTC_1.csv")
 names(solar) <- sub("olar.Radiation..RXW.LIB", "" ,names(solar))
 names(solar) <- sub("olar.Radiation..S.LIB", "" ,names(solar))
 names(solar) <- sub("S.", "" ,names(solar))
@@ -47,7 +49,8 @@ solar$Date <- as.POSIXct(solar$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 Air temp for all sites data prepping
 ```{r}
-airtemp =read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_airtemp_2023_04_06_12_01_15_UTC_1.csv")
+#airtemp =read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_airtemp_2023_04_06_12_01_15_UTC_1.csv")
+airtemp =read.csv("/Users/emvanmetre/Desktop/Arctic/X-Y_Plots/data/raw/Meteorological_Seasons_Data/Fall_airtemp_2023_04_06_12_01_15_UTC_1.csv")
 names(airtemp) <- sub("Temperature..RXW.THC.", "" ,names(airtemp))
 names(airtemp) <- sub("Temperature..S.THC.", "" ,names(airtemp))
 names(airtemp) <- sub("S.", "" ,names(airtemp))
@@ -62,12 +65,14 @@ airtemp$Date <- as.POSIXct(airtemp$Date,format="%m/%d/%y %H:%M",tz="UTC")
 Ground Temperatures for all sites data prepping
 ```{r}
 # importing ground temp data for 6-19 through 9-20
-grndtmp921_1119=read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_grndtmp_2023_04_06_12_19_52_UTC_1.csv")
+#grndtmp921_1119=read.csv("C:/Users/qwe2qh/OneDrive - University of Virginia/UVA-OfficeComputer/Utqiagvik/Meteorological_Seasons_Data/Fall_grndtmp_2023_04_06_12_19_52_UTC_1.csv")
+grndtmp921_1119=read.csv("/Users/emvanmetre/Desktop/Arctic/X-Y_Plots/data/raw/Meteorological_Seasons_Data/Fall_grndtmp_2023_04_06_12_19_52_UTC_1.csv")
 names(grndtmp921_1119) <- sub("....C..RX3000_BRW1", "", names(grndtmp921_1119))
 names(grndtmp921_1119) <- sub("....C..RX3000_BRW4", "", names(grndtmp921_1119))
 names(grndtmp921_1119) <- sub("....C..RX3000_BRW5", "", names(grndtmp921_1119))
 names(grndtmp921_1119) <- sub("....C..RX3000_BRW6", "", names(grndtmp921_1119))
 names(grndtmp921_1119) <- sub(".RXW.GP6.", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub(".RXW.THC.", "", names(grndtmp921_1119))
 grndtmp921_1119$Date <-as.POSIXct(grndtmp921_1119$Date,format="%m/%d/%y %H:%M",tz="UTC")
 ```
 
@@ -151,7 +156,7 @@ df$sensor <- as.factor(as.character(df$sensor))
 df$station <- revalue(df$station, c("Content21198259" = "TNHA", "Content21401800" = "BUECI", "Content21401801" = "SSMH", "Content21401803" = "BEO")) 
 df$depth <- revalue(df$depth, c("1" = "0:15cm", "2" = "15:30cm", "3" = "30:45cm", "4" = "45:60cm", "5" = "60:75cm", "6" = "75:90cm"))
 
-df$sensor <- revalue(df$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05")) 
+df$sensor <- revalue(df$sensor, c('21206939'='TNHA-BASE','21393042'='BUECI-SC','21393044'='SSMH-SB','21393047'='TNHA-SC','21393048'='BEO-BASE','21393049'='SSMH-SD','21398578'='BUECI-SF01','21398579'='BUECI-SE','21398583'='BUECI-SB','21398584'='BUECI-SD','21398585'='BUECI-BASE','21398588'='SSMH-BASE','21398590'='BUECI-SA','21398591'='BEO-BASE','21398593'='TNHA-SA','21398598'='BUECI-SF02','21398599'='SSMH-SA','21398601'='TNHA-SD','21398576'='REMOVE','21398587'='TNHA-SB'						)) 
 ```
 
 TEMPLATE: ALL depths VWC (select sensors w/  %>% filter(!sensor =="" to remove) etc.)
@@ -289,7 +294,7 @@ dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth))
 dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
 dfgrndtemp$station <- as.factor(dfgrndtemp$station)
 dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
-dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c('21206939'='TNHA-BASE','21393042'='BUECI-SC','21393044'='SSMH-SB','21393047'='TNHA-SC','21393048'='BEO-B05','21393049'='SSMH-SD','21398578'='BUECI-SF01','21398579'='BUECI-SE','21398583'='BUECI-SB','21398584'='BUECI-SD','21398585'='BUECI-BASE','21398588'='SSMH-BASE','21398590'='BUECI-SA','21398591'='BEO-B06','21398593'='TNHA-SA','21398598'='BUECI-SF02','21398599'='SSMH-SA','21398601'='TNHA-SD','21398576'='SSMH-SC','21398587'='TNHA-SB'						))
 
 dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
 
@@ -470,10 +475,7 @@ solarrad$sensor <- as.factor(as.character(solarrad$sensor))
 solarrad$station <- as.factor(solarrad$station)
 
 solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
-solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
-                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
-                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
-                                              "21390415" = "BEO-Base"))
+solarrad$sensor <- revalue(solarrad$sensor, c('21176526'='TNHA-BASE','21362313'='BUECI-SC','21362315'='TNHA-SD','21362316'='BUECI-SD','21362317'='TNHA-SC','21362319'='SSMH-SB','21362320'='BUECI-SE','21390411'='BUECI-BASE','21390413'='SSMH-BASE','21390415'='BEO-BASE','21398616'='TNHA-SB','21398618'='BUECI-SA','21398620'='TNHA-SA','21398622'='SSMH-SA','21398624'='BUECI-SB','21398623'='BUECI-???','21362314'='BUECI-__','21362318'='TNHA-??','21390414'='BUECI-BASE??','21398617'='BUECI-__','21398621'='BUECI-__'))
 
 ```
 
@@ -599,9 +601,7 @@ airtemp$station <- as.factor(airtemp$station)
 airtemp$station <- revalue(airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
 
 
-airtemp$sensor <- revalue(airtemp$sensor, c("21390851" = "BUECI-BASE", "21398671" = "BUECI-SA", "21362254" = "BUECI-SB", "21398668" = "BUECI-SC", "21398660" = "BUECI-SD", "21187245" = "BUECI-SE",
-                                            "21390849" ="SSMH-BASE","21393049" = "SSMH-SD", "21398670" = "SSMH-SA", "21398665" = "SSMH-SB",
-                                            "21218018" = "TNHA-BASE", "21380919" = "TNHA-SA" , "21398676"="TNHA-SB","21398666" = "TNHA-SD", "21398674" = "TNHA-SC", "21397541" = "BEO-BASE"))
+airtemp$sensor <- revalue(airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-??'	))
 #TNHA-A and TNHA-B are GUESSES - need metadata on ground
 airtemp <- airtemp %>% filter(!value == -888.88)
 ```
