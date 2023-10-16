@@ -195,7 +195,7 @@ grndtmp$depth <- revalue(grndtmp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20
 
 #Find Sensor Values
 
-grndtmp$sensor <- revalue(grndtmp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21398591" = "BEO-BASE"))
+grndtmp$sensor <- revalue(grndtmp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398587"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21398591" = "BEO-BASE"))
 
 #BEO-BASE here is actually BEO B05 for the XY plots to work
 grndtmp <- grndtmp %>% filter(!value == -888.88, !depth == "THC")
@@ -463,6 +463,41 @@ XY_grnd_air= averages %>% filter(station == "TNHA" | station == "BEO")
 
 ```
 
+All SSMH sites (w/airtemp sensors) vs BEO-B06 comparisons
+
+```{r}
+XY_grnd_air= averages %>% filter(station == "SSMH" | station == "BEO") 
+
+  ggplot(data = XY_grnd_air, aes(x=airtemp, y = grndtmp, color=sensor)) +
+  geom_point()+
+    guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= "SSMH stations vs. BEO @ 10cm depth, 6/19/22-9/19/22", x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    scale_x_continuous(breaks = c(0,2,4,6,8,10,12), limits = c(0,12)) +
+    scale_y_continuous(breaks = c(0,2,4,6,8,10,12), limits = c(0,12))+
+    geom_smooth(method=lm, se=TRUE) + #add a line of best fit +
+    geom_abline(intercept = 0, slope = 1, colour = "red") +
+    scale_color_manual(values =c("BEO-BASE"= "#084594","SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6"))
+  
+#color references:  "TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E",
+
+```
+
+
+
 --- AMPLTIUDE GRAPHS ---
 ```{r}
 
@@ -530,43 +565,4 @@ corfit <- cor(XY_grnd_sol$amplitude,XY_grnd_sol$solar, use = 'complete.obs')
 print("Correlation coefficint")
 print(corfit)
 #summary(fit1)$r.squared
-```
-
-GROUND TEMP VS GROUND TEMP
-
-```{r}
-XY_grnd_vs_grnd= averages %>% filter(station == "TNHA" | station == "BEO", !sensor == "TNHA-SA", !sensor == "TNHA-SB", !sensor == "TNHA-SC",!sensor =="TNHA-SD", !sensor =="TNHA-BASE", !sensor == "BEO-BASE") 
-
-  ggplot(data = XY_grnd_vs_grnd, aes(x=grndtmp, y = grndtmp, color=sensor)) +
-  geom_point()+
-    guides(color = guide_legend(override.aes = list(size=10)))+
-  theme_bw() + 
-    labs(title= "BEO-B05 vs. BEO-B06 @ 10cm depth, 6/19/22-9/19/22", x = "Ground Temperature (°C) @ 10cm", y="Ground Temperature (°C) @ 10cm",color="Station") + 
-  theme(axis.text.y = element_text(size = 15)) +
-  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
-        axis.line = element_line(colour = "black", size =0.5, 
-                                 linetype = "solid")) +
-  theme(strip.text.y = element_text(size = 15), plot.title = element_text(hjust = 0.5, size = 15), 
-        plot.caption = element_text(face ="italic"),
-        strip.text = element_text(size = 15),
-        axis.title = element_text(size = 15)) +
-  theme(axis.title.y = element_text(margin = margin(r=15))) +
-  theme(axis.title.x = element_text(margin = margin(t=15))) +
-  theme(legend.title = element_text(size = 15),
-        legend.text = element_text(size = 10),
-        legend.key.height = unit(1,'cm')) +
-    geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
-    scale_color_manual(values =c("BEO-B05"="#6BAED6", "BEO-B06"= "#084594"))
-  
-  #"TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E", "BEO-B05"="#6BAED6", "BEO-B06"= "#084594"
-  
-  #add date min and max
-```
-
-
-linear regression of XY plot above
-```{r}
-#adjust the XY_grnd_grnd filter in the plotting chunk above to adjust which sensors you're comparing
-fit2 <- lm(grndtmp ~ grndtmp, data = XY_grnd_vs_grnd)
-summary(fit2)
 ```
