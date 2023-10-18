@@ -8,11 +8,11 @@ output: html_document
 -------------IMPORTANT FILE PATHS/VALUES-------------
 
 ```{r}
-filepath = "~/Desktop/Arctic/" #Set to prefix of your file location
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/" #Set to prefix of your file location
 
 #Daily Step
 datemin = "2022-06-19"
-datemax = "2022-09-19"
+datemax = "2022-09-1"
 
 #Depth of Interest
 bestdepth = 8 #8 == 10cm
@@ -45,7 +45,7 @@ library(caret)
 Ground Temperatures for all sites data prepping
 ```{r}
 # importing ground temp data for 6-19 through 9-20
-grndtmp=read.csv(paste(filepath,"Season_GRNDTMP_6_19_22_9_20_22_2022_09_21_16_19_26_UTC_1.csv",sep = ""))
+grndtmp=read.csv(paste(filepath,"Summer_grndtmp_2023_04_06_12_21_30_UTC_1.csv",sep = ""))
  
 # data cleaning for dataset
 names(grndtmp) <- sub("....C..RX3000_BRW1", "", names(grndtmp))
@@ -53,24 +53,24 @@ names(grndtmp) <- sub("....C..RX3000_BRW4", "", names(grndtmp))
 names(grndtmp) <- sub("....C..RX3000_BRW5", "", names(grndtmp))
 names(grndtmp) <- sub("....C..RX3000_BRW6", "", names(grndtmp))
 names(grndtmp) <- sub(".RXW.GP6.", "", names(grndtmp))
+names(grndtmp) <- sub(".RXW.THC.", "", names(grndtmp))
+names(grndtmp) <- sub(".S.THC.", "", names(grndtmp))
 names(grndtmp) <- sub("Temperature.", "", names(grndtmp))
 grndtmp$Date <-as.POSIXct(grndtmp$Date,format="%m/%d/%y %H:%M",tz="UTC")
-
-#Air Temp Sensor - Remove
-grndtmp = grndtmp[,-14]
-
+#Air Temp Sensor - Remove - NOT ANYMORE (new download good to go)
+#grndtmp = grndtmp[,-14]
 #THESE ARE BLANK COLUMNS - rewrite if using a different data set
 #NOTE: these have gaps in the BEGINNING part of data collection - may not always be blank
-grndtmp = grndtmp[,-c(26:36)]
-grndtmp = grndtmp[,-c(92:201)]
-
+#I don't see it in the updated data <3
+#grndtmp = grndtmp[,-c(26:36)]
+#grndtmp = grndtmp[,-c(92:201)]
 raw_ground = grndtmp
 ```
 
 
 Ground Moisture for all sites data prepping
 ```{r}
-mst=read.csv(paste(filepath,"Season_VWC_6_19_22_9_20_22_2022_09_21_16_11_28_UTC_1.csv",sep = ""))
+mst=read.csv(paste(filepath,"Summer_VWC_2023_04_06_12_33_54_UTC_1.csv",sep = ""))
 
 names(mst) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst))
 names(mst) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst))
@@ -83,7 +83,7 @@ mst$Date <-as.POSIXct(mst$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 Solar radiation for all sites data prepping
 ```{r}
-solarrad = read.csv(paste(filepath,"Season_SOLARAD_6_19_22_9_20_22_2022_09_21_16_27_20_UTC_1.csv",sep = ""))
+solarrad = read.csv(paste(filepath,"Summer_solar_2023_04_06_13_16_22_UTC_1.csv",sep = ""))
 
 names(solarrad) <- sub("olar.Radiation..RXW.LIB", "" ,names(solarrad))
 names(solarrad) <- sub("olar.Radiation..S.LIB", "" ,names(solarrad))
@@ -93,13 +93,11 @@ names(solarrad) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solarrad))
 names(solarrad) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solarrad))
 names(solarrad) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solarrad))
 solarrad$Date <- as.POSIXct(solarrad$Date,format="%m/%d/%y %H:%M",tz="UTC")
-
-raw_solar = solarrad
 ```
 
 #Upload air temp data and clean
 ```{r}
-airtemp =read.csv(paste(filepath,"Season_AIRTMP_6_19_22_9_20_22_2022_09_21_16_21_48_UTC_1.csv",sep = ""))
+airtemp =read.csv(paste(filepath,"Summer_airtemp_2023_04_06_11_59_55_UTC_1.csv",sep = ""))
 
 names(airtemp) <- sub("Temperature..RXW.THC.", "" ,names(airtemp))
 names(airtemp) <- sub("Temperature..S.THC.", "" ,names(airtemp))
@@ -114,11 +112,12 @@ airtemp$Date <- as.POSIXct(airtemp$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 -------Convert to Long DataFrame-------
 
+
 #Solar Radiation
 ```{r fig9, fig.heigt = 14, fig.width = 18}
-solarrad = raw_solar
+raw_solar = solarrad
 
-solarrad = gather(solarrad, variable, response, 3:ncol(solarrad)) %>%
+solarrad = gather(raw_solar, variable, response, 3:ncol(raw_solar)) %>%
   filter(!is.na(response)) %>%
   mutate(variable = fct_inorder(variable))
 
@@ -129,24 +128,16 @@ solarrad$value <- as.numeric(as.character(solarrad$value))
 solarrad$sensor <- as.factor(as.character(solarrad$sensor))
 solarrad$station <- as.factor(solarrad$station)
 
-solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUCEI", "21401801" = "SSMH", "21401803" = "BEO"))
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
 
+solarrad$sensor <- revalue(solarrad$sensor, c('21176526'='TNHA-BASE','21362313'='BUECI-SC','21362315'='TNHA-SD','21362316'='BUECI-SD','21362317'='TNHA-SC','21362319'='SSMH-SB','21362320'='BUECI-SE','21390411'='BUECI-BASE','21390413'='SSMH-BASE','21390415'='BEO-BASE','21398616'='TNHA-SB','21398618'='BUECI-SA','21398620'='TNHA-SA','21398622'='SSMH-SA','21398624'='BUECI-SB','21398623'='BUECI-???','21362314'='BUECI-__','21362318'='TNHA-??','21390414'='BUECI-BASE??','21398617'='BUECI-__','21398621'='BUECI-__'))
 
-
-
-
-solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUCEI-BASE", "21398618" = "BUCEI-SA", "21398624" = "BUCEI-SB", "21362313" = "BUCEI-SC", "21362316" = "BUCEI-SD", "21362320" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", 
-                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
-                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
-                                              "21390415" = "BEO-Base"))
-
-solarrad <- solarrad %>% filter(!value == -888.88000) 
+solarrad <- solarrad %>% filter(!value == -888.88)
 ```
 
 ```{r fig9, fig.heigt = 14, fig.width = 18}
-grndtmp = raw_ground
 
-grndtmp = gather(grndtmp, variable, response, 3:ncol(grndtmp)) %>%
+grndtmp = gather(raw_ground, variable, response, 3:ncol(raw_ground)) %>%
   filter(!is.na(response)) %>%
   mutate(variable = fct_inorder(variable))
 
@@ -155,18 +146,41 @@ colnames(grndtmp)[3:6] <- c("value", "station", "sensor","depth")
 grndtmp$value <- as.numeric(as.character(grndtmp$value)) 
 grndtmp$sensor <- as.factor(as.character(grndtmp$sensor))
 grndtmp$station <- as.factor(grndtmp$station)
-
-grndtmp$station <- revalue(grndtmp$station, c("21198259" = "TNHA", "21401800" = "BUCEI", "21401801" = "SSMH", "21401803" = "BEO"))
-
+grndtmp$depth <- as.factor(grndtmp$depth)
+grndtmp$station <- revalue(grndtmp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+grndtmp$depth <- revalue(grndtmp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11"
+                                          = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" =
+                                            "75cm", "16" = "85cm", "17" = "90cm"))
 
 
 #Find Sensor Values
 
-grndtmp$sensor <- revalue(grndtmp$sensor, c("21398585" = "BUCEI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUCEI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+grndtmp$sensor <- revalue(grndtmp$sensor, c('21206939'='TNHA-BASE','21393042'='BUECI-SC','21393044'='SSMH-SB','21393047'='TNHA-SC','21393048'='BEO-B05','21393049'='SSMH-SD','21398578'='BUECI-SF01','21398579'='BUECI-SE','21398583'='BUECI-SB','21398584'='BUECI-SD','21398585'='BUECI-BASE','21398588'='SSMH-BASE','21398590'='BUECI-SA','21398591'='BEO-B06','21398593'='TNHA-SA','21398598'='BUECI-SF02','21398599'='SSMH-SA','21398601'='TNHA-SD','21398576'='SSMH-SC','21398587'='TNHA-SB'))
 
 grndtmp <- grndtmp %>% filter(!value == -888.88)
+```
+
+
+
+```{r fig9, fig.heigt = 14, fig.width = 18}
+raw_air = airtemp
+
+airtemp = gather(raw_air, variable, response, 3:ncol(raw_air)) %>%
+  mutate(variable = fct_inorder(variable))
+airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+airtemp$variable_3 <- NULL
+colnames(airtemp)[3:5] <- c("value", "station", "sensor")
+airtemp$value <- as.numeric(as.character(airtemp$value)) 
+airtemp$sensor <- as.factor(as.character(airtemp$sensor))
+airtemp$station <- as.factor(airtemp$station)
+airtemp$station <- revalue(airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+airtemp$sensor <- revalue(airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-??'))
+#TNHA-A and TNHA-B are GUESSES - need metadata on ground
+
+airtemp <- airtemp %>% filter(!value == -888.88)
 
 ```
+
 ```{r fig9, fig.heigt = 14, fig.width = 18}
 grndmst = mst
 
@@ -186,7 +200,7 @@ grndmst$station <- revalue(grndmst$station, c("21198259" = "TNHA", "21401800" = 
 
 #Find Sensor Values
 
-grndmst$sensor <- revalue(grndmst$sensor, c("21398585" = "BUCEI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUCEI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+grndmst$sensor <- revalue(grndmst$sensor, c('21206939'='TNHA-BASE','21393042'='BUECI-SC','21393044'='SSMH-SB','21393047'='TNHA-SC','21393048'='BEO-BASE','21393049'='SSMH-SD','21398578'='BUECI-SF01','21398579'='BUECI-SE','21398583'='BUECI-SB','21398584'='BUECI-SD','21398585'='BUECI-BASE','21398588'='SSMH-BASE','21398590'='BUECI-SA','21398591'='BEO-BASE','21398593'='TNHA-SA','21398598'='BUECI-SF02','21398599'='SSMH-SA','21398601'='TNHA-SD','21398576'='REMOVE','21398587'='TNHA-SB'						))
 
 grndmst <- grndmst %>% filter(!value == -888.88)
 
