@@ -1,0 +1,107 @@
+---
+title: "Amplitude"
+author: "Mirella Shaban"
+date: "2023-10-18"
+output: html_document
+---
+
+```{r}
+filepath = "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/" #Set to prefix of your file location
+
+#Daily Step
+datemin = "2022-06-19"
+datemax = "2022-09-19"
+
+#Depth of Interest
+bestdepth = 8 #8 == 10cm
+depthcm = "10 cm"
+```
+-------------DATA SETUP AND CLEANING-------------
+```{r}
+
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+Ground Temperatures for all sites data prepping
+```{r}
+# importing ground temp data for 6-19 through 9-20
+grndtmp=read.csv(paste(filepath,"Summer_grndtmp_2023_04_06_12_21_30_UTC_1.csv",sep = ""))
+ 
+# data cleaning for dataset
+names(grndtmp) <- sub("....C..RX3000_BRW1", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW4", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW5", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW6", "", names(grndtmp))
+names(grndtmp) <- sub(".RXW.GP6.", "", names(grndtmp))
+names(grndtmp) <- sub("Temperature.", "", names(grndtmp))
+grndtmp$Date <-as.POSIXct(grndtmp$Date,format="%m/%d/%y %H:%M",tz="UTC")
+#Air Temp Sensor - Remove
+grndtmp = grndtmp[,-14]
+#THESE ARE BLANK COLUMNS - rewrite if using a different data set
+#NOTE: these have gaps in the BEGINNING part of data collection - may not always be blank
+#grndtmp = grndtmp[,-c(26:36)]
+#grndtmp = grndtmp[,-c(92:201)]
+raw_ground = grndtmp
+grndtmp$.RXW.THC.21198259.21398666.1 <- NULL
+grndtmp$.RXW.THC.21198259.21398676.1 <- NULL
+```
+
+
+#adjust sensorList for BEO-B05, BEO-B06 if comparing ground temp to ground temp for XY. Set equal to BEO-BASE if comparing air temp to ground temp xY
+```{r}
+grndtmp_10cm <- grndtmp %>% filter(depth == "10cm")
+avgdailyground = data.frame(Date=NA, value=NA, station=NA, sensor=NA)[numeric(0), ]
+sensorList = c("TNHA-BASE", "TNHA-SA", "TNHA-SB","TNHA-SC","TNHA-SD", "BEO-BASE", "SSMH-BASE", "SSMH-SA", "SSMH-SB")
+
+
+for(sensorName in sensorList){
+    
+    daily = grndtmp_10cm %>% filter(sensor==sensorName) %>% filter(as.Date(Date, "%Y-%m-%d") <= datemax) %>%
+      filter(as.Date(Date, "%Y-%m-%d") >= datemin)
+if(nrow(daily) > 0){
+  daily$Date = floor_date(daily$Date, unit = "days", week_start = getOption("lubridate.week.start",      7))
+
+  daily = aggregate(value ~ Date, daily, mean, na.rm=T)
+  sensor = rep(sensorName, nrow(daily))
+  station = rep(sub(c("-BASE|-SA|-SB|-SC|-SD|-B05|-B06"), "" ,sensorName), nrow(daily))
+  daily = data.frame(daily, station, sensor)
+  avgdailyground = rbind(avgdailyground, daily)
+}
+
+  
+}
+
+colnames(avgdailyground)[2] = "grndtmp"
+
+```
+
+----- AMPLITUDE -----
+
+```{r}
+grndamp <- grndtmp %>% filter(grndtmp$depth == "10cm", !value == 0.0) 
+grndamp <- grndamp %>%
+  group_by(Date) %>%
+  mutate(
+    Max_grnd = max(value, na.rm = T),
+    Min_grnd = min(value, na.rm = T),
+    mean_grnd = mean(value, na.rm = T),
+    amplitude = (Max_grnd-Min_grnd)
+  ) %>%
+   arrange(sensor)
+
+grndamp$Date <- as.Date(grndamp$Date)
+
+grndamp_averages <- grndamp %>% group_by(Date, sensor, Date = as.Date(Date)) %>% summarise(across(c(Max_grnd, Min_grnd, mean_grnd, amplitude), mean))
+
+```
+
