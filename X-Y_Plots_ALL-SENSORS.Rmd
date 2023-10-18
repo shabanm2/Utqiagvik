@@ -53,17 +53,13 @@ names(grndtmp) <- sub("....C..RX3000_BRW4", "", names(grndtmp))
 names(grndtmp) <- sub("....C..RX3000_BRW5", "", names(grndtmp))
 names(grndtmp) <- sub("....C..RX3000_BRW6", "", names(grndtmp))
 names(grndtmp) <- sub(".RXW.GP6.", "", names(grndtmp))
-names(grndtmp) <- sub(".RXW.THC.", "", names(grndtmp))
-names(grndtmp) <- sub(".S.THC.", "", names(grndtmp))
 names(grndtmp) <- sub("Temperature.", "", names(grndtmp))
+
+#there may be wind and air variables in the df
+grndtmp = select(grndtmp, !contains(".RXW"))
+grndtmp = select(grndtmp, !contains(".S"))
+
 grndtmp$Date <-as.POSIXct(grndtmp$Date,format="%m/%d/%y %H:%M",tz="UTC")
-#Air Temp Sensor - Remove - NOT ANYMORE (new download good to go)
-#grndtmp = grndtmp[,-14]
-#THESE ARE BLANK COLUMNS - rewrite if using a different data set
-#NOTE: these have gaps in the BEGINNING part of data collection - may not always be blank
-#I don't see it in the updated data <3
-#grndtmp = grndtmp[,-c(26:36)]
-#grndtmp = grndtmp[,-c(92:201)]
 raw_ground = grndtmp
 ```
 

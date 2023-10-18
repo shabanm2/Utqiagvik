@@ -48,17 +48,13 @@ names(grndtmp) <- sub("....C..RX3000_BRW4", "", names(grndtmp))
 names(grndtmp) <- sub("....C..RX3000_BRW5", "", names(grndtmp))
 names(grndtmp) <- sub("....C..RX3000_BRW6", "", names(grndtmp))
 names(grndtmp) <- sub(".RXW.GP6.", "", names(grndtmp))
-names(grndtmp) <- sub(".RXW.THC.", "", names(grndtmp))
-names(grndtmp) <- sub(".S.THC.", "", names(grndtmp))
 names(grndtmp) <- sub("Temperature.", "", names(grndtmp))
+
+#there may be wind and air variables in the df
+grndtmp = select(grndtmp, !contains(".RXW"))
+grndtmp = select(grndtmp, !contains(".S"))
+
 grndtmp$Date <-as.POSIXct(grndtmp$Date,format="%m/%d/%y %H:%M",tz="UTC")
-#Air Temp Sensor - Remove - NOT ANYMORE (new download good to go)
-#grndtmp = grndtmp[,-14]
-#THESE ARE BLANK COLUMNS - rewrite if using a different data set
-#NOTE: these have gaps in the BEGINNING part of data collection - may not always be blank
-#I don't see it in the updated data <3
-#grndtmp = grndtmp[,-c(26:36)]
-#grndtmp = grndtmp[,-c(92:201)]
 raw_ground = grndtmp
 ```
 
@@ -151,6 +147,15 @@ grndtmp$depth <- revalue(grndtmp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20
 grndtmp$sensor <- revalue(grndtmp$sensor, c('21206939'='TNHA-BASE','21393042'='BUECI-SC','21393044'='SSMH-SB','21393047'='TNHA-SC','21393048'='BEO-B05','21393049'='SSMH-SD','21398578'='BUECI-SF01','21398579'='BUECI-SE','21398583'='BUECI-SB','21398584'='BUECI-SD','21398585'='BUECI-BASE','21398588'='SSMH-BASE','21398590'='BUECI-SA','21398591'='BEO-B06','21398593'='TNHA-SA','21398598'='BUECI-SF02','21398599'='SSMH-SA','21398601'='TNHA-SD','21398576'='SSMH-SC','21398587'='TNHA-SB'))
 
 grndtmp <- grndtmp %>% filter(!value == -888.88)
+
+#Air Temp Sensors
+grndtemp <- grndtemp %>% filter(!value == -888.88)
+grndtemp <- grndtemp %>% filter(!sensor == 21187245)
+grndtemp <- grndtemp %>% filter(!sensor == 21398676)
+grndtemp <- grndtemp %>% filter(!sensor == 21398671)
+grndtemp <- grndtemp %>% filter(!sensor == 21398668)
+grndtemp <- grndtemp %>% filter(!sensor == 21398666)
+grndtemp <- grndtemp %>% filter(!sensor == 21398660)
 ```
 
 
