@@ -1,0 +1,161 @@
+---
+title: "Summer Climatology"
+author: "Kiefer Fallin"
+date: "2023-10-08"
+output: html_document
+---
+=================
+Loading packages
+=================
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) 
+library(naniar)
+library(RColorBrewer)
+library(clock)
+```
+
+===========================
+Loading Files from Github
+===========================
+
+Ground Temperature
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Summer_2023_Climatology/Summer%202023%20Data/"
+
+gtfile1 = "Summer_data_TNHA_2023_09_26_15_37_24_UTC_1.csv"
+gtfile2 = "Summer_data_TNHA_2023_09_26_15_37_24_UTC_2.csv"
+```
+
+```{r}
+grndtmp1 = read.csv(paste0(filepath, gtfile1))
+grndtmp2 = read.csv(paste0(filepath, gtfile2))
+#two files to get all Summer ground temperature data for 2023
+
+grndtmp <- rbind(grndtmp1, grndtmp2) #combining these data files
+```
+
+===========================
+Data Prepping and Cleaning
+===========================
+
+Ground Temperature
+```{r}
+names(grndtmp) <- sub("....C..RX3000_BRW1", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW4", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW5", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW6", "", names(grndtmp))
+names(grndtmp) <- sub(".RXW.GP6.", "", names(grndtmp))
+names(grndtmp) <- sub("_TNHA", "", names(grndtmp))
+names(grndtmp) <- sub("_SSMH", "", names(grndtmp))
+names(grndtmp) <- sub("_BUECI", "", names(grndtmp))
+names(grndtmp) <- sub("_BEO", "", names(grndtmp))
+grndtmp$Date <-as.POSIXct(grndtmp$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+start_date <- as.POSIXct("23/06/01 00:00", format = "%y/%m/%d %H:%M", tz = "UTC")
+end_date <- as.POSIXct("23/09/01 00:00", format = "%y/%m/%d %H:%M", tz = "UTC")
+
+# Filter the dataset for dates within the specified range; the two datasets we imported, when combined, go past our dates for Summer (6/1-9/1)
+grndtmp_summer <- grndtmp %>%
+  filter(Date >= start_date, Date <= end_date)
+```
+
+```{r}
+
+# sneaky air temp
+grndtmp_summer = grndtmp_summer[,-14]
+
+# removing false 0s
+c = 3 
+zeroes = 0
+while(c <= ncol(grndtmp_summer)-10){
+  sensorGroup = grndtmp_summer %>% select(2,c, c+1, c+2, c+3, c+4, c+5, c+6, c+7, c+8, c+9, c+10)
+  for(r in 1:nrow(sensorGroup)) {
+    zeroes = 0
+    col = 2
+    while(col <= 12){
+      if(sensorGroup[r,col] == 0 | is.na(sensorGroup[r,col])) { 
+        if(!is.na(sensorGroup[r,col])){
+          zeroes = zeroes + 1 
+        }
+      }
+      col = col + 1
+    }
+    if(zeroes >= 3){ 
+      for(columnn in 2:ncol(sensorGroup)){
+      if(sensorGroup[r,columnn] == 0 | is.na(sensorGroup[r,columnn])) { 
+        grndtmp_summer[r,columnn+c] = NA
+      }
+    }
+    }
+  }
+  c = c + 11 
+}
+```
+
+============================
+Long Data Frame Conversions
+============================
+
+Ground Temperature
+```{r}
+grndtmp = gather(grndtmp_summer, variable, response, Temperature.21198259.21206939.7:Temperature.21401803.21398591.17) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+# go into this dataframe, variable = all column naames, response is the numbers that will fill that column, first column to last column, etc.
+
+dfgrndtemp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") # texttocols, 
+colnames(dfgrndtemp)[3] <- ("value")
+colnames(dfgrndtemp)[5:7] <- c("station", "sensor", "depth")
+
+dfgrndtemp$V212 <- NULL
+dfgrndtemp$V213 <- NULL
+dfgrndtemp$variable_1 <- NULL
+dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth)) #taking depth from numbers and turning it into a character, then to factor (cant go from number to factor) -- when we want to sort by depth it wont take a number, only a factor **
+dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
+dfgrndtemp$station <- as.factor(dfgrndtemp$station)
+
+dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398587"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+
+dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+#print(levels(data$column)) 
+dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+
+```
+
+=====================
+Plotting Summer Data
+=====================
+
+Ground Temperature
+```{r figure 1, fig.width=12, fig.height=8}
+df2 <- dfgrndtemp %>% filter(sensor %in% c("TNHA-BASE","TNHA-SA","TNHA-SB","TNHA-SC","TNHA-SD","SSMH-BASE","SSMH-SA","SSMH-SB","SSMH-SC","SSMH-SD","BEO-B05","BEO-B06") & depth %in% c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")) #specify sensors and depths of interest here
+
+ggplot(subset(df2, depth %in% c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm") & value >.002 | value < -0.002),
+       aes(x=Date, y= value, color = sensor)) + 
+  geom_path(na.rm=TRUE) +
+  geom_miss_point(size = 0.5) +
+  guides(color = guide_legend(override.aes = list(size=10))) +
+  facet_grid(depth~station) +
+  labs(y="Temperature (°C)",color="Station", caption = "Mirella Shaban") +
+  scale_x_datetime(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-6, 14)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5), 
+        plot.caption = element_text(face ="italic")) +
+   scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E",
+                               "SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6", "SSMH-SC"= "#DD3497", "SSMH-SD"="#7A0177", "BEO-B05"="#6BAED6", "BEO-B06"= "#084594"))
+```
+
+
