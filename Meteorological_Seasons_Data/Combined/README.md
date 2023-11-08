@@ -3,12 +3,18 @@
 ## NAMING CONVENTION
 
 "Variable_SeasonYear.csv"
+---
 
 Ground Temp = "GroundTemperature"
+
 Air Temp = "AirTemperature"
+
 Volumetric Water Content = "VWC"
+
 Solar Radiation = "Solar"
+
 Wind Speed = "WindSpeed"
+
 Wind Direction = "WindDirection"
 
 ## Combined Raw Data
