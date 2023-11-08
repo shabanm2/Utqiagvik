@@ -1,6 +1,19 @@
 # November 8, 2023
 
+## NAMING CONVENTION
+
+"Variable_SeasonYear.csv"
+
+Ground Temp = "GroundTemperature"
+Air Temp = "AirTemperature"
+Volumetric Water Content = "VWC"
+Solar Radiation = "Solar"
+Wind Speed = "WindSpeed"
+Wind Direction = "WindDirection"
+
 ## Combined Raw Data
+
+*Files are included for combined for all seasons so far*
 
 **Variables:**
 - Ground temperature
