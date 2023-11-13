@@ -133,18 +133,41 @@ maxs_long = cSplit(maxs_long, 'sensor', sep=" ", direction = "wide")
 #rename resulting columns
 colnames(mins_long)[3:4] <- c("station", "sensor")
 colnames(maxs_long)[3:4] <- c("station", "sensor")
+```
+
+```{r}
+
+#Turn wide data frames into long
+mins_long = gather(mins, sensor, min_air_temp, 2:16)
+maxs_long = gather(maxs, sensor, max_air_temp, 2:16)
 
 #Combine data frames into one
-min_max = maxs_long[, c(1,3,4,2)]
-min_max = data.frame(min_max, mins_long[,2])
+
+
+min_max <- full_join(mins_long, maxs_long)
+min_max = min_max %>% filter(max_air_temp < 100)
+
+#texttocolumns
+library(splitstackshape)
+min_max <- cSplit(min_max, "sensor", sep = " ", direction = "wide")
+min_max$sensor <- paste(min_max$sensor_1, min_max$sensor_2, sep="-") 
+min_max$sensor_2 <- NULL
+colnames(min_max)[4] <- "station"
+colnames(min_max)[5] <- "sensor"
+
 
 ```
+
 
 Get Average (Don't Run More Than Once!)
 ```{r}
 
-avg_temp = (min_max[,4] + min_max[,5])/2
+avg_temp = (min_max[,2] + min_max[,3])/2
 min_max = data.frame(min_max, avg_temp)
+colnames(min_max)[6] <- "avg_temp"
+
+min_max <- data.frame(min_max)
+
 
 ```
 
@@ -153,13 +176,13 @@ Get Daily Air Temperature Average by Station
 
 TNHA = min_max %>% filter(station == "TNHA")
 SSMH = min_max %>% filter(station == "SSMH")
-BUECI = min_max %>% filter(station == "BUECI")
+#BUECI = min_max %>% filter(station == "BUECI")
 BEO = min_max %>% filter(station == "BEO")
 
 
 TNHA_avg = aggregate(avg_temp~Date, TNHA, mean, na.rm=T)
 SSMH_avg = aggregate(avg_temp~Date, SSMH, mean, na.rm=T)
-BUECI_avg = aggregate(avg_temp~Date, BUECI, mean, na.rm=T)
+#BUECI_avg = aggregate(avg_temp~Date, BUECI, mean, na.rm=T)
 BEO_avg = aggregate(avg_temp~Date, BEO, mean, na.rm=T)
   
 ```
@@ -170,12 +193,12 @@ Our Baseline: 0°C (or otherwise defined at beginning)
 ```{r}
 TNHA_DD = TNHA_avg[,2] - DD_baseline
 SSMH_DD = SSMH_avg[,2] - DD_baseline
-BUECI_DD = BUECI_avg[,2] - DD_baseline
+#BUECI_DD = BUECI_avg[,2] - DD_baseline
 BEO_DD = BEO_avg[,2] - DD_baseline
 
 TNHA_avg = data.frame(TNHA_avg, TNHA_DD)
 SSMH_avg = data.frame(SSMH_avg, SSMH_DD)
-BUECI_avg = data.frame(BUECI_avg, BUECI_DD)
+#BUECI_avg = data.frame(BUECI_avg, BUECI_DD)
 BEO_avg = data.frame(BEO_avg, BEO_DD)
 ```
 
@@ -183,7 +206,7 @@ BEO_avg = data.frame(BEO_avg, BEO_DD)
 ```{r}
 TNHA_DD_tot = sum(TNHA_avg[,3])
 SSMH_DD_tot = sum(SSMH_avg[,3])
-BUECI_DD_tot = sum(BUECI_avg[,3])
+#BUECI_DD_tot = sum(BUECI_avg[,3])
 BEO_DD_tot = sum(BEO_avg[,3])
 ```
 
@@ -205,11 +228,26 @@ SSMH_DD_tot
 
 BUECI:
 ```{r}
-BUECI_DD_tot
+#BUECI_DD_tot
 ```
 
 BEO:
 ```{r}
 BEO_DD_tot
 ```
-
+MAX, MIN, AVG AIR TEMPS AT SELECT STATION OVER SUMMER MONTHS
+```{r}
+min_max %>% filter(!avg_temp < -5, !avg_temp > 50, station == "SSMH", Date>="2022-07-04" & Date<="2022-07-10") %>%
+  ggplot() + 
+  geom_point(aes(x = Date, y = min_air_temp, color = "min")) +
+  geom_point(aes(x = Date, y = max_air_temp, color = "max")) +
+  geom_line(aes(x = Date, y = avg_temp, color = "average")) +
+  guides(color = guide_legend(override.aes = list(size=0.5)))+
+  theme_bw() +
+  labs(y="Temperature (°C)",x="End of Week",color="Variable", title = "SSMH") +
+  scale_x_date(date_breaks = "1 day") +
+  ylim(-10,35) +
+  theme(axis.text.y =element_text(face="bold") ,axis.text.x=element_text(angle = 45, hjust = 1.0,face = "bold"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5), 
+        plot.caption = element_text(face ="italic"))
+```
