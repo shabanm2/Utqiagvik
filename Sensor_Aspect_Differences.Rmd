@@ -5,6 +5,11 @@ date: "2023-07-27"
 output: html_document
 ---
 
+############
+THIS IS OUTDATED, WE ARE USING DIFFERENCES_IN_AVERAGES SCRIPT NOW
+#############
+
+
 *Run Multidepth_Averaging_and_Plotting script for data loading prior to running this*
 
 # need cleaned data input prior to running
