@@ -1,0 +1,433 @@
+---
+title: "VWC_Stacked Figures"
+author: "Kiefer Fallin"
+date: "2023-11-01"
+output: html_document
+---
+
+
+Loading packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) 
+library(naniar)
+library(RColorBrewer)
+library(clock)
+```
+
+Importing daily average VWC data
+```{r}
+filepath1 = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/"
+
+vwcfile1 = "vwc_daily.csv"
+vwc = read.csv(paste0(filepath1, vwcfile1))
+
+filepath2 = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/Combined/"
+
+vwcfile2 = "VWC_Summer2023.csv"
+vwc2 = read.csv(paste0(filepath2, vwcfile2))
+```
+
+Cleaning data to fit Elizabeth's code for the stacked average figures
+```{r}
+vwc1=vwc%>%
+  rename(Date=date, value=vwcavg)%>%
+  select(Date,station,sensor,depth,value)
+```
+
+Appending dates to get complete Summer 2023 season
+```{r}
+vwc2$Date <- as.POSIXct(vwc2$Date, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+
+
+vwc2$Date <- as.Date(vwc2$Date)
+
+
+vwc2 = vwc2 %>% 
+  group_by(Date, station, sensor, depth) %>% 
+  summarise(vwcavg = mean(value))%>%
+  rename(value=vwcavg)
+
+vwc2 = vwc2%>%
+  filter(Date>="2023-07-01" & Date<="2023-09-01")
+
+vwc1$Date <- as.Date(vwc1$Date)
+vwc2$Date <- as.Date(vwc2$Date)
+
+vwc_all=rbind(vwc1,vwc2)
+
+vwc_all <- cbind(X = seq_len(nrow(vwc_all)), vwc_all) # This should have daily averages for all sensors, at all depths between the dates 2022-06-19 and 2023-09-01 in a format that plugs into Elizbeth's code appropriately
+```
+
+0 to 15 cm
+```{r}
+vwcmean <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "1") 
+
+vwcmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+vwcmean$time <- format(as.Date(
+  vwcmean$Date),format = "%H:%M:%S")
+vwcmean$day <- as.Date(vwcmean$Date)
+
+
+Daily_average_vwc_per_sensor <- vwcmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_vwc_per_sensor <-  cSplit(Daily_average_vwc_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_vwc_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_vwc_per_sensor$fullname <- paste(Daily_average_vwc_per_sensor$station,Daily_average_vwc_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_vwc_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+TSB_NONA$depth <- "1"
+TSB_NONA$depth <- as.factor(TSB_NONA$depth)
+```
+
+15 to 30 cm
+```{r}
+vwcmean1 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "2") 
+
+vwcmean1 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+vwcmean1$time <- format(as.Date(
+  vwcmean1$Date),format = "%H:%M:%S")
+vwcmean1$day <- as.Date(vwcmean1$Date)
+
+
+Daily_average_vwc_per_sensor <- vwcmean1 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_vwc_per_sensor <-  cSplit(Daily_average_vwc_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_vwc_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_vwc_per_sensor$fullname <- paste(Daily_average_vwc_per_sensor$station,Daily_average_vwc_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_vwc_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA15 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA15 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA15 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA15 <- rbind(TNHA_NONA15,BEO_NONA15,SSMH_NONA15)
+TSB_NONA15$depth <- "2"
+TSB_NONA15$depth <- as.factor(TSB_NONA15$depth)
+```
+
+30 to 45 cm
+```{r}
+vwcmean2 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "3") 
+
+vwcmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate(value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+vwcmean2$time <- format(as.Date(
+  vwcmean2$Date),format = "%H:%M:%S")
+vwcmean2$day <- as.Date(vwcmean2$Date)
+
+
+Daily_average_vwc_per_sensor <- vwcmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_vwc_per_sensor <-  cSplit(Daily_average_vwc_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_vwc_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_vwc_per_sensor$fullname <- paste(Daily_average_vwc_per_sensor$station,Daily_average_vwc_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_vwc_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA30 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA30 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA30 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA30 <- rbind(TNHA_NONA30,BEO_NONA30,SSMH_NONA30)
+TSB_NONA30$depth <- "3"
+TSB_NONA30$depth <- as.factor(TSB_NONA30$depth)
+```
+
+
+45 to 60 cm
+```{r}
+vwcmean3 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "4") 
+
+vwcmean3 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+vwcmean3$time <- format(as.Date(
+  vwcmean3$Date),format = "%H:%M:%S")
+vwcmean3$day <- as.Date(vwcmean3$Date)
+
+
+Daily_average_vwc_per_sensor <- vwcmean3 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_vwc_per_sensor <-  cSplit(Daily_average_vwc_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_vwc_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_vwc_per_sensor$fullname <- paste(Daily_average_vwc_per_sensor$station,Daily_average_vwc_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_vwc_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA55 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA55 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA55 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA55 <- rbind(TNHA_NONA55,BEO_NONA55,SSMH_NONA55)
+TSB_NONA55$depth <- "4"
+TSB_NONA55$depth <- as.factor(TSB_NONA55$depth)
+```
+
+60 to 75 cm
+```{r}
+vwcmean4 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "5") 
+
+vwcmean4 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+vwcmean4$time <- format(as.Date(
+  vwcmean4$Date),format = "%H:%M:%S")
+vwcmean4$day <- as.Date(vwcmean4$Date)
+
+
+Daily_average_vwc_per_sensor <- vwcmean4 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_vwc_per_sensor <-  cSplit(Daily_average_vwc_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_vwc_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_vwc_per_sensor$fullname <- paste(Daily_average_vwc_per_sensor$station,Daily_average_vwc_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_vwc_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA65 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA65 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA65 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA65 <- rbind(TNHA_NONA65,BEO_NONA65,SSMH_NONA65)
+TSB_NONA65$depth <- "5"
+TSB_NONA65$depth <- as.factor(TSB_NONA65$depth)
+```
+
+75 to 90 cm
+```{r}
+vwcmean5 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "6") 
+
+vwcmean5 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+vwcmean5$time <- format(as.Date(
+  vwcmean5$Date),format = "%H:%M:%S")
+vwcmean5$day <- as.Date(vwcmean5$Date)
+
+
+Daily_average_vwc_per_sensor <- vwcmean5 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_vwc_per_sensor <-  cSplit(Daily_average_vwc_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_vwc_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_vwc_per_sensor$fullname <- paste(Daily_average_vwc_per_sensor$station,Daily_average_vwc_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_vwc_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA90 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA90 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA90 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA90 <- rbind(TNHA_NONA90,BEO_NONA90,SSMH_NONA90)
+TSB_NONA90$depth <- "6"
+TSB_NONA90$depth <- as.factor(TSB_NONA90$depth)
+```
+
+Combining
+```{r}
+TSB_NONE_ALLDEPTHS3 <- rbind(TSB_NONA,TSB_NONA15,TSB_NONA30,TSB_NONA55,TSB_NONA65,TSB_NONA90)
+```
+
+Renaming depth vector values to be more intuitive
+```{r}
+TSB_NONE_ALLDEPTHS4 <- TSB_NONE_ALLDEPTHS3 %>%
+  mutate(depth = case_when(
+    depth == 1 ~ "0 to 15 cm",
+    depth == 2 ~ "15 to 30 cm",
+    depth == 3 ~ "30 to 45 cm",
+    depth == 4 ~ "45 to 60 cm",
+    depth == 5 ~ "60 to 75 cm",
+    depth == 6 ~ "75 to 90 cm",
+    TRUE ~ as.character(depth)  
+  ))
+```
+
+Filter for desired dates
+```{r}
+start_date <- ("2023-06-01")
+end_date <- ("2023-09-01")
+
+TSB_NONE_ALLDEPTHS5 = TSB_NONE_ALLDEPTHS4%>%
+  filter(date >= start_date & date <= end_date)
+```
+
+Figure
+```{r fig19, fig.height = 30, fig.width = 26}
+TSB_NONE_ALLDEPTHS5 %>%
+  ggplot(aes(x = date, y = value, color = fullname), size = 0.9) +
+  geom_line() +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size = 10))) +
+  theme_bw() +
+  facet_wrap(depth ~ ., nrow = 6, strip.position = "top") +  
+  theme(
+    legend.title = element_text(size = 25),
+    legend.text = element_text(size = 20),
+    strip.text = element_text(size = 20, face = "bold"),  
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 30),
+    axis.title.x = element_text(size = 25),
+    axis.title.y = element_text(size = 25)
+  ) +
+  labs(
+    title = "Summer 2023 daily average VWC at TNHA, SSMH, & BEO",
+    y = "Volumetric Water Content (" ~ m^3 ~ "/" ~ m^3 ~ ")",
+    x = "Week",
+    color = "Station"
+  ) +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5), limits = c(0, 0.5)) +
+  scale_color_manual(
+    values = c(
+      "TNHA-BASE" = "#1B9E77", "TNHA-SA" = "#D95F02", "TNHA-SC" = "#E7298A", "TNHA-SD" = "#66A61E",
+      "BEO-B05" = "#6BAED6", "BEO-B06" = "#084594", "SSMH-BASE" = "#807DBA",
+      "SSMH-SA" = "#A6761D", "SSMH-SB" = "#4292C6", "SSMH-SD" = "#7A0177"
+    )
+  )
+```
+
