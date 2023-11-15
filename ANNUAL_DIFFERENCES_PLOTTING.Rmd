@@ -1,0 +1,29 @@
+---
+title: "ANNUAL_DIFFERENCES_PLOTTING"
+author: "Mirella Shaban"
+date: "2023-11-15"
+output: html_document
+---
+
+THIS SCRIPT MUST BE RUN AFTER THE ANNUAL_DIFFERENCES SCRIPT (WHICH LOADS AND CLEANS THE DATA)
+
+THIS IS SOLELY A PLOTTING SCRIPT
+
+####################################################################################################################################
+                                                PLOTTING 2022 VS 2023 DATA (summer and fall)
+####################################################################################################################################
+*ground temp:*
+summer 22: summer22grndtmp
+summer 23: sum23grndtmp
+fall 22: fall22grndtemp
+fall 23:
+
+*air temp:*
+summer 22: summer22airtemp
+summer 23: summer23airtemp
+fall 22: fall22airtemp
+fall 23:
+####################################################################################################################################
+
+####################################################################################################################################
+
