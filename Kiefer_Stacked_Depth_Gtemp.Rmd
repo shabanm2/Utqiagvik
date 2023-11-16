@@ -1,0 +1,910 @@
+---
+title: "Stacked_Depth_All_Sites"
+author: "Kiefer Fallin"
+date: "2023-11-15"
+output: html_document
+---
+
+Loading packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) 
+library(naniar)
+library(RColorBrewer)
+library(clock)
+library(viridis)
+```
+
+Importing data from 06-19-2022 to 06-30-2023
+```{r}
+filepath1 = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/"
+
+gtempfile1 = "grndtemp_daily.csv"
+gtemp1 = read.csv(paste0(filepath1, gtempfile1))
+
+gtemp1$date <- as.Date(gtemp1$date)
+```
+
+Need summer 2023 too---import this separately
+```{r}
+filepath2 = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/RECENT_CSV_DOWNLOADS/"
+gtempfile2 = "New_Summer_2023_GRNDTMP_2023_11_01_18_32_40_UTC_1.csv"
+
+gtemp2_uncleaned = read.csv(paste0(filepath2, gtempfile2))
+```
+
+Summer 2023 cleaning
+```{r}
+names(gtemp2_uncleaned) <- sub("....C..RX3000_BRW1", "", names(gtemp2_uncleaned))
+names(gtemp2_uncleaned) <- sub("....C..RX3000_BRW4", "", names(gtemp2_uncleaned))
+names(gtemp2_uncleaned) <- sub("....C..RX3000_BRW5", "", names(gtemp2_uncleaned))
+names(gtemp2_uncleaned) <- sub("....C..RX3000_BRW6", "", names(gtemp2_uncleaned))
+names(gtemp2_uncleaned) <- sub(".RXW.GP6.", "", names(gtemp2_uncleaned))
+names(gtemp2_uncleaned) <- sub("_TNHA", "", names(gtemp2_uncleaned))
+names(gtemp2_uncleaned) <- sub("_SSMH", "", names(gtemp2_uncleaned))
+names(gtemp2_uncleaned) <- sub("_BUECI", "", names(gtemp2_uncleaned))
+names(gtemp2_uncleaned) <- sub("_BEO", "", names(gtemp2_uncleaned))
+gtemp2_uncleaned$Date <-as.POSIXct(gtemp2_uncleaned$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+
+start_date <- as.POSIXct("23/07/01 00:00", format = "%y/%m/%d %H:%M", tz = "UTC")
+end_date <- as.POSIXct("23/09/01 00:00", format = "%y/%m/%d %H:%M", tz = "UTC")
+
+# Filter the dataset for dates within the specified range
+gtemp2_uncleaned <- gtemp2_uncleaned %>%
+  filter(Date >= start_date, Date <= end_date)
+```
+
+
+```{r}
+# sneaky air temp
+gtemp2_uncleaned = gtemp2_uncleaned[,-14]
+
+# removing false 0s
+c = 3 
+zeroes = 0
+while(c <= ncol(gtemp2_uncleaned)-10){
+  sensorGroup = gtemp2_uncleaned %>% select(2,c, c+1, c+2, c+3, c+4, c+5, c+6, c+7, c+8, c+9, c+10)
+  for(r in 1:nrow(sensorGroup)) {
+    zeroes = 0
+    col = 2
+    while(col <= 12){
+      if(sensorGroup[r,col] == 0 | is.na(sensorGroup[r,col])) { 
+        if(!is.na(sensorGroup[r,col])){
+          zeroes = zeroes + 1 
+        }
+      }
+      col = col + 1
+    }
+    if(zeroes >= 3){ 
+      for(columnn in 2:ncol(sensorGroup)){
+      if(sensorGroup[r,columnn] == 0 | is.na(sensorGroup[r,columnn])) { 
+        gtemp2_uncleaned[r,columnn+c] = NA
+      }
+    }
+    }
+  }
+  c = c + 11 
+}
+
+```
+
+Long dataframe
+```{r}
+grndtmp = gather(gtemp2_uncleaned, variable, response, Temperature.21198259.21206939.7:Temperature.21401803.21398591.17) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+# go into this dataframe, variable = all column naames, response is the numbers that will fill that column, first column to last column, etc.
+
+dfgrndtemp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") # texttocols, 
+colnames(dfgrndtemp)[3] <- ("value")
+colnames(dfgrndtemp)[5:7] <- c("station", "sensor", "depth")
+
+dfgrndtemp$V212 <- NULL
+dfgrndtemp$V213 <- NULL
+dfgrndtemp$variable_1 <- NULL
+dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth)) #taking depth from numbers and turning it into a character, then to factor (cant go from number to factor) -- when we want to sort by depth it wont take a number, only a factor **
+dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
+dfgrndtemp$station <- as.factor(dfgrndtemp$station)
+
+dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398587"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+
+dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+#print(levels(data$column)) 
+dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+
+```
+
+Appending dates to get complete Summer 2023 season
+```{r}
+dfgrndtemp$Date <- as.POSIXct(dfgrndtemp$Date, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+
+
+dfgrndtemp$Date <- as.Date(dfgrndtemp$Date)
+
+
+dfgrndtemp = dfgrndtemp %>% 
+  group_by(Date, station, sensor, depth) %>% 
+  summarise(gtavg = mean(value))%>%
+  rename(value=gtavg)
+
+```
+
+```{r}
+gtemp1 <- gtemp1 %>%
+  mutate(depth_label = case_when(
+    depth == 7  ~ "3.5cm",
+    depth == 8  ~ "10cm",
+    depth == 9  ~ "20cm",
+    depth == 10 ~ "30cm",
+    depth == 11 ~ "40cm",
+    depth == 12 ~ "50cm",
+    depth == 13 ~ "55cm",
+    depth == 14 ~ "65cm",
+    depth == 15 ~ "75cm",
+    depth == 16 ~ "85cm",
+    depth == 17 ~ "90cm",
+    TRUE ~ as.character(depth)  
+  ))
+
+gtemp1 = gtemp1 %>%
+  select(-depth)%>%
+  rename(value=gtavg, Date=date, depth=depth_label)%>%
+  select(Date,station,sensor,depth,value)
+```
+
+```{r}
+gtemp1$Date <- as.Date(gtemp1$Date)
+dfgrndtemp$Date <- as.Date(dfgrndtemp$Date)
+
+gtemp_all=rbind(gtemp1,dfgrndtemp)
+
+gtemp_all <- cbind(X = seq_len(nrow(gtemp_all)), gtemp_all) # This should have daily averages for all sensors, at all depths between the dates 2022-06-19 and 2023-09-01 in a format that plugs into Elizbeth's code appropriately.
+
+# NOTE: If we are not seeing data for Summer 2023 ground temperature, then the error could very well be within this early part of the code 
+```
+
+
+Running Elizabeth's code to remove linear interpolations of figures for gaps
+
+3.5 cm
+```{r}
+gtmean1 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "3.5cm") 
+
+gtmean1 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean1$time <- format(as.Date(
+  gtmean1$Date),format = "%H:%M:%S")
+gtmean1$day <- as.Date(gtmean1$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean1 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA3.5 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA3.5 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA3.5 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA3.5 <- rbind(TNHA_NONA3.5,BEO_NONA3.5,SSMH_NONA3.5)
+TSB_NONA3.5$depth <- "3.5cm"
+TSB_NONA3.5$depth <- as.factor(TSB_NONA3.5$depth)
+```
+
+10 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "10cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA10 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA10 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA10 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA10 <- rbind(TNHA_NONA10,BEO_NONA10,SSMH_NONA10)
+TSB_NONA10$depth <- "10cm"
+TSB_NONA10$depth <- as.factor(TSB_NONA10$depth)
+```
+
+20 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "20cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA20 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA20 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA20 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA20 <- rbind(TNHA_NONA20,BEO_NONA20,SSMH_NONA20)
+TSB_NONA20$depth <- "20cm"
+TSB_NONA20$depth <- as.factor(TSB_NONA20$depth)
+```
+
+
+30 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "30cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA30 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA30 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA30 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA30 <- rbind(TNHA_NONA30,BEO_NONA30,SSMH_NONA30)
+TSB_NONA30$depth <- "30cm"
+TSB_NONA30$depth <- as.factor(TSB_NONA30$depth)
+```
+
+
+40 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "40cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA40 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA40 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA40 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA40 <- rbind(TNHA_NONA40,BEO_NONA40,SSMH_NONA40)
+TSB_NONA40$depth <- "40cm"
+TSB_NONA40$depth <- as.factor(TSB_NONA40$depth)
+```
+
+50 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "50cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA50 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA50 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA50 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA50 <- rbind(TNHA_NONA50,BEO_NONA50,SSMH_NONA50)
+TSB_NONA50$depth <- "50cm"
+TSB_NONA50$depth <- as.factor(TSB_NONA50$depth)
+```
+
+50 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "55cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA55 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA55 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA55 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA55 <- rbind(TNHA_NONA55,BEO_NONA55,SSMH_NONA55)
+TSB_NONA55$depth <- "55cm"
+TSB_NONA55$depth <- as.factor(TSB_NONA55$depth)
+```
+
+65 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "65cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA65 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA65 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA65 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA65 <- rbind(TNHA_NONA65,BEO_NONA65,SSMH_NONA65)
+TSB_NONA65$depth <- "65cm"
+TSB_NONA65$depth <- as.factor(TSB_NONA65$depth)
+```
+
+75 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "75cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA75 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA75 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA75 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA75 <- rbind(TNHA_NONA75,BEO_NONA75,SSMH_NONA75)
+TSB_NONA75$depth <- "75cm"
+TSB_NONA75$depth <- as.factor(TSB_NONA75$depth)
+```
+
+
+85 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "85cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA85 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA85 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA85 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA85 <- rbind(TNHA_NONA85,BEO_NONA85,SSMH_NONA85)
+TSB_NONA85$depth <- "85cm"
+TSB_NONA85$depth <- as.factor(TSB_NONA85$depth)
+```
+
+90 cm
+```{r}
+gtmean2 <- gtemp_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "90cm") 
+
+gtmean2 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+gtmean2$time <- format(as.Date(
+  gtmean2$Date),format = "%H:%M:%S")
+gtmean2$day <- as.Date(gtmean2$Date)
+
+
+Daily_average_gtemp_per_sensor <- gtmean2 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_gtemp_per_sensor <-  cSplit(Daily_average_gtemp_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_gtemp_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_gtemp_per_sensor$fullname <- paste(Daily_average_gtemp_per_sensor$station,Daily_average_gtemp_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_gtemp_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_gtemp_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA90 <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=length(date)/5)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA90 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA90 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+TSB_NONA90 <- rbind(TNHA_NONA90,BEO_NONA90,SSMH_NONA90)
+TSB_NONA90$depth <- "90cm"
+TSB_NONA90$depth <- as.factor(TSB_NONA90$depth)
+```
+
+
+
+Combining
+```{r}
+TSB_NONE_ALLDEPTHS <- rbind(TSB_NONA3.5,TSB_NONA10,TSB_NONA20,TSB_NONA30,TSB_NONA40,TSB_NONA50,TSB_NONA55,TSB_NONA65,TSB_NONA75,TSB_NONA85,TSB_NONA90)
+```
+
+
+
+Figure
+
+Filtering Chunk
+```{r}
+selected_sensors2 <- c("BEO-B05","BEO-B06")
+
+#"SSMH-BASE","SSMH-SA","SSMH-SB","SSMH-SC","SSMH-SD"
+#"TNHA-BASE","TNHA-SA","TNHA-SB","TNHA-SC","TNHA-SD"
+#"BEO-B05","BEO-B06"
+
+season_start_date2 <- as.Date("2023-06-01")
+season_end_date2 <- as.Date("2023-09-01")
+
+filtered_data3 <- TSB_NONE_ALLDEPTHS %>%
+  filter(fullname == selected_sensors2, date >= season_start_date2, date <= season_end_date2)
+
+filtered_data3$date <- as.Date(filtered_data3$date)
+```
+
+Templatized Stacked Figure
+```{r fig3, fig.height = 20, fig.width = 10}
+depth_colors <- brewer.pal(n = length(unique(filtered_data3$depth)), name = "Paired")
+
+ggplot(filtered_data3, aes(x = date, y = value, color = depth)) +
+  geom_line(size = 0.9, na.rm=FALSE) +
+  geom_point(size = 1.25) +
+  theme_bw() +
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 10)) +
+  labs(
+    title = paste("Daily average ground temperatures for", season_start_date2, "to", season_end_date2),
+    y = "Temperature (°C)",
+    x = "Date",
+    color = "Depth"
+  ) +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks = seq(-5, 15, by = 2.5), limits = c(-5, 15)) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    strip.text = element_text(size = 10, face = "bold"),  
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 14),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12)
+  ) +
+  scale_color_manual(values = depth_colors, name = "Depth", labels = unique(filtered_data3$depth)) +
+  facet_wrap(fullname ~ ., scales = "free_y",nrow=6)
+
+```
+
+
+
+
+You can ignore these figure chunk codes---they were "prototypes"
+
+```{r}
+# Specify the sensor, season start, and season end
+selected_sensor <- "TNHA-SA"
+season_start_date <- as.Date("2022-06-01")
+season_end_date <- as.Date("2022-09-01")
+
+# Filter the data for the selected sensor and season
+filtered_data <- gtemp1 %>%
+  filter(sensor == selected_sensor, date >= season_start_date, date <= season_end_date)
+
+gtemp1$date <- as.Date(gtemp1$date)
+```
+
+
+```{r}
+# Filter the data for the selected sensor and season
+filtered_data <- gtemp1 %>%
+  filter(sensor == selected_sensor, date >= season_start_date, date <= season_end_date)
+
+# Create the stacked plot
+ggplot(filtered_data, aes(x = date, y = gtavg, color = as.factor(depth))) +
+  geom_line(size = 0.9) +
+  geom_point(size = 0) +
+  theme_bw() +
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 10)) +
+  labs(
+    title = paste("Daily average ground temperatures for", selected_sensor, "(", season_start_date, "to", season_end_date, ")"),
+    y = "Temperature (°C)",
+    x = "Date",
+    color = "Depth"
+  ) +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks = seq(-5, 15, by = 2.5), limits = c(-5, 15)) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 14),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12)
+  ) +
+  scale_color_manual(values = rainbow(length(unique(filtered_data$depth))))
+
+```
+
+```{r fig13, fig.height = 7, fig.width = 12}
+depth_colors <- brewer.pal(n = length(unique(filtered_data$depth)), name = "Paired")
+
+ggplot(filtered_data, aes(x = date, y = gtavg, color = depth_label)) +
+  geom_line(size = 0.9) +
+  geom_point(size = 1.25) +
+  theme_bw() +
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 10)) +
+  labs(
+    title = paste("Daily average ground temperatures for", selected_sensor, "(", season_start_date, "to", season_end_date, ")"),
+    y = "Temperature (°C)",
+    x = "Date",
+    color = "Depth"
+  ) +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks = seq(-5, 15, by = 2.5), limits = c(-5, 15)) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 14),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12)
+  ) +
+  scale_color_manual(values = depth_colors, name = "Depth", labels = unique(filtered_data$depth_label))
+
+```
+
+Stacked Figure Template
+```{r}
+# Specify the sensor, season start, and season end
+selected_sensors <- c("TNHA-SD","TNHA-SA")
+season_start_date2 <- as.Date("2022-06-01")
+season_end_date2 <- as.Date("2022-09-01")
+
+# Filter the data for the selected sensor and season
+filtered_data2 <- gtemp1 %>%
+  filter(sensor == selected_sensors, date >= season_start_date2, date <= season_end_date2)
+```
+
+
+# Next steps, do what you did for stacked graphs of VWC 
+```{r fig3, fig.height = 12, fig.width = 12}
+ggplot(filtered_data2, aes(x = date, y = gtavg, color = depth_label)) +
+  geom_line(size = 0.9, na.rm=FALSE) +
+  geom_point(size = 1.25) +
+  theme_bw() +
+  theme(legend.title = element_text(size = 12), legend.text = element_text(size = 10)) +
+  labs(
+    title = paste("Daily average ground temperatures for","(", season_start_date, "to", season_end_date, ")"),
+    y = "Temperature (°C)",
+    x = "Date",
+    color = "Depth"
+  ) +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks = seq(-5, 15, by = 2.5), limits = c(-5, 15)) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    strip.text = element_text(size = 10, face = "bold"),  
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 14),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12)
+  ) +
+  scale_color_manual(values = depth_colors, name = "Depth", labels = unique(filtered_data$depth_label)) +
+  facet_wrap(sensor ~ ., scales = "free_y",nrow=6)
+
+```
+
