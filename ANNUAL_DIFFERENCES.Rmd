@@ -738,6 +738,583 @@ SITES_AVG_SUM22_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, avera
 
 *FALL 22*
 
+*FALL 22*
+BY STATION
+-------------------
+10cm
+```{r}
+grndmean <- fall22grndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "10cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+FALL22_10CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+FALL22_10CM$depth <- "10cm"
+FALL22_10CM$depth <- as.factor(FALL22_10CM$depth)
+```
+
+30cm
+```{r}
+grndmean <- fall22grndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "30cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+FALL22_30CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+FALL22_30CM$depth <- "30cm"
+FALL22_30CM$depth <- as.factor(FALL22_30CM$depth)
+```
+
+55cm
+```{r}
+grndmean <- fall22grndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "55cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+FALL22_55CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+FALL22_55CM$depth <- "55cm"
+FALL22_55CM$depth <- as.factor(FALL22_55CM$depth)
+```
+
+65cm
+```{r}
+grndmean <- fall22grndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "65cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+FALL22_65CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+FALL22_65CM$depth <- "65cm"
+FALL22_65CM$depth <- as.factor(FALL22_65CM$depth)
+```
+
+90cm
+```{r}
+grndmean <- fall22grndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "90cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+FALL22_90CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+FALL22_90CM$depth <- "90cm"
+FALL22_90CM$depth <- as.factor(FALL22_90CM$depth)
+```
+
+
+
+Bind all depth dataframes together
+```{r}
+FALL22_ALLDEPTHS <- rbind(FALL22_10CM,FALL22_30CM,FALL22_55CM,FALL22_65CM,FALL22_90CM)
+```
+
+
+
+
+
+
+BY SITE
+-----------
+```{r}
+averaged_by_site_TNHA <- FALL22_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth, mean)
+averaged_by_site_TNHA$station <- c("TNHA")
+
+averaged_by_site_BEO <- FALL22_ALLDEPTHS %>% filter(fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
+averaged_by_site_BEO$station <- c("BEO") 
+
+averaged_by_site_SSMH <- FALL22_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD") %>% aggregate(value~date+depth, mean)
+averaged_by_site_SSMH$station <- c("SSMH")
+
+SITES_AVG_FALL22_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
+```
+
+
 *SUMMER 23*
 
 *FALL 23*
+
+
+*SUMMER 23*
+-----------------------
+BY STATION
+-------------------
+10cm
+```{r}
+grndmean <- sum23grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "10cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2023-06-01"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=93)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=93)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=93)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+SUMMER23_10CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+SUMMER23_10CM$depth <- "10cm"
+SUMMER23_10CM$depth <- as.factor(SUMMER23_10CM$depth)
+```
+
+30cm
+```{r}
+grndmean <- summer22grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "30cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2023-06-01"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=93)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=93)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=93)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+SUMMER23_30CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+SUMMER23_30CM$depth <- "30cm"
+SUMMER23_30CM$depth <- as.factor(SUMMER23_30CM$depth)
+```
+
+55cm
+```{r}
+grndmean <- summer22grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "55cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2023-06-01"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=93)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=93)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=93)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+SUMMER23_55CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+SUMMER23_55CM$depth <- "55cm"
+SUMMER23_55CM$depth <- as.factor(SUMMER23_55CM$depth)
+```
+
+65cm
+```{r}
+grndmean <- summer22grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "65cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2023-06-01"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=93)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=93)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=93)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+SUMMER23_65CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+SUMMER23_65CM$depth <- "65cm"
+SUMMER23_65CM$depth <- as.factor(SUMMER23_65CM$depth)
+```
+
+90cm
+```{r}
+grndmean <- summer22grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "90cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2023-06-01"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=93)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=93)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=93)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+SUMMER23_90CM <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+SUMMER23_90CM$depth <- "90cm"
+SUMMER23_90CM$depth <- as.factor(SUMMER23_90CM$depth)
+```
+
+
+
+Bind all depth dataframes together
+```{r}
+SUMMERGRND23_ALLDEPTHS <- rbind(SUMMER23_10CM,SUMMER23_30CM,SUMMER23_55CM,SUMMER23_65CM,SUMMER23_90CM)
+```
+
+
+
+Merge summer 22 + summer 23 data-sets for plotting
+```{r}
+#makes an additonal column substring of the month and day only for both 22 and 23 data
+#makes an additonal column substring of the year only for both 22 and 23 data
+#rbind the 22 and 23 data
+
+SUMMERGRND22_ALLDEPTHS$day <- substr(SUMMERGRND22_ALLDEPTHS$date, 6,10)
+SUMMERGRND22_ALLDEPTHS$day <- as.Date(SUMMERGRND22_ALLDEPTHS$day, format = "%m-%d")
+SUMMERGRND22_ALLDEPTHS$year <- substr(SUMMERGRND22_ALLDEPTHS$date, 1,4)
+SUMMERGRND23_ALLDEPTHS$day <- substr(SUMMERGRND23_ALLDEPTHS$date, 6,10)
+SUMMERGRND23_ALLDEPTHS$year <- substr(SUMMERGRND23_ALLDEPTHS$date, 1,4)
+SUMMER_22_23_GRNDTMP <- rbind(SUMMERGRND22_ALLDEPTHS,SUMMERGRND23_ALLDEPTHS)
+```
+
+
+
+BY SITE
+-----------
+```{r}
+averaged_by_site_TNHA <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth, mean)
+averaged_by_site_TNHA$station <- c("TNHA")
+
+averaged_by_site_BEO <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
+averaged_by_site_BEO$station <- c("BEO") 
+
+averaged_by_site_SSMH <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD") %>% aggregate(value~date+depth, mean)
+averaged_by_site_SSMH$station <- c("SSMH")
+
+SITES_AVG_SUM23_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
+```
+
+
