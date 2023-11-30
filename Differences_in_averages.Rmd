@@ -1,0 +1,303 @@
+---
+title: "Differences_in_averages"
+author: "Mirella Shaban"
+date: "2023-10-23"
+output: html_document
+
+############################################################
+THIS SCRIPT GIVES YOU THE SEASONAL AVERAGES 
+1) BY SITE & 2) BY ASPECT AT THE SAME SITE
+*RUN LOADANDCLEAN_DIFFERENCES_IN_AVERAGES.RMD BEFORE THIS SCRIPT TO LOAD IN THE CLEANED DATA FOR EACH SEASON *
+############################################################
+---
+*Names of seasonal data files (cleaned)*
+SUMMERGRND22_ALLDEPTHS
+FALL22_ALLDEPTHS
+SPRING23_ALLDEPTHS
+SUMMERGRND23_ALLDEPTHS
+
+
+AVERAGE BY SITE
+-----------
+```{r}
+averaged_by_site_TNHA <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
+averaged_by_site_TNHA$station <- c("TNHA")
+
+averaged_by_site_BEO <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "BEO-B06" | fullname == "BEO-B05") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
+averaged_by_site_BEO$station <- c("BEO") 
+
+averaged_by_site_SSMH <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
+averaged_by_site_SSMH$station <- c("SSMH")
+
+SITES_AVG_SUM22_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
+```
+
+
+STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
+```{r}
+wide <- SITES_AVG_SUM22_GRND %>%
+    pivot_wider(names_from = station, values_from = value)
+
+wide$TBDIFF <- wide$TNHA - wide$BEO
+wide$SBDIFF <- wide$SSMH - wide$BEO
+wide$TBSBDIFF <- wide$SSMH - wide$TNHA
+
+x<- wide %>% filter(depth == "10cm") 
+mean(x$TBDIFF,na.rm = TRUE)
+mean(x$SBDIFF, na.rm = TRUE)
+mean(x$TBSBDIFF, na.rm = TRUE)
+```
+
+AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+```{r}
+averaged_by_station <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date+depth, mean)
+averaged_by_station$fullname <- c("TNHA-SA")
+averaged_by_station2 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "TNHA-SC") %>% aggregate(value~date+depth, mean)
+averaged_by_station2$fullname <- c("TNHA-SC")
+averaged_by_station3 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "SSMH-SA") %>% aggregate(value~date+depth, mean)
+averaged_by_station3$fullname <- c("SSMH-SA")
+averaged_by_station4 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "SSMH-SB") %>% aggregate(value~date+depth, mean)
+averaged_by_station4$fullname <- c("SSMH-SB")
+averaged_by_station5 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "BEO-B05" | fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
+averaged_by_station5$fullname <- c("BEO")
+SU22_STATIONS_AVG<- rbind(averaged_by_station, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5)
+```
+
+
+STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
+```{r}
+wide <- SU22_STATIONS_AVG %>%
+    pivot_wider(names_from = fullname, values_from = value)
+
+wide$TNHA_NS_DIFF <- wide$`TNHA-SA` - wide$`TNHA-SC`
+wide$TNHA_N_BEO_DIFF <- wide$`TNHA-SC` - wide$`BEO`
+wide$TNHA_S_BEO_DIFF <- wide$`TNHA-SA` - wide$`BEO`
+
+wide$SSMH_NS_DIFF <- wide$`SSMH-SA` - wide$`SSMH-SB`
+wide$SSMH_N_BEO_DIFF <- wide$`SSMH-SB` - wide$`BEO`
+wide$SSMH_S_BEO_DIFF <- wide$`SSMH-SA` - wide$`BEO`
+
+wide$TNHA_SSMH_N_COMP <- wide$`TNHA-SC`-wide$`SSMH-SB`
+wide$TNHA_SSMH_S_COMP <- wide$`TNHA-SA`-wide$`SSMH-SA`
+
+#write.csv(wide, "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_daily_average_difference_N_vs_S.csv")
+
+x<- wide %>% filter(depth == "30cm") 
+
+mean(x$TNHA_NS_DIFF,na.rm = TRUE)
+mean(x$SSMH_NS_DIFF, na.rm = TRUE)
+
+
+mean(x$TNHA_S_BEO_DIFF, na.rm = TRUE)
+mean(x$SSMH_S_BEO_DIFF, na.rm = TRUE)
+
+max(x$TNHA_NS_DIFF, na.rm = TRUE)
+max(x$SSMH_NS_DIFF, na.rm = TRUE)
+
+x<- wide %>% filter(depth == "90cm") 
+#below, p1 = 6/19-8/01 , p2= 8/01-
+p1 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2022-06-19" & date <= "2022-07-08"]))
+p1
+
+```
+
+
+------------------------------------------------
+AIR TEMPERATURES
+
+AIR SUMMER 2022
+```{r}
+air22 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_22_airtmp_2023_11_14_20_57_51_UTC_1.csv")
+names(air22) <- sub("Temperature..RXW.THC.", "" ,names(air22))
+names(air22) <- sub("Temperature..S.THC.", "" ,names(air22))
+names(air22) <- sub("S.", "" ,names(air22))
+names(air22) <- sub("....C..RX3000_BRW1", "" ,names(air22))
+names(air22) <- sub("....C..RX3000_BRW4", "" ,names(air22))
+names(air22) <- sub("....C..RX3000_BRW5", "" ,names(air22))
+names(air22) <- sub("....C..RX3000_BRW6", "" ,names(air22))
+air22$Date <- as.POSIXct(air22$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+AIR FALL 2022
+```{r}
+airfall22 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Fall_22_airtmp_2023_11_14_21_43_57_UTC_1.csv")
+names(airfall22) <- sub("Temperature..RXW.THC.", "" ,names(airfall22))
+names(airfall22) <- sub("Temperature..S.THC.", "" ,names(airfall22))
+names(airfall22) <- sub("S.", "" ,names(airfall22))
+names(airfall22) <- sub("....C..RX3000_BRW1", "" ,names(airfall22))
+names(airfall22) <- sub("....C..RX3000_BRW4", "" ,names(airfall22))
+names(airfall22) <- sub("....C..RX3000_BRW5", "" ,names(airfall22))
+names(airfall22) <- sub("....C..RX3000_BRW6", "" ,names(airfall22))
+airfall22$Date <- as.POSIXct(airfall22$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+Air SUMMER 2023
+```{r}
+air_2023 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/UPDATED_SUMMER_23_DATA/New_Summer_2023_AIRTMP_2023_11_01_18_31_41_UTC_1.csv")
+names(air_2023) <- sub("Temperature..RXW.THC.", "" ,names(air_2023))
+names(air_2023) <- sub("Temperature..S.THC.", "" ,names(air_2023))
+names(air_2023) <- sub("S.", "" ,names(air_2023))
+names(air_2023) <- sub("....C..RX3000_BRW1", "" ,names(air_2023))
+names(air_2023) <- sub("....C..RX3000_BRW4", "" ,names(air_2023))
+names(air_2023) <- sub("....C..RX3000_BRW5", "" ,names(air_2023))
+names(air_2023) <- sub("....C..RX3000_BRW6", "" ,names(air_2023))
+air_2023$Date <- as.POSIXct(air_2023$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+
+############# DATA CLEANING
+
+```{r}
+airtemp = gather(air22, variable, response, "21198259.21218018.1":"21401803.21397541.1") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+summer22airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+summer22airtemp$variable_3 <- NULL
+colnames(summer22airtemp)[3:5] <- c("value", "station", "sensor")
+summer22airtemp$value <- as.numeric(as.character(summer22airtemp$value)) 
+summer22airtemp$sensor <- as.factor(as.character(summer22airtemp$sensor))
+summer22airtemp$station <- as.factor(summer22airtemp$station)
+
+summer22airtemp$station <- revalue(summer22airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+summer22airtemp$sensor <- revalue(summer22airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-??'))
+
+### need to correct the names for bueci stations, i dont have the metadata clearly on here for the air teperature sensors
+```
+
+```{r}
+airtemp = gather(airfall22, variable, response, "21198259.21218018.1":"21401803.21397541.1") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+fall22airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+fall22airtemp$variable_3 <- NULL
+colnames(fall22airtemp)[3:5] <- c("value", "station", "sensor")
+fall22airtemp$value <- as.numeric(as.character(fall22airtemp$value)) 
+fall22airtemp$sensor <- as.factor(as.character(fall22airtemp$sensor))
+fall22airtemp$station <- as.factor(fall22airtemp$station)
+
+fall22airtemp$station <- revalue(fall22airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+fall22airtemp$sensor <- revalue(fall22airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-??'))
+```
+
+```{r}
+airtempsum23 = gather(air_2023, variable, response, "21198259.21380919.1_TNHA":"21401801.21398667.1_MH") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+summer23airtemp= cSplit(airtempsum23, 'variable', sep=".", direction = "wide") 
+summer23airtemp= cSplit(summer23airtemp, 'variable_3', sep="1_", direction = "wide") 
+summer23airtemp$variable_3_1 <- NULL
+colnames(summer23airtemp)[3:6] <- c("value", "station", "sensor","site")
+summer23airtemp$value <- as.numeric(as.character(summer23airtemp$value)) 
+summer23airtemp$sensor <- as.factor(as.character(summer23airtemp$sensor))
+summer23airtemp$station <- as.factor(summer23airtemp$station)
+summer23airtemp$site <- as.factor(summer23airtemp$site)
+summer23airtemp$station <- revalue(summer23airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+summer23airtemp$sensor <- revalue(summer23airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-??'))
+
+
+#### need to adjust for the air temp sensors
+```
+
+AVERAGING
+
+
+
+```{r}
+AIRmean <- summer22airtemp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
+
+AIRmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+AIRmean$time <- format(as.Date(
+  AIRmean$Date),format = "%H:%M:%S")
+AIRmean$day <- as.Date(AIRmean$Date)
+
+
+Daily_average_air_per_sensor <- AIRmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_air_per_sensor <-  cSplit(Daily_average_air_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_air_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_air_per_sensor$fullname <- paste(Daily_average_air_per_sensor$station,Daily_average_air_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_air_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_air_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_air_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2022-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=75)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=75)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-BASE"),each=75)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+SUMMER22_air <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+```
+
+average daily difference between TNHA and BEO SITES (all stations combined) 
+```{r}
+wide <- SUMMER22_air %>%
+    pivot_wider(names_from = station, values_from = value)
+
+wide$TBDIFF <- wide$TNHA - wide$BEO
+
+
+mean(wide$TBDIFF,na.rm = TRUE)
+mean(wide$SBDIFF, na.rm = TRUE)
+mean(wide$TBSBDIFF, na.rm = TRUE)
+```
+
+This averages for SENSOR (can compare sensors at the same site, such as N & S) by day
+```{r}
+averaged_by_station <- SUMMER22_air %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date, mean)
+averaged_by_station$fullname <- c("TNHA-SA")
+
+averaged_by_station2 <- SUMMER22_air %>% filter(fullname == "TNHA-SC") %>% aggregate(value~date, mean)
+averaged_by_station2$fullname <- c("TNHA-SC")
+
+averaged_by_station3 <- SUMMER22_air %>% filter(fullname == "BEO-BASE") %>% aggregate(value~date, mean)
+averaged_by_station3$fullname <- c("BEO-BASE")
+TNHA_NvsS <- rbind(averaged_by_station, averaged_by_station2, averaged_by_station3)
+```
+
+average daily difference between SPECIFIC STATIONS at TNHA and BEO
+```{r}
+wide <- TNHA_NvsS %>%
+    pivot_wider(names_from = fullname, values_from = value)
+
+wide$TNHA_NS_DIFF <- wide$`TNHA-SA` - wide$`TNHA-SC`
+wide$TNHA_SN_DIFF <- wide$`TNHA-SC` - wide$`TNHA-SA`
+wide$TNHA_N_BEO_DIFF <- wide$`TNHA-SC` - wide$`BEO-BASE`
+wide$TNHA_S_BEO_DIFF <- wide$`TNHA-SA` - wide$`BEO-BASE`
+
+
+
+mean(wide$TNHA_NS_DIFF,na.rm = TRUE)
+
+mean(wide$TNHA_S_BEO_DIFF, na.rm = TRUE)
+
+max(x$TNHA_NS_DIFF, na.rm = TRUE)
+
+```
