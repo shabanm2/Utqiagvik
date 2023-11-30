@@ -24,15 +24,51 @@ library(RColorBrewer)
 library(caret)
 ```
 
+Load files from Github
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/RECENT_CSV_DOWNLOADS/"
+
+gtfile_summ22 = "Summer_22_grndtmp_2023_11_14_20_50_46_UTC_1.csv"
+airfile_summ22 = "Summer_22_airtmp_2023_11_14_20_57_51_UTC_1.csv"
+vwcfile_summ22 = "Summer_22_VWC_2023_11_14_21_00_08_UTC_1.csv"
+solfile_summ22 = "Summer_22_solar_2023_11_14_21_01_06_UTC_1.csv"
+
+gtfile_fall22 = "Fall_22_grndtmp_2023_11_14_21_31_58_UTC_1.csv"
+airfile_fall22 = "Fall_22_airtmp_2023_11_14_21_43_57_UTC_1.csv"
+vwcfile_fall22 = "Fall_22_VWC_2023_11_14_21_46_41_UTC_1.csv"
+solfile_fall22 = "Fall_22_solar_2023_11_14_21_56_42_UTC_1.csv"
+  
+gtfile_wint22 = "Winter_grndtmp_2023_04_06_12_18_43_UTC_1.csv"
+airfile_wint22 = "Winter_airtemp_2023_04_06_12_02_30_UTC_1.csv"
+vwcfile_wint22 = "Winter_VWC_2023_04_06_12_36_52_UTC_1.csv"
+solfile_wint22 = "Winter_solar_2023_04_06_12_55_01_UTC_1.csv"
+  
+gtfile_spring23 = "New_Spring_2023_grndtmp_2023_11_01_18_20_38_UTC_1.csv"
+airfile_spring23 = "New_Spring_2023_AIRTMP_2023_11_01_18_30_56_UTC_1.csv"
+vwcfile_spring23 = "New_Spring_2023_VWC_2023_11_01_18_26_40_UTC_1.csv"
+solfile_spring23 = "New_Spring_2023_SOLAR_2023_11_01_18_29_33_UTC_1.csv"
+  
+gtfile_summ23 = "New_Summer_2023_GRNDTMP_2023_11_01_18_32_40_UTC_1.csv"
+airfile_summ23 = "New_Summer_2023_AIRTMP_2023_11_01_18_31_41_UTC_1.csv"
+vwcfile_summ23 = "New_Summer_2023_VWC_2023_11_01_18_34_52_UTC_1.csv"
+solfile_summ23 = "New_Summer_2023_SOLAR_2023_11_01_18_33_40_UTC_1.csv"
+   
+
+```
+
+
+
 GRND TMP SUMMER 2022
 ```{r}
-grndtmp22=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_22_grndtmp_2023_11_14_20_50_46_UTC_1.csv")
+grndtmp22=read.csv(paste0(filepath, gtfile_summ22))
 names(grndtmp22) <- sub("....C..RX3000_BRW1", "", names(grndtmp22))
 names(grndtmp22) <- sub("....C..RX3000_BRW4", "", names(grndtmp22))
 names(grndtmp22) <- sub("....C..RX3000_BRW5", "", names(grndtmp22))
 names(grndtmp22) <- sub("....C..RX3000_BRW6", "", names(grndtmp22))
 names(grndtmp22) <- sub(".RXW.GP6.", "", names(grndtmp22))
 grndtmp22$Date <-as.POSIXct(grndtmp22$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
 ```
 
 long data frame
@@ -415,7 +451,7 @@ AIR TEMPERATURES
 
 AIR SUMMER 2022
 ```{r}
-air22 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_22_airtmp_2023_11_14_20_57_51_UTC_1.csv")
+air22 = read.csv(paste0(filepath,airfile_summ22))
 names(air22) <- sub("Temperature..RXW.THC.", "" ,names(air22))
 names(air22) <- sub("Temperature..S.THC.", "" ,names(air22))
 names(air22) <- sub("S.", "" ,names(air22))
@@ -428,7 +464,7 @@ air22$Date <- as.POSIXct(air22$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 AIR FALL 2022
 ```{r}
-airfall22 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Fall_22_airtmp_2023_11_14_21_43_57_UTC_1.csv")
+airfall22 =read.csv(paste0(filepath,airfile_fall22))
 names(airfall22) <- sub("Temperature..RXW.THC.", "" ,names(airfall22))
 names(airfall22) <- sub("Temperature..S.THC.", "" ,names(airfall22))
 names(airfall22) <- sub("S.", "" ,names(airfall22))
@@ -441,7 +477,7 @@ airfall22$Date <- as.POSIXct(airfall22$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 Air SUMMER 2023
 ```{r}
-air_2023 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/UPDATED_SUMMER_23_DATA/New_Summer_2023_AIRTMP_2023_11_01_18_31_41_UTC_1.csv")
+air_2023 =read.csv(paste0(filepath,airfile_summ23))
 names(air_2023) <- sub("Temperature..RXW.THC.", "" ,names(air_2023))
 names(air_2023) <- sub("Temperature..S.THC.", "" ,names(air_2023))
 names(air_2023) <- sub("S.", "" ,names(air_2023))
