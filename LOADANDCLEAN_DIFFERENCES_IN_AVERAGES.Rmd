@@ -475,7 +475,23 @@ Bind all depth dataframes together
 SUMMERGRND22_ALLDEPTHS <- rbind(SUMMER22_10CM,SUMMER22_30CM,SUMMER22_55CM,SUMMER22_65CM,SUMMER22_90CM)
 ```
 
+AVERAGE BY SITE
+-----------
+```{r}
+averaged_by_site_TNHA <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
+averaged_by_site_TNHA$station <- c("TNHA")
+
+averaged_by_site_BEO <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "BEO-B06" | fullname == "BEO-B05") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
+averaged_by_site_BEO$station <- c("BEO") 
+
+averaged_by_site_SSMH <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
+averaged_by_site_SSMH$station <- c("SSMH")
+
+SITES_AVG_SUM22_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
+```
+
 ----
+
 *FALL 22*
 BY STATION
 -------------------
@@ -1336,5 +1352,11 @@ Sum22_Sum23_Annual_Temps <- SUMMER_22_23_GRNDTMP %>% aggregate(value~year+fullna
 #################################
 Add Fall 2023 --
 #################################
+
+
+
+
+
+
 
 
