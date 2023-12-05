@@ -1,0 +1,253 @@
+---
+title: "Principal Component Analysis"
+author: "Elizabeth Van Metre"
+date: "2023-09-07"
+output: html_document
+---
+
+```{r}
+filepath = "~/Desktop/Arctic/X-Y_plots/data/processed/summer/"
+
+gtfile = "grndtmp_long.csv"
+airfile = "airtemp_long.csv"
+vwcfile = "mst_long.csv"
+solfile = "solar_long.csv"
+windfile = "windspeed_summer.csv"
+
+
+#30 cm depth
+#15-30 VWC
+#average sites
+```
+
+
+##Loading packages
+```{r}
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+```
+
+
+Load Data
+```{r}
+grndtmp = read.csv(paste0(filepath, gtfile))
+airtmp = read.csv(paste0(filepath, airfile))
+vwc = read.csv(paste0(filepath, vwcfile))
+solar = read.csv(paste0(filepath, solfile))
+wind = read.csv(paste0(filepath, windfile))
+```
+
+
+Temporal Range: Summer
+Vertical Spatial Range: 30 cm
+Horizontal Spatial Range: by site
+  --> Average Total Site
+  --> North vs South
+
+
+# PCA - TNHA Site
+
+## Picking
+
+```{r}
+tnha_ground = grndtmp %>% filter(station == "TNHA") %>% filter(depth == 10)
+tnha_air = airtmp %>% filter(station == "TNHA")
+tnha_wind = wind %>% filter(station == "21198259")
+tnha_solar = solar %>% filter(station == "TNHA")
+tnha = full_join(tnha_ground, tnha_air, by="Date") %>% select(c(3:4,10))
+colnames(tnha)[2:3] = c("groundtemp", "airtemp")
+tnha = full_join(tnha, tnha_wind, by="Date") %>% select(c(1:3,6))
+colnames(tnha)[4] = "windspeed"
+tnha = full_join(tnha, tnha_solar, by="Date") %>% select(c(1:4,7))
+colnames(tnha)[5] = "solar"
+```
+
+## Hourly Averages
+
+```{r}
+
+tnhahourly <- tnha %>% mutate(day = substr(Date, 1, 10)) %>% mutate(hour = substr(Date, 12, 13))
+
+tnhahourlyavg <- tnhahourly %>% group_by(day, hour) %>% 
+  summarize(groundavg = mean(groundtemp, na.rm=F), airavg = mean(airtemp, na.rm=F), windavg = mean(windspeed, na.rm=F), solaravg = mean(solar, na.rm=F))
+tnhahourlyavg <- na.omit(tnhahourlyavg)
+```
+
+```{r}
+tnhasd = data.frame(((tnhahourlyavg$groundavg - mean(tnhahourlyavg$groundavg))/sd(tnhahourlyavg$groundavg)),
+                     ((tnhahourlyavg$airavg - mean(tnhahourlyavg$airavg))/sd(tnhahourlyavg$airavg)),
+                     ((tnhahourlyavg$windavg - mean(tnhahourlyavg$windavg))/sd(tnhahourlyavg$windavg)),
+                     ((tnhahourlyavg$solaravg - mean(tnhahourlyavg$solaravg))/sd(tnhahourlyavg$solaravg)))
+colnames(tnhasd) = c("groundtemp", "airtemp", "windspeed", "solar")
+```
+
+
+## PCA
+```{r}
+tnha_pca <- prcomp(tnhasd, scale.=FALSE)
+
+#take out variables
+sd <- tnha_pca$sdev
+loadings <- tnha_pca$rotation
+rownames(loadings) <- colnames(tnhasd)
+scores <- tnha_pca$x
+
+var <- sd^2
+varPercent <- var/sum(var) * 100
+dev.new() #not sure what this does
+```
+
+### Show Results
+```{r}
+barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="gray")
+abline(h=1/ncol(tnhasd)*100, col="red")
+```
+
+### Loadings
+```{r}
+loadings
+sqrt(1/ncol(tnhasd)) # cutoff for "important" loadings
+```
+
+
+### Bi-plots
+```{r}
+dev.new(height=7, width=7)
+biplot(scores[, 1:2], loadings[, 1:2], cex=0.7)
+```
+
+
+
+# PCA - TNHA North vs South
+## TNHA-A vs TNHA-SC
+
+
+## Picking
+
+```{r}
+tnha_ground = grndtmp %>% filter(station == "TNHA") %>% filter(depth == 10) %>% 
+  filter(sensor=="TNHA-SA" | sensor=="TNHA-SC")
+
+tnha_air = airtmp %>% filter(station == "TNHA") %>% filter(sensor=="TNHA-SA" | sensor=="TNHA-SC")
+
+tnha_wind = wind %>% filter(station == "21198259") %>% filter(sensor=="21398709" | sensor=="21206909")
+tnha_wind$sensor[tnha_wind$sensor=="21398709"] = "TNHA-SA"
+tnha_wind$sensor[tnha_wind$sensor=="21206909"] = "TNHA-SC"
+
+#tnha_solar = solar %>% filter(station == "TNHA") %>% filter(sensor=="21398620" | sensor=="TNHA-SC")
+#tnha_solar$sensor[tnha_solar$sensor=="21398620"] = "TNHA-SA"
+
+tnha = full_join(tnha_ground, tnha_air, by=c("Date","sensor")) %>% select(c(3,6,4,10))
+colnames(tnha)[3:4] = c("groundtemp", "airtemp")
+tnha = full_join(tnha, tnha_wind, by=c("Date","sensor")) %>% select(c(1:4,7))
+colnames(tnha)[5] = "windspeed"
+#tnha = full_join(tnha, tnha_solar, by=c("Date","sensor")) %>% select(c(1:5,8))
+#colnames(tnha)[6] = "solar"
+```
+
+## Hourly Averages
+
+```{r}
+
+tnhahourly <- tnha %>% mutate(day = substr(Date, 1, 10)) %>% mutate(hour = substr(Date, 12, 13))
+
+tnhahourlyavg <- tnhahourly %>% group_by(sensor, day, hour) %>% 
+  summarize(groundavg = mean(groundtemp, na.rm=F), airavg = mean(airtemp, na.rm=F), windavg = mean(windspeed, na.rm=F))
+tnhahourlyavg <- na.omit(tnhahourlyavg)
+```
+
+
+
+
+
+```{r}
+tnhasd = data.frame(((tnhahourlyavg$groundavg - mean(tnhahourlyavg$groundavg))/sd(tnhahourlyavg$groundavg)),
+                     ((tnhahourlyavg$airavg - mean(tnhahourlyavg$airavg))/sd(tnhahourlyavg$airavg)),
+                     ((tnhahourlyavg$windavg - mean(tnhahourlyavg$windavg))/sd(tnhahourlyavg$windavg)))
+colnames(tnhasd) = c("groundtemp", "airtemp", "windspeed")
+```
+
+
+
+
+## PCA
+```{r}
+tnha_pca <- prcomp(tnhasd, scale.=FALSE)
+
+#take out variables
+sd <- tnha_pca$sdev
+loadings <- tnha_pca$rotation
+rownames(loadings) <- colnames(tnhasd)
+scores <- tnha_pca$x
+
+var <- sd^2
+varPercent <- var/sum(var) * 100
+dev.new() #not sure what this does
+```
+
+### Show Results
+```{r}
+barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="gray")
+abline(h=1/ncol(tnhasd)*100, col="red")
+```
+
+### Loadings
+```{r}
+loadings
+sqrt(1/ncol(tnhasd)) # cutoff for "important" loadings
+```
+
+
+### Bi-plots
+```{r}
+dev.new(height=7, width=7)
+TNHA_SA <- tnhahourlyavg$sensor == "TNHA-SA"
+TNHA_SC <- tnhahourlyavg$sensor == "TNHA-SC"
+ 
+plot(scores[, 1], scores[, 2], xlab="PCA 1", ylab="PCA 2", type="n", asp=1, las=1)
+
+scaling <- 5
+textNudge <- 1.05
+ 
+points(scores[TNHA_SA, 1], scores[TNHA_SA, 2], pch=16, cex=0.7, col="lightblue")
+ 
+points(scores[TNHA_SC, 1], scores[TNHA_SC, 2], pch=16, cex=0.7, col="pink")
+ 
+
+arrows(0, 0, loadings[, 1]* scaling, loadings[, 2]* scaling, length=0.1, angle=20, col="darkred")
+ 
+text(loadings[, 1]*scaling*textNudge, loadings[, 2]*scaling*textNudge, rownames(loadings), col="darkred", cex=0.7)
+
+ 
+
+text(1, 3, "TNHA-SA \n(south)", col="darkblue")
+text(-4, 2, "TNHA-SC \n(north)", col="darkred")
+```
+
+# PCA - SSMH
+
+Average
+```{r}
+
+```
+
+
+North vs South
+SSMH-D vs SSMH-SB
+```{r}
+
+```
+
+
+# PCA - BEO
+
+JUST ONE SENSOR
+BEO-6
+```{r}
+
+```
+
+
+
+

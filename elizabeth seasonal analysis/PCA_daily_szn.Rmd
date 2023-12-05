@@ -37,11 +37,11 @@ library(tidyverse)
 
 Load Data
 ```{r}
-grndtmp = read.csv(url((paste0(filepath, gtfile)))
-airtmp = read.csv(url(paste0(filepath, airfile)))
-vwc = read.csv(url(paste0(filepath, vwcfile)))
-solar = read.csv(url(paste0(filepath, solfile)))
-wind = read.csv(url(paste0(filepath, windspeed)))
+grndtmp = read.csv(paste0(filepath, gtfile))
+airtmp = read.csv(paste0(filepath, airfile))
+vwc = read.csv(paste0(filepath, vwcfile))
+solar = read.csv(paste0(filepath, solfile))
+wind = read.csv(paste0(filepath, windspeed))
 ```
 
 
@@ -61,12 +61,15 @@ tnha_ground = grndtmp %>% filter(station == "TNHA") %>% filter(depth == 10)
 tnha_air = airtmp %>% filter(station == "TNHA")
 tnha_wind = wind %>% filter(station == "TNHA")
 tnha_solar = solar %>% filter(station == "TNHA")
+tnha_vwc = vwc %>% filter(station=="TNHA") %>% filter(depth == 2)
 tnha = full_join(tnha_ground, tnha_air, by=c("date", "station", "sensor")) %>% select(c(2:4,6,9))
 colnames(tnha)[2:5] = c("station","sensor","groundtemp", "airtemp")
 tnha = full_join(tnha, tnha_wind, by=c("date", "station", "sensor")) %>% select(c(1:5,8))
 colnames(tnha)[c(2:3,6)] = c("station","sensor","windspeed")
 tnha = full_join(tnha, tnha_solar, by=c("date", "station", "sensor")) %>% select(c(1:6,9))
 colnames(tnha)[c(2:3,7)] = c("station","sensor","solar")
+tnha = full_join(tnha, tnha_vwc, by=c("date", "station", "sensor")) %>% select(c(1:7,10))
+colnames(tnha)[c(2:3,8)] = c("station","sensor","vwc")
 ```
 
 Get Rid of Rows with NAs
@@ -77,12 +80,12 @@ tnha = na.omit(tnha)
 
 ## PCA
 ```{r}
-tnha_pca <- prcomp(tnha[,4:7], center=TRUE, scale.=TRUE)
+tnha_pca <- prcomp(tnha[,4:8], center=TRUE, scale.=TRUE)
 
 #take out variables
 sd <- tnha_pca$sdev
 loadings <- tnha_pca$rotation
-rownames(loadings) <- colnames(tnha[4:7])
+rownames(loadings) <- colnames(tnha[4:8])
 scores <- tnha_pca$x
 
 var <- sd^2
@@ -93,13 +96,13 @@ dev.new() #not sure what this does
 ### Show Results
 ```{r}
 barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="gray")
-abline(h=1/ncol(tnha[4:7])*100, col="red")
+abline(h=1/ncol(tnha[4:8])*100, col="red")
 ```
 
 ### Loadings
 ```{r}
 loadings
-sqrt(1/ncol(tnha[4:7])) # cutoff for "important" loadings
+sqrt(1/ncol(tnha[4:8])) # cutoff for "important" loadings
 ```
 Eigenvectors and Eigenvalues
 ```{r}
@@ -184,17 +187,17 @@ ggplot(cluster_sensors, aes(x = tnha.sensor, fill = cluster)) +
 ```
 
 ```{r}
-ggplot(cluster_sensors, aes(x = PC1, y = PC2, shape = cluster)) +
-  geom_point(aes(color = tnha.sensor), size = 2) +
+p = ggplot(cluster_sensors, aes(x = PC1, y = PC2)) +
+  geom_point(aes(color = tnha.sensor, shape = cluster), size = 2) +
   scale_shape_manual(values = c(16, 17, 18)) +  # Set shapes manually
   theme_minimal() +
-  labs(title = "Biplot with Custom Point Symbols",
+  labs(title = "Biplot of Eigenvectors and PC Clusters",
        x = "PC1",
-       y = "PC2")#+ 
-  #geom_segment(data = as.data.frame(eigenvectors), aes(x = 0, y = 0, xend = PC1, yend = PC2),
-                # arrow = arrow(type = "closed", length = unit(0.2, "inches")),
-                 #size = 0.5, color = "black") +
-  #geom_text(data = as.data.frame(eigenvectors), aes(x = PC1, y = PC2, label = variable), vjust = -1, hjust = -1)
+       y = "PC2") 
+p + geom_segment(data = as.data.frame(eigenvectors), aes(x = 0, y = 0, xend = PC1*4, yend = PC2*4),
+                 arrow = arrow(type = "closed", length = unit(0.1, "inches")),
+                 linewidth = 0.5, color = "black") +
+  geom_text(data = as.data.frame(eigenvectors), aes(x = PC1*2.5, y = PC2*5+0.1, label = rownames(eigenvectors)))
 
 
 ```
@@ -242,7 +245,7 @@ tnha_pca <- prcomp(tnha[,4:7], scale.=TRUE)
 #take out variables
 sd <- tnha_pca$sdev
 loadings <- tnha_pca$rotation
-rownames(loadings) <- colnames(tnhasd)
+rownames(loadings) <- colnames(sd)
 scores <- tnha_pca$x
 
 var <- sd^2
@@ -253,13 +256,13 @@ dev.new() #not sure what this does
 ### Show Results
 ```{r}
 barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="gray")
-abline(h=1/ncol(tnhasd)*100, col="red")
+abline(h=1/ncol(sd)*100, col="red")
 ```
 
 ### Loadings
 ```{r}
 loadings
-sqrt(1/ncol(tnhasd)) # cutoff for "important" loadings
+sqrt(1/ncol(sd)) # cutoff for "important" loadings
 ```
 
 

@@ -1,0 +1,271 @@
+---
+title: "PCA Summer/Winter"
+author: "Elizabeth Van Metre"
+date: "2023-10-12"
+output: html_document
+---
+
+Meteorological Fall: September 1 - November 30
+
+```{r}
+#github raw filepath
+#https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/airtemp_daily.csv
+
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/"
+
+gtfile = "grndtemp_daily.csv"
+airfile = "airtemp_daily.csv"
+vwcfile = "vwc_daily.csv"
+solfile = "solar_daily.csv"
+windspeed = "windspeed_daily.csv"
+winddir = "winddir_daily.csv"
+
+
+#30 cm depth
+#15-30 VWC
+#average sites
+```
+
+
+##Loading packages
+```{r}
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+```
+
+
+Load Data
+```{r}
+grndtmp = read.csv(paste0(filepath, gtfile))
+airtmp = read.csv(paste0(filepath, airfile))
+vwc = read.csv(paste0(filepath, vwcfile))
+solar = read.csv(paste0(filepath, solfile))
+wind = read.csv(paste0(filepath, windspeed))
+```
+
+
+Temporal Range: Summer
+Vertical Spatial Range: 30 cm
+Horizontal Spatial Range: by site
+  --> Average Total Site
+  --> North vs South
+
+
+# PCA - TNHA Site
+
+## Picking
+
+```{r}
+tnha_ground = grndtmp %>% filter(station == "TNHA") %>% filter(depth == 10)
+tnha_air = airtmp %>% filter(station == "TNHA")
+tnha_wind = wind %>% filter(station == "TNHA")
+tnha_solar = solar %>% filter(station == "TNHA")
+tnha_vwc = vwc %>% filter(station=="TNHA") %>% filter(depth == 2)
+tnha = full_join(tnha_ground, tnha_air, by=c("date", "station", "sensor")) %>% select(c(2:4,6,9))
+colnames(tnha)[2:5] = c("station","sensor","groundtemp", "airtemp")
+tnha = full_join(tnha, tnha_wind, by=c("date", "station", "sensor")) %>% select(c(1:5,8))
+colnames(tnha)[c(2:3,6)] = c("station","sensor","windspeed")
+tnha = full_join(tnha, tnha_solar, by=c("date", "station", "sensor")) %>% select(c(1:6,9))
+colnames(tnha)[c(2:3,7)] = c("station","sensor","solar")
+tnha = full_join(tnha, tnha_vwc, by=c("date", "station", "sensor")) %>% select(c(1:7,10))
+colnames(tnha)[c(2:3,8)] = c("station","sensor","vwc")
+```
+
+Pick Summer Dates
+```{r}
+summer_tnha = tnha %>% filter(date >= "2022-06-01") %>% filter(date < "2022-09-01")
+winter_tnha = tnha %>% filter(date >= "2022-12-01") %>% filter(date < "2023-03-01")
+#winter is missing a lot of data (january & feb)
+#maybe we should do fall instead
+fall_tnha = tnha %>% filter(date >= "2022-09-01") %>% filter(date < "2022-12-01")
+```
+
+
+Get Rid of Rows with NAs
+```{r}
+summer_tnha = na.omit(summer_tnha)
+winter_tnha = na.omit(winter_tnha)
+fall_tnha = na.omit(fall_tnha)
+```
+
+## PCA
+
+SUMMER
+```{r}
+summer_tnha_pca <- prcomp(summer_tnha[,4:8], center=TRUE, scale.=TRUE)
+
+#take out variables
+sd <- summer_tnha_pca$sdev
+loadings <- summer_tnha_pca$rotation
+rownames(loadings) <- colnames(summer_tnha[4:8])
+scores <- summer_tnha_pca$x
+
+var <- sd^2
+varPercent <- var/sum(var) * 100
+dev.new() #not sure what this does
+```
+
+SCREE PLOT
+```{r}
+barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="gray")
+abline(h=1/ncol(summer_tnha[4:8])*100, col="red")
+```
+
+LOADINGS
+```{r}
+loadings
+sqrt(1/ncol(summer_tnha[4:8])) # cutoff for "important" loadings
+```
+
+Bi-plots
+```{r}
+dev.new(height=7, width=7)
+biplot(scores[, 1:2], loadings[, 1:2], cex=0.7)
+```
+
+```{r}
+dev.new(height=7, width=7)
+TNHA_SA <- summer_tnha$sensor == "TNHA-SA"
+TNHA_SC <- summer_tnha$sensor == "TNHA-SC"
+ 
+plot(scores[, 1], scores[, 2], xlab="PCA 1", ylab="PCA 2", type="n", asp=1, las=1)
+
+scaling <- 3
+textNudge <- 1.05
+ 
+points(scores[TNHA_SA, 1], scores[TNHA_SA, 2], pch=16, cex=0.7, col="lightblue")
+ 
+points(scores[TNHA_SC, 1], scores[TNHA_SC, 2], pch=16, cex=0.7, col="pink")
+ 
+
+arrows(0, 0, loadings[, 1]* scaling, loadings[, 2]* scaling, length=0.1, angle=20, col="darkred")
+ 
+text(loadings[, 1]*scaling*textNudge, loadings[, 2]*scaling*textNudge, rownames(loadings), col="darkred", cex=0.7)
+
+ 
+
+text(1, 2, "TNHA-SA \n(south)", col="darkblue")
+text(-4, 2, "TNHA-SC \n(north)", col="darkred")
+```
+
+
+
+WINTER
+```{r}
+#have to exclude solar because it does not have variance
+winter_tnha_pca <- prcomp(winter_tnha[,c(4:6,8)], center=TRUE, scale.=TRUE)
+
+#take out variables
+sd <- winter_tnha_pca$sdev
+loadings <- winter_tnha_pca$rotation
+rownames(loadings) <- colnames(winter_tnha[c(4:6,8)])
+scores <- winter_tnha_pca$x
+
+var <- sd^2
+varPercent <- var/sum(var) * 100
+dev.new() #not sure what this does
+```
+
+SCREE PLOT
+```{r}
+barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="gray")
+abline(h=1/ncol(winter_tnha[c(4:6,8)])*100, col="red")
+```
+
+LOADINGS
+```{r}
+loadings
+sqrt(1/ncol(winter_tnha[c(4:6,8)])) # cutoff for "important" loadings
+```
+
+Bi-plots
+```{r}
+dev.new(height=7, width=7)
+biplot(scores[, 1:2], loadings[, 1:2], cex=0.7)
+```
+
+```{r}
+dev.new(height=7, width=7)
+TNHA_SA <- winter_tnha$sensor == "TNHA-SA"
+TNHA_SC <- winter_tnha$sensor == "TNHA-SC"
+ 
+plot(scores[, 1], scores[, 2], xlab="PCA 1", ylab="PCA 2", type="n", asp=1, las=1)
+
+scaling <- 2
+textNudge <- 1.3
+ 
+points(scores[TNHA_SA, 1], scores[TNHA_SA, 2], pch=16, cex=0.7, col="lightblue")
+ 
+points(scores[TNHA_SC, 1], scores[TNHA_SC, 2], pch=16, cex=0.7, col="pink")
+ 
+
+arrows(0, 0, loadings[, 1]* scaling, loadings[, 2]* scaling, length=0.1, angle=20, col="darkred")
+ 
+text(loadings[, 1]*scaling*textNudge, loadings[, 2]*scaling*textNudge, rownames(loadings), col="darkred", cex=0.7)
+
+ 
+
+text(1, 2, "TNHA-SA \n(south)", col="darkblue")
+text(-4, 2, "TNHA-SC \n(north)", col="darkred")
+```
+
+
+FALL
+```{r}
+fall_tnha_pca <- prcomp(fall_tnha[,4:8], center=TRUE, scale.=TRUE)
+
+#take out variables
+sd <- fall_tnha_pca$sdev
+loadings <- fall_tnha_pca$rotation
+rownames(loadings) <- colnames(fall_tnha[4:8])
+scores <- fall_tnha_pca$x
+
+var <- sd^2
+varPercent <- var/sum(var) * 100
+dev.new() #not sure what this does
+```
+
+SCREE PLOT
+```{r}
+barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), las=1, ylim=c(0, max(varPercent)), col="gray")
+abline(h=1/ncol(fall_tnha[4:8])*100, col="red")
+```
+
+LOADINGS
+```{r}
+loadings
+sqrt(1/ncol(fall_tnha[4:8])) # cutoff for "important" loadings
+```
+
+Bi-plots
+```{r}
+dev.new(height=7, width=7)
+biplot(scores[, 1:2], loadings[, 1:2], cex=0.7)
+```
+
+```{r}
+dev.new(height=7, width=7)
+TNHA_SA <- fall_tnha$sensor == "TNHA-SA"
+TNHA_SC <- fall_tnha$sensor == "TNHA-SC"
+ 
+plot(scores[, 1], scores[, 2], xlab="PCA 1", ylab="PCA 2", type="n", asp=1, las=1)
+
+scaling <- 3
+textNudge <- 1.1
+ 
+points(scores[TNHA_SA, 1], scores[TNHA_SA, 2], pch=16, cex=0.7, col="lightblue")
+ 
+points(scores[TNHA_SC, 1], scores[TNHA_SC, 2], pch=16, cex=0.7, col="pink")
+ 
+
+arrows(0, 0, loadings[, 1]* scaling, loadings[, 2]* scaling, length=0.1, angle=20, col="darkred")
+ 
+text(loadings[, 1]*scaling*textNudge, loadings[, 2]*scaling*textNudge, rownames(loadings), col="darkred", cex=0.7)
+
+ 
+
+text(1, 2, "TNHA-SA \n(south)", col="darkblue")
+text(-4, 2, "TNHA-SC \n(north)", col="darkred")
+```
+
