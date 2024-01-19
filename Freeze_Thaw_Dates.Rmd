@@ -1,0 +1,44 @@
+---
+title: "Freeze_Thaw_Dates"
+author: "Mirella Shaban"
+date: "2023-11-29"
+output: html_document
+---
+
+#################
+Load "LOADANDCLEAN_DIFFERENCES_IN_AVERAGED.RMD" before running this script
+(provides cleane data averaged daily per station and per site)
+#################
+
+#################
+:NAMES:
+
+Daily averages by station:
+SUMMERGRND22_ALLDEPTHS
+FALL22_ALLDEPTHS
+SPRING23_ALLDEPTHS
+SUMMERGRND23_ALLDEPTHS
+FALL23_ALLDEPTHS
+
+*Averaged by site
+SITES_AVG_SUM22_GRND
+SITES_AVG_FALL22_GRND
+SITES_AVG_SPRING23_GRND
+SITES_AVG_SUM23_GRND
+SITES_AVG_FALL23_GRND
+
+
+*Averaged by station & site --> site done in both loading and stats running script, by station only in plotting/stats script*
+<- fix
+
+######################
+Freeze or thaw dates (after value passes 0) --> depends on season you look at
+```{r}
+freeze_dates <- FALL23_ALLDEPTHS %>% filter( fullname == "TNHA-BASE" & value < 0.5 & depth == "10cm")
+
+list(freeze_dates)
+
+thaw_dates <- SUMMERGRND22_ALLDEPTHS %>% filter( fullname == "TNHA-SA" & value > -0.6 & depth == "10cm")
+list(thaw_dates)
+```
+
