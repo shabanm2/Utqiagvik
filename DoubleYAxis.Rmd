@@ -1,0 +1,292 @@
+---
+title: "Double Y Axis"
+author: "Elizabeth Van Metre, Edited by Mirella Shaban as of 2024"
+date: "2024-01-24"
+output: html_document
+---
+
+
+```{r}
+#Load files from Github
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/"
+
+gtfile = "grndtemp_daily.csv"
+airfile = "airtemp_daily.csv"
+vwcfile = "vwc_daily.csv"
+solfile = "solar_daily.csv"
+windspeed = "windspeed_daily.csv"
+winddir = "winddir_daily.csv"
+
+#30 cm depth
+#15-30 VWC
+#average sites
+```
+
+
+##Loading packages
+```{r}
+library(dplyr)
+library(lubridate)
+#library(tidyverse)
+library(ggplot2)
+library(patchwork) 
+#library(hrbrthemes) used in EMR, not sure what it is
+```
+
+## Coloring
+
+### TNHA
+scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E"))
+
+Solar - Orange (#D95F02)
+Air - Pink (#E7298A)
+Ground - Lavender (#7570B3)
+VWC - teal (#1B9E77)
+Wind - Green (#66A61E)
+
+
+Load Data
+```{r}
+grndtmp = read.csv(paste0(filepath, gtfile))
+airtmp = read.csv(paste0(filepath, airfile))
+vwc = read.csv(paste0(filepath, vwcfile))
+solar = read.csv(paste0(filepath, solfile))
+windspeed = read.csv(paste0(filepath, windspeed))
+winddir = read.csv(paste0(filepath, winddir))
+```
+
+
+## Picking
+
+```{r}
+tnha_ground = grndtmp %>% filter(station == "TNHA") %>% filter(depth == 10)
+tnha_vwc = vwc %>% filter(station == "TNHA") %>% filter(depth == 2)
+tnha_air = airtmp %>% filter(station == "TNHA")
+tnha_wind = windspeed %>% filter(station == "TNHA")
+tnha_solar = solar %>% filter(station == "TNHA")
+tnha = full_join(tnha_ground, tnha_air, by=c("date", "station", "sensor")) %>% select(c(2:4,6,9))
+colnames(tnha)[2:5] = c("station","sensor","groundtemp", "airtemp")
+tnha = full_join(tnha, tnha_wind, by=c("date", "station", "sensor")) %>% select(c(1:5,8))
+colnames(tnha)[c(2:3,6)] = c("station","sensor","windspeed")
+tnha = full_join(tnha, tnha_solar, by=c("date", "station", "sensor")) %>% select(c(1:6,8))
+colnames(tnha)[c(2:3,7)] = c("station","sensor","solar")
+tnha = full_join(tnha, tnha_vwc, by=c("date", "station", "sensor")) %>% select(c(1:7,10))
+colnames(tnha)[8] = c("vwc")
+```
+
+Average for Each Day All Sensors
+```{r}
+tnha2 = tnha %>% group_by(date) %>% summarize(groundtemp = mean(groundtemp, na.rm=T), 
+                                             airtemp = mean(airtemp, na.rm=T),
+                                             windspeed = mean(windspeed, na.rm=T), 
+                                             solar = mean(solar, na.rm=T),
+                                             vwc = mean(vwc, na.rm=T))
+tnha2 <- tnha2 %>% mutate_all(~ifelse(is.nan(.), NA, .))
+```
+
+
+
+Get Rid of Rows with NAs
+```{r}
+#tnha = na.omit(tnha)
+tnha2$date = as.Date(tnha2$date)
+```
+
+
+Fixing Gaps
+```{r}
+d = rep(seq(as.Date(tnha2$date[1]), as.Date(tnha2$date[nrow(tnha2)]), by="day"),7)
+val = rep(1, length(d))
+df = data.frame(d, val)
+colnames(df) = c("date","value")
+df2 = left_join(df, tnha2, by=c("date"))
+
+#fix this, diff. lgenths
+```
+
+
+
+
+X-Axis: Date
+Y-Axis 1: Solar Radiation
+Y-Axis 2: Ground Temperature (+Air Temperature?)
+
+**TNHA missing data in winter?
+
+```{r fig8, fig.height = 6, fig.width = 8}
+#Coefficient to scale Y-Axes
+coeff1 = 10
+coeff2 = 1/20
+
+ggplot(tnha2, aes(x=date)) +
+  
+  geom_line( aes(y=solar, color="#D95F02"), linewidth=0.4) + #make dashed/thicker
+  geom_line( aes(y=(groundtemp+10)*coeff1, color="#7A0177"), linewidth=0.4) +
+  geom_line( aes(y=(airtemp+10)*coeff1, color="#6BAED6"), linewidth=0.4) +
+  
+  
+  scale_x_date(date_breaks = "1 month",date_labels = "%b %Y")  +
+  
+  scale_y_continuous(
+    
+    
+    # Features of the first axis
+    name = "Solar Radiation ("~W/m^2~")", 
+    
+    # Add a second axis and specify its features
+    sec.axis = sec_axis(~./coeff1, name="Temperature (°C)") ###making the 1 negative in that function switches the values so positive is on top
+  ) + 
+  labs(x="Date")+
+  
+
+  theme_bw()+
+  
+
+#Solar - Orange (#D95F02)
+#Air - Pink (#E7298A)
+#Ground - Lavender (#7570B3)
+#VWC - teal (#1B9E77)
+
+  
+  scale_color_manual(name=" ",labels=c("#7A0177"="Daily Average Ground Temperature (°C)","#6BAED6"="Daily Average Air Temperature (°C)","#D95F02"="Daily Average Solar Radiation ("~W/m^2~")"),values=c("#7A0177" = "#7A0177","#D95F02" = "#D95F02","#6BAED6" = "#6BAED6"))+
+
+  theme(
+    axis.title.y = element_text(color ='black', size=10, hjust = 0.5, family="Times New Roman"),
+    axis.title.y.right = element_text(color = 'black', size=10, hjust = 0.5, family="Times New Roman"),
+    axis.text.x = element_text(angle = 90, size = 8, vjust = 1, hjust=1, family="Times New Roman"),
+    axis.title.x = element_text(color = 'black', size=10, hjust = 0.5,vjust = -1, family="Times New Roman"),
+    plot.title = element_text(hjust = 0.5, size=16, family="Times New Roman"),
+    text=element_text(family="Times New Roman")
+  ) +
+
+  ggtitle("Daily Average Solar Radiation, Air, and Ground Temperatures in Barrow") +
+ theme(axis.text.x= element_text(size=7))+
+   theme(axis.text.x = element_text(angle = 45)) + 
+  theme(axis.text.y = element_text(size=7))+ ###these lines are to adjust the axis size and to change the angle 
+  theme(legend.position="bottom")+
+  
+
+  guides(color=guide_legend(nrow=3, byrow=TRUE))
+```
+
+
+
+X-Axis: Date
+Y-Axis 1: VWC
+Y-Axis 2: Ground Temperature +Air Temperature
+
+```{r fig8, fig.height = 6, fig.width = 8}
+#Coefficient to scale Y-Axes
+coeff1 = 1/20
+
+ggplot(tnha2, aes(x=date)) +
+  
+  geom_line( aes(y=vwc, color="#E7298A"), linewidth=0.4) +
+  geom_line( aes(y=(groundtemp+10)*coeff1, color="#7A0177"), linewidth=0.4) +
+  geom_line( aes(y=(airtemp+10)*coeff1, color="#6BAED6"), linewidth=0.4) +
+  
+  
+  scale_x_date(date_breaks = "1 month",date_labels = "%b %Y")  +
+  
+  scale_y_continuous(
+    
+    
+    # Features of the first axis
+    name = "Volumetric Water Content ("~m^3~"/"~m^3~")", 
+    
+    # Add a second axis and specify its features
+    sec.axis = sec_axis(~./coeff1, name="Temperature (°C)") ###making the 1 negative in that function switches the values so positive is on top
+  ) + 
+  labs(x="Date")+
+  
+
+  theme_bw()+
+  
+
+#Solar - Orange (#D95F02)
+#Air - Pink (#E7298A)
+#Ground - Lavender (#7570B3)
+#VWC - teal (#1B9E77)
+
+  
+  scale_color_manual(name=" ",labels=c("#7A0177"="Daily Average Ground Temperature (°C)","#6BAED6"="Daily Average Air Temperature (°C)","#E7298A"="Daily Average Volumetric Water Content ("~m^3~"/"~m^3~")"),values=c("#7A0177" = "#7A0177","#E7298A" = "#E7298A","#6BAED6" = "#6BAED6"))+
+
+  theme(
+    axis.title.y = element_text(color ='black', size=10, hjust = 0.5, family="Times New Roman"),
+    axis.title.y.right = element_text(color = 'black', size=10, hjust = 0.5, family="Times New Roman"),
+    axis.text.x = element_text(angle = 90, size = 8, vjust = 1, hjust=1, family="Times New Roman"),
+    axis.title.x = element_text(color = 'black', size=10, hjust = 0.5,vjust = -1, family="Times New Roman"),
+    plot.title = element_text(hjust = 0.5, size=16, family="Times New Roman"),
+    text=element_text(family="Times New Roman")
+  ) +
+
+  ggtitle("Daily Average Ground Moisture, Air, and Ground Temperatures in Barrow") +
+ theme(axis.text.x= element_text(size=7))+
+   theme(axis.text.x = element_text(angle = 45)) + 
+  theme(axis.text.y = element_text(size=7))+ ###these lines are to adjust the axis size and to change the angle 
+  theme(legend.position="bottom")+
+  
+
+  guides(color=guide_legend(nrow=3, byrow=TRUE))
+```
+
+
+X-Axis: Date
+Y-Axis 1: Wind Speed
+Y-Axis 2: Ground Temperature +Air Temperature
+
+```{r fig8, fig.height = 6, fig.width = 8}
+#Coefficient to scale Y-Axes
+coeff1 = 1/20
+
+ggplot(tnha2, aes(x=date)) +
+  
+  geom_line( aes(y=windspeed, color="#66A61E"), linewidth=0.4) +
+  geom_line( aes(y=(groundtemp+10)*coeff1, color="#7A0177"), linewidth=0.4) +
+  geom_line( aes(y=(airtemp+10)*coeff1, color="#6BAED6"), linewidth=0.4) +
+  
+  
+  scale_x_date(date_breaks = "1 month",date_labels = "%b %Y")  +
+  
+  scale_y_continuous(
+    
+    
+    # Features of the first axis
+    name = "Wind Speed (units)", 
+    
+    # Add a second axis and specify its features
+    sec.axis = sec_axis(~./coeff1, name="Temperature (°C)") ###making the 1 negative in that function switches the values so positive is on top
+  ) + 
+  labs(x="Date")+
+  
+
+  theme_bw()+
+  
+
+#Solar - Orange (#D95F02)
+#Air - Pink (#E7298A)
+#Ground - Lavender (#7570B3)
+#VWC - teal (#1B9E77)
+
+  
+  scale_color_manual(name=" ",labels=c("#7A0177"="Daily Average Ground Temperature (°C)","#6BAED6"="Daily Average Air Temperature (°C)","#66A61E"="Daily Average Wind Speed (units)"),values=c("#7A0177" = "#7A0177","#66A61E" = "#66A61E","#6BAED6" = "#6BAED6"))+
+
+  theme(
+    axis.title.y = element_text(color ='black', size=10, hjust = 0.5, family="Times New Roman"),
+    axis.title.y.right = element_text(color = 'black', size=10, hjust = 0.5, family="Times New Roman"),
+    axis.text.x = element_text(angle = 90, size = 8, vjust = 1, hjust=1, family="Times New Roman"),
+    axis.title.x = element_text(color = 'black', size=10, hjust = 0.5,vjust = -1, family="Times New Roman"),
+    plot.title = element_text(hjust = 0.5, size=16, family="Times New Roman"),
+    text=element_text(family="Times New Roman")
+  ) +
+
+  ggtitle("Daily Average Wind Speed, Air, and Ground Temperatures in Barrow") +
+ theme(axis.text.x= element_text(size=7))+
+   theme(axis.text.x = element_text(angle = 45)) + 
+  theme(axis.text.y = element_text(size=7))+ ###these lines are to adjust the axis size and to change the angle 
+  theme(legend.position="bottom")+
+  
+
+  guides(color=guide_legend(nrow=3, byrow=TRUE))
+```
+
