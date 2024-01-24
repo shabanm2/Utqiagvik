@@ -1,14 +1,14 @@
 ---
 title: "X-Y Multisite Comparison Plots"
 author: "Mirella Shaban"
-date: '2023-04-24'
+date: '2024-01-24'
 output: html_document
 ---
 
 -------------IMPORTANT FILE PATHS/VALUES-------------
 
 ```{r}
-filepath = "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/" #Set to prefix of your file location
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/" #Set to prefix of your file location
 
 #Daily Step
 datemin = "2022-06-19"
@@ -88,43 +88,6 @@ names(solarrad) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solarrad))
 solarrad$Date <- as.POSIXct(solarrad$Date,format="%m/%d/%y %H:%M",tz="UTC")
 ```
 
-#Upload = data and clean
-Ground Temperatures for all sites data prepping
-```{r}
-# importing ground temp data for 6-19 through 9-20
-grndtmp619_920=read.csv(paste(filepath,"Summer_grndtmp_2023_04_06_12_21_30_UTC_1.csv", sep=""))
-names(grndtmp619_920) <- sub("....C..RX3000_BRW1", "", names(grndtmp619_920))
-names(grndtmp619_920) <- sub("....C..RX3000_BRW4", "", names(grndtmp619_920))
-names(grndtmp619_920) <- sub("....C..RX3000_BRW5", "", names(grndtmp619_920))
-names(grndtmp619_920) <- sub("....C..RX3000_BRW6", "", names(grndtmp619_920))
-names(grndtmp619_920) <- sub(".RXW.GP6.", "", names(grndtmp619_920))
-grndtmp619_920$Date <-as.POSIXct(grndtmp619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
-```
-
-
-Ground Moisture for all sites data prepping
-```{r}
-mst619_920=read.csv(paste(filepath, "Summer_VWC_2023_04_06_12_33_54_UTC_1.csv", sep=""))
-names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst619_920))
-names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst619_920))
-names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW5", "", names(mst619_920))
-names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW6", "", names(mst619_920))
-names(mst619_920) <- sub("..RXW.GP6.", "", names(mst619_920))
-mst619_920$Date <-as.POSIXct(mst619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
-```
-
-Solar radiation for all sites data prepping
-```{r}
-solarrad619_920 = read.csv(paste(filepath,"Summer_solar_2023_04_06_13_16_22_UTC_1.csv", sep= ""))
-names(solarrad619_920) <- sub("olar.Radiation..RXW.LIB", "" ,names(solarrad619_920))
-names(solarrad619_920) <- sub("olar.Radiation..S.LIB", "" ,names(solarrad619_920))
-names(solarrad619_920) <- sub("S.", "" ,names(solarrad619_920))
-names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solarrad619_920))
-names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solarrad619_920))
-names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solarrad619_920))
-names(solarrad619_920) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solarrad619_920))
-solarrad619_920$Date <- as.POSIXct(solarrad619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
-```
 
 ```{r}
 airtemp=read.csv(paste(filepath,"Summer_airtemp_2023_04_06_11_59_55_UTC_1.csv",sep = ""))
@@ -406,7 +369,7 @@ XY_grnd_air= averages %>% filter(station == "TNHA" | station == "BEO", !sensor =
   geom_point()+
     guides(color = guide_legend(override.aes = list(size=10)))+
   theme_bw() + 
-    labs(title= "TNHA-SA(S), TNHA-SC(N) vs. BEO-B06 @ 10cm depth, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature (°C) @ 10cm",color="Station") + 
+    labs(title= "TNHA N/S aspects @ 10cm depth", x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
   theme(axis.text.y = element_text(size = 15)) +
   theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
         axis.line = element_line(colour = "black", size =0.5, 
@@ -436,7 +399,7 @@ XY_grnd_air= averages %>% filter(station == "TNHA" | station == "BEO")
   geom_point()+
     guides(color = guide_legend(override.aes = list(size=10)))+
   theme_bw() + 
-    labs(title= "TNHA stations vs. BEO @ 10cm depth, 6/19/22-9/19/22", x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+    labs(title= "TNHA vs. BEO @ 10cm depth, summer 2022", x = "Air temperature (°C)", y="Ground temperature (°C)",color="Station") + 
   theme(axis.text.y = element_text(size = 15)) +
   theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
         axis.line = element_line(colour = "black", size =0.5, 
@@ -472,7 +435,7 @@ XY_grnd_air= averages %>% filter(station == "SSMH" | station == "BEO")
   geom_point()+
     guides(color = guide_legend(override.aes = list(size=10)))+
   theme_bw() + 
-    labs(title= "SSMH stations vs. BEO @ 10cm depth, 6/19/22-9/19/22", x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+    labs(title= "SSMH vs. BEO @ 10cm depth, summer 2022", x = "Air temperature (°C)", y="Ground temperature (°C)",color="Station") + 
   theme(axis.text.y = element_text(size = 15)) +
   theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
         axis.line = element_line(colour = "black", size =0.5, 
