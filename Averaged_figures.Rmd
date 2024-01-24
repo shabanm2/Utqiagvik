@@ -1,7 +1,7 @@
 ---
 title: "Averaged_Figures"
 author: "Mirella Shaban"
-date: "2023-04-12"
+date: "2024-01-24"
 output: html_document
 ---
 
@@ -22,7 +22,7 @@ library(clock)
 Ground Temperatures for all sites data prepping
 ```{r}
 # importing ground temp data for 6-19 through 9-20
-grndtmp619_920=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_grndtmp_2023_04_06_12_21_30_UTC_1.csv")
+grndtmp619_920=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_22_grndtmp_2023_11_14_20_50_46_UTC_1.csv")
 names(grndtmp619_920) <- sub("....C..RX3000_BRW1", "", names(grndtmp619_920))
 names(grndtmp619_920) <- sub("....C..RX3000_BRW4", "", names(grndtmp619_920))
 names(grndtmp619_920) <- sub("....C..RX3000_BRW5", "", names(grndtmp619_920))
@@ -34,7 +34,7 @@ grndtmp619_920$Date <-as.POSIXct(grndtmp619_920$Date,format="%m/%d/%y %H:%M",tz=
 
 Ground Moisture for all sites data prepping
 ```{r}
-mst619_920=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_VWC_2023_04_06_12_33_54_UTC_1.csv")
+mst619_920=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_22_VWC_2023_11_14_21_00_08_UTC_1.csv")
 names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst619_920))
 names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst619_920))
 names(mst619_920) <- sub("...m.3.m.3..RX3000_BRW5", "", names(mst619_920))
@@ -45,7 +45,7 @@ mst619_920$Date <-as.POSIXct(mst619_920$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
 Solar radiation for all sites data prepping
 ```{r}
-solarrad619_920 = read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_solar_2023_04_06_13_16_22_UTC_1.csv")
+solarrad619_920 = read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_22_solar_2023_11_14_21_01_06_UTC_1.csv")
 names(solarrad619_920) <- sub("olar.Radiation..RXW.LIB", "" ,names(solarrad619_920))
 names(solarrad619_920) <- sub("olar.Radiation..S.LIB", "" ,names(solarrad619_920))
 names(solarrad619_920) <- sub("S.", "" ,names(solarrad619_920))
@@ -58,7 +58,7 @@ solarrad619_920$Date <- as.POSIXct(solarrad619_920$Date,format="%m/%d/%y %H:%M",
 
 Air temp for all sites data prepping
 ```{r}
-airtemp619_920 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_airtemp_2023_04_06_11_59_55_UTC_1.csv")
+airtemp619_920 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_22_airtmp_2023_11_14_20_57_51_UTC_1.csv")
 names(airtemp619_920) <- sub("Temperature..RXW.THC.", "" ,names(airtemp619_920))
 names(airtemp619_920) <- sub("Temperature..S.THC.", "" ,names(airtemp619_920))
 names(airtemp619_920) <- sub("S.", "" ,names(airtemp619_920))
@@ -122,7 +122,7 @@ df <- df %>% filter(!value == -888.88)
 ```
 
 ```{r}
-grndtmp = gather(grndtmp619_920, variable, response, Temperature.21198259.21206939.7:Temperature..RXW.THC.21401800.21398671.1) %>%
+grndtmp = gather(grndtmp619_920, variable, response, Temperature.21198259.21206939.7:Temperature.21401803.21398591.17) %>%
   filter(!is.na(response)) %>%
   mutate(variable = fct_inorder(variable))
 dfgrndtemp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
@@ -146,8 +146,8 @@ dfgrndtemp <- dfgrndtemp %>% filter(!value == -888.88)
 ```
 
 
-```{r fig9, fig.heigt = 14, fig.width = 18}
-solarrad = gather(solarrad619_920, variable, response, '21198259.21176526.1':'21401800.21390411.1') %>%
+```{r}
+solarrad = gather(solarrad619_920, variable, response, '21198259.21176526.1':'21401803.21390415.1') %>%
   filter(!is.na(response)) %>%
   mutate(variable = fct_inorder(variable))
 
@@ -168,7 +168,7 @@ solarrad <- solarrad %>% filter(!value == -888.88)
 ```
 
 ```{r}
-airtemp = gather(airtemp619_920, variable, response, "21198259.21398666.1":"21401800.21398671.1") %>%
+airtemp = gather(airtemp619_920, variable, response, "21198259.21218018.1":"21401803.21397541.1") %>%
   filter(!is.na(response)) %>%
   mutate(variable = fct_inorder(variable))
 
@@ -411,7 +411,7 @@ TSB_NONA <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
 
 Seasonal averages per ground sensor 
 ```{r}
-Seasonal_grndtmp_averages <- Daily_average_grnd_per_sensor %>% group_by(sensor,day) %>%
+Seasonal_grndtmp_averages <- Daily_average_grnd_per_sensor %>% group_by(sensor,date) %>%
   aggregate(value~sensor, mean)
 
 #write.csv(Seasonal_grndtmp_averages, "~/Desktop/UVA/RESEARCH/Barrow/csvfilesfromR/Seasonal_averages_by_site.csv")
@@ -992,8 +992,6 @@ df$sensor <- revalue(df$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI
 
 df <- df %>% filter(!value == -888.88)
 ```
-
-#### I NEED TO ADD THE _TNHA TO THE STATIONS NAME REVALUE SECTION HERE ####
  
 
 GROUND TEMPERATURE CSV ADJUSTMENTS, LONG DATAFRAME
@@ -1235,8 +1233,6 @@ while(c <= ncol(grndtmp921_1119)-10){
 ```
 
 
-
-#### I NEED TO ADD THE _TNHA TO THE STATIONS NAME REVALUE SECTION HERE ####
  
 
 GROUND TEMPERATURE CSV ADJUSTMENTS, LONG DATAFRAME
@@ -1404,6 +1400,13 @@ averaged_by_site_SSMH <- TSB_NONA %>% filter(fullname == "SSMH-BASE" | fullname 
 averaged_by_site_SSMH$station <- c("SSMH")
 
 averaged_BEO_TNHA_SSMH <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
+
+TSB_NONA$station <- as.factor(TSB_NONA$station)
+TSB_NONA %>%
+  aggregate(value ~ station + date, mean) %>%
+  ggplot(aes(x=date, y = value, color = station ))+
+  geom_point() 
+  theme_bw()
 ```
 
 
@@ -1416,8 +1419,8 @@ ggplot(aes(x=date, y = value, colour = station)) +
     theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
   guides(color = guide_legend(override.aes = list(size=10)))+
   labs(title = "Daily average ground temperature by site (90cm)",y="Temperature (°C)",x="Day",color="Station") +
-   scale_x_date(date_breaks = "1 weeks") +
-  scale_y_continuous(breaks=c(-20,-17.5,-15,-12.5,-10,-7.5,-5,-2.5,0,2.5), limits=c(-20, 2.5)) +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-20,-17.5,-15,-12.5,-10,-7.5,-5,-2.5,0,2.5,5), limits=c(-20, 5)) +
   theme(axis.text.y =element_text(face="bold",size = 20) ,
         axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
         axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
@@ -1426,6 +1429,7 @@ ggplot(aes(x=date, y = value, colour = station)) +
         axis.title.y = element_text(size = 25)) 
 
 
+# use x-lim to get the x axis to match the other figures 
 
 ```
 Summer 2023
