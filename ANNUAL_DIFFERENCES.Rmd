@@ -178,12 +178,13 @@ Air FALL 2023
 
 
 
---------
+
 
     
     
 ***                                                            ########################
                                                                    DATA CLEANING
+                                                            ##########################
                                                             
                                                             
 --------------                                                           
@@ -215,7 +216,7 @@ summer22vwc$depth <- revalue(summer22vwc$depth, c("1" = "0:15cm", "2" = "15:30cm
 summer22vwc$sensor <- revalue(summer22vwc$sensor, c('21206939'='TNHA-BASE','21393042'='BUECI-SC','21393044'='SSMH-SB','21393047'='TNHA-SC',"21393048" = "BEO-B06", "21398591" ="BEO-B05",'21393049'='SSMH-SD','21398578'='BUECI-SF01','21398579'='BUECI-SE','21398583'='BUECI-SB','21398584'='BUECI-SD','21398585'='BUECI-BASE','21398588'='SSMH-BASE','21398590'='BUECI-SA','21398591'='BEO-BASE','21398593'='TNHA-SA','21398598'='BUECI-SF02','21398599'='SSMH-SA','21398601'='TNHA-SD','21398587'='TNHA-SB')) 
 ```
 
--------------------------------------------------  2022 SUMMER Ground Temp ----------------------------------------------
+-----------------------------------------------  2022 SUMMER Ground Temp ----------------------------------------------
 ```{r}
 grndtmp = gather(grndtmp22, variable, response, "Temperature.21198259.21206939.7":"Temperature.21401803.21398591.17") %>%
   filter(!is.na(response)) %>%
@@ -454,7 +455,167 @@ fall 23:
 SEASONAL AVERAGING#
 ####################
 
+BY STATION
 
+
+
+
+AIR TEMPERATURE AVERAGING BY STATION AND YEAR
+-------------
+SUMMER 22
+```{r}
+AIRmean <- summer22airtemp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
+
+AIRmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+AIRmean$time <- format(as.Date(
+  AIRmean$Date),format = "%H:%M:%S")
+AIRmean$day <- as.Date(AIRmean$Date)
+
+
+Daily_average_air_per_sensor <- AIRmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_air_per_sensor <-  cSplit(Daily_average_air_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_air_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_air_per_sensor$fullname <- paste(Daily_average_air_per_sensor$station,Daily_average_air_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_air_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_air_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_air_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2022-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=75)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=75)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-BASE"),each=75)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+SUMMER22_air <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+```
+
+FALL 22
+```{r}
+AIRmean <- fall22airtemp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
+
+AIRmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+AIRmean$time <- format(as.Date(
+  AIRmean$Date),format = "%H:%M:%S")
+AIRmean$day <- as.Date(AIRmean$Date)
+
+
+Daily_average_air_per_sensor <- AIRmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_air_per_sensor <-  cSplit(Daily_average_air_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_air_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_air_per_sensor$fullname <- paste(Daily_average_air_per_sensor$station,Daily_average_air_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_air_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_air_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_air_per_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-BASE"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+FALL22_air <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+```
+
+
+SUMMER 23
+```{r}
+AIRmean <- summer23airtemp %>% subset() %>% select(value,sensor,Date) %>% filter(!value == "-888.8" | !value == "128.830000") 
+#this latter filter for the value isnt working
+
+AIRmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+AIRmean$time <- format(as.Date(
+  AIRmean$Date),format = "%H:%M:%S")
+AIRmean$day <- as.Date(AIRmean$Date)
+
+
+Daily_average_airper_sensor <- AIRmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_airper_sensor <-  cSplit(Daily_average_airper_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_airper_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_airper_sensor$fullname <- paste(Daily_average_airper_sensor$station,Daily_average_airper_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_airper_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_airper_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_airper_sensor %>% filter(station == "BEO")
+
+
+date <- rep(seq(as.Date("2023-06-01"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=93)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=93)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-BASE"),each=93)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+SUMMER23_air <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+SUMMER23_air <- SUMMER23_air %>% filter(!value >= "128")
+```
+
+
+
+
+
+
+
+GROUND TEMPERATURES
 *SUMMER 22*
 
 BY STATION
@@ -717,17 +878,13 @@ SUMMERGRND22_ALLDEPTHS <- rbind(SUMMER22_10CM,SUMMER22_30CM,SUMMER22_55CM,SUMMER
 ```
 
 
-
-
-
-
 BY SITE
 -----------
 ```{r}
 averaged_by_site_TNHA <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth, mean)
 averaged_by_site_TNHA$station <- c("TNHA")
 
-averaged_by_site_BEO <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
+averaged_by_site_BEO <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "BEO-B06" | fullname == "BEO-B05") %>% aggregate(value~date+depth, mean)
 averaged_by_site_BEO$station <- c("BEO") 
 
 averaged_by_site_SSMH <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD") %>% aggregate(value~date+depth, mean)
@@ -736,7 +893,7 @@ averaged_by_site_SSMH$station <- c("SSMH")
 SITES_AVG_SUM22_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
 ```
 
-*FALL 22*
+
 
 *FALL 22*
 BY STATION
@@ -1008,7 +1165,7 @@ BY SITE
 averaged_by_site_TNHA <- FALL22_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth, mean)
 averaged_by_site_TNHA$station <- c("TNHA")
 
-averaged_by_site_BEO <- FALL22_ALLDEPTHS %>% filter(fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
+averaged_by_site_BEO <- FALL22_ALLDEPTHS %>% filter(fullname == "BEO-B06"| fullname == "BEO-B05") %>% aggregate(value~date+depth, mean)
 averaged_by_site_BEO$station <- c("BEO") 
 
 averaged_by_site_SSMH <- FALL22_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD") %>% aggregate(value~date+depth, mean)
@@ -1018,9 +1175,10 @@ SITES_AVG_FALL22_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, aver
 ```
 
 
-*SUMMER 23*
 
-*FALL 23*
+
+
+
 
 
 *SUMMER 23*
@@ -1079,7 +1237,7 @@ SUMMER23_10CM$depth <- as.factor(SUMMER23_10CM$depth)
 
 30cm
 ```{r}
-grndmean <- summer22grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "30cm") 
+grndmean <- sum23grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "30cm") 
 
 grndmean %>%
   mutate(date = day(Date))  %>%
@@ -1129,7 +1287,7 @@ SUMMER23_30CM$depth <- as.factor(SUMMER23_30CM$depth)
 
 55cm
 ```{r}
-grndmean <- summer22grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "55cm") 
+grndmean <- sum23grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "55cm") 
 
 grndmean %>%
   mutate(date = day(Date))  %>%
@@ -1179,7 +1337,7 @@ SUMMER23_55CM$depth <- as.factor(SUMMER23_55CM$depth)
 
 65cm
 ```{r}
-grndmean <- summer22grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "65cm") 
+grndmean <- sum23grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "65cm") 
 
 grndmean %>%
   mutate(date = day(Date))  %>%
@@ -1229,7 +1387,7 @@ SUMMER23_65CM$depth <- as.factor(SUMMER23_65CM$depth)
 
 90cm
 ```{r}
-grndmean <- summer22grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "90cm") 
+grndmean <- sum23grndtmp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "90cm") 
 
 grndmean %>%
   mutate(date = day(Date))  %>%
@@ -1278,15 +1436,35 @@ SUMMER23_90CM$depth <- as.factor(SUMMER23_90CM$depth)
 ```
 
 
-
 Bind all depth dataframes together
 ```{r}
 SUMMERGRND23_ALLDEPTHS <- rbind(SUMMER23_10CM,SUMMER23_30CM,SUMMER23_55CM,SUMMER23_65CM,SUMMER23_90CM)
 ```
 
+BY SITE
+*I still need to force the NA values to remain in this chunk below -- i've tried adding "val" to the aggregate function and na.rm=FALSE to preserve the NA values but it does not seem to have worked thus far*
+
+*Curious - technically the NA values would not matter since we're averaging over the entire time period - but they should still exist in the dataframe for the sake of data preservation?*
+-----------
+```{r}
+averaged_by_site_TNHA <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth, mean)
+averaged_by_site_TNHA$station <- c("TNHA")
+
+averaged_by_site_BEO <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "BEO-B06" | fullname == "BEO-B05") %>% aggregate(value~date+depth, mean)
+averaged_by_site_BEO$station <- c("BEO") 
+
+averaged_by_site_SSMH <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD") %>% aggregate(value~date+depth, mean)
+averaged_by_site_SSMH$station <- c("SSMH")
+
+SITES_AVG_SUM23_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
+```
 
 
-Merge summer 22 + summer 23 data-sets for plotting
+
+
+Merge summer 22 + summer 23 data-sets for plotting (by STATION)
+-------------
+*This DOES preserve all of the NA values when we average over DAY, seems that daily averaging is OK with NA's but seasonal averaging is NOT*
 ```{r}
 #makes an additonal column substring of the month and day only for both 22 and 23 data
 #makes an additonal column substring of the year only for both 22 and 23 data
@@ -1295,26 +1473,22 @@ Merge summer 22 + summer 23 data-sets for plotting
 SUMMERGRND22_ALLDEPTHS$day <- substr(SUMMERGRND22_ALLDEPTHS$date, 6,10)
 SUMMERGRND22_ALLDEPTHS$day <- as.Date(SUMMERGRND22_ALLDEPTHS$day, format = "%m-%d")
 SUMMERGRND22_ALLDEPTHS$year <- substr(SUMMERGRND22_ALLDEPTHS$date, 1,4)
+
 SUMMERGRND23_ALLDEPTHS$day <- substr(SUMMERGRND23_ALLDEPTHS$date, 6,10)
 SUMMERGRND23_ALLDEPTHS$year <- substr(SUMMERGRND23_ALLDEPTHS$date, 1,4)
+SUMMERGRND23_ALLDEPTHS$day <- as.Date(SUMMERGRND23_ALLDEPTHS$day, format = "%m-%d")
+
 SUMMER_22_23_GRNDTMP <- rbind(SUMMERGRND22_ALLDEPTHS,SUMMERGRND23_ALLDEPTHS)
+
+Sum22_Sum23_Annual_Temps <- SUMMER_22_23_GRNDTMP %>% aggregate(value~year+fullname+depth, mean)
+# above 
 ```
 
 
 
-BY SITE
------------
-```{r}
-averaged_by_site_TNHA <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth, mean)
-averaged_by_site_TNHA$station <- c("TNHA")
 
-averaged_by_site_BEO <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
-averaged_by_site_BEO$station <- c("BEO") 
 
-averaged_by_site_SSMH <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD") %>% aggregate(value~date+depth, mean)
-averaged_by_site_SSMH$station <- c("SSMH")
 
-SITES_AVG_SUM23_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
-```
+
 
 
