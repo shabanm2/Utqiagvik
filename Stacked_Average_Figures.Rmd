@@ -1,7 +1,7 @@
 ---
 title: "Stacked_Averaged_Figures"
 author: "Mirella Shaban"
-date: "2023-10-17"
+date: "2024-01-24"
 output: html_document
 ---
 
@@ -24,7 +24,7 @@ Summer 2022
 Ground Temperatures for all sites data prepping
 ```{r}
 # importing ground temp data for 6-19 through 9-20
-grndtmp619_920=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_grndtmp_2023_04_06_12_21_30_UTC_1.csv")
+grndtmp619_920=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_22_grndtmp_2023_11_14_20_50_46_UTC_1.csv")
 names(grndtmp619_920) <- sub("....C..RX3000_BRW1", "", names(grndtmp619_920))
 names(grndtmp619_920) <- sub("....C..RX3000_BRW4", "", names(grndtmp619_920))
 names(grndtmp619_920) <- sub("....C..RX3000_BRW5", "", names(grndtmp619_920))
@@ -35,7 +35,7 @@ grndtmp619_920$Date <-as.POSIXct(grndtmp619_920$Date,format="%m/%d/%y %H:%M",tz=
 
 LONG DATAFRAMES
 ```{r}
-grndtmp = gather(grndtmp619_920, variable, response, Temperature.21198259.21206939.7:Temperature..RXW.THC.21401800.21398671.1) %>%
+grndtmp = gather(grndtmp619_920, variable, response, Temperature.21198259.21206939.7:Temperature.21401803.21398591.17) %>%
   filter(!is.na(response)) %>%
   mutate(variable = fct_inorder(variable))
 dfgrndtemp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
@@ -343,4 +343,367 @@ TSB_NONE_ALLDEPTHS %>%
 #scale_y_continuous(breaks=c(-10,-7.5,-5,-2.5,0,2.5,5), limits=c(-10, 5)) + ---> this is the scale for 90cm and 65cm....
 
 ```
+
+Just N and S sensors at TNHA and SSMH
+```{r fig14, fig.height = 23, fig.width = 24}
+TSB_NONE_ALLDEPTHS %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "BEO-B06" | fullname == "SSMH-SA" | fullname == "SSMH-SB") %>% subset(depth == "10cm" | depth == "55cm" | depth == "90cm") %>%
+  ggplot(aes(x=date, y=value, color = fullname), size = 0.9) +
+  geom_line(size=0.9) +
+  geom_point(size=1.5) +
+  guides(color = guide_legend(override.aes = list(size=15)))+
+  theme_bw() +
+  facet_wrap(depth~.,nrow=5) +
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "Daily average ground temperatures, summer 2022",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid"),
+        strip.text= element_text(size=35, face = "bold")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E","BEO-B05"="#6BAED6", "BEO-B06"= "#084594","SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6", "SSMH-SD"="#7A0177")) 
+
+
+
+```
+
+
+Fall 2022
+Ground Temperatures for all sites data prepping
+```{r}
+# importing ground temp data for 6-19 through 9-20
+grndtmp921_1119=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Fall_22_grndtmp_2023_11_14_21_31_58_UTC_1.csv")
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW1", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW4", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW5", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub("....C..RX3000_BRW6", "", names(grndtmp921_1119))
+names(grndtmp921_1119) <- sub(".RXW.GP6.", "", names(grndtmp921_1119))
+grndtmp921_1119$Date <-as.POSIXct(grndtmp921_1119$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+
+
+GROUND TEMPERATURE CSV ADJUSTMENTS, LONG DATAFRAME
+```{r}
+grndtmp = gather(grndtmp921_1119, variable, response, Temperature.21198259.21206939.7:Temperature.21401803.21398591.17) %>%
+  mutate(variable = fct_inorder(variable))
+dfgrndtemp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(dfgrndtemp)[3] <- ("value")
+colnames(dfgrndtemp)[5:7] <- c("station", "sensor", "depth")
+
+dfgrndtemp$variable_1 <- NULL
+dfgrndtemp$variable_5 <- NULL
+dfgrndtemp$variable_6 <- NULL
+dfgrndtemp$variable_7 <- NULL
+dfgrndtemp$depth <- as.factor(as.character(dfgrndtemp$depth))
+dfgrndtemp$sensor <- as.factor(as.character(dfgrndtemp$sensor))
+dfgrndtemp$station <- as.factor(as.character(dfgrndtemp$station))
+dfgrndtemp$station <- revalue(dfgrndtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+dfgrndtemp$sensor <- revalue(dfgrndtemp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398587"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+
+dfgrndtemp$depth <- revalue(dfgrndtemp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+dfgrndtemp$depth = factor(dfgrndtemp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+
+dfgrndtemp <- dfgrndtemp %>% filter(!value == -888.88)
+
+```
+
+
+Daily average grnd temperature per sensor at BEO,TNHA,SSMH. Below we force NA values into each indiv. station df & stack them to form a comprehensive df with NA's (plots will disconnect when NA values are present)
+
+10cm
+```{r}
+grndmean <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "10cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY10 <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY10<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY10<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY10, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY10, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY10, by=c("date","fullname"))
+
+TSB_NONA10 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+TSB_NONA10$depth <- "10cm"
+TSB_NONA10$depth <- as.factor(TSB_NONA10$depth)
+#TSB_NONA is our finalized df for plotting with all 3 of 4 stations having a measurement or NA value for each daily average. Adjust the depth of grndmean, and adjust the season via the csv uploaded to this script, to make different figures
+```
+
+30cm
+```{r}
+grndmean <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "30cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY30 <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY30<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY30<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY30, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY30, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY30, by=c("date","fullname"))
+
+TSB_NONA30 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+TSB_NONA30$depth <- "30cm"
+TSB_NONA30$depth <- as.factor(TSB_NONA30$depth)
+#TSB_NONA is our finalized df for plotting with all 3 of 4 stations having a measurement or NA value for each daily average. Adjust the depth of grndmean, and adjust the season via the csv uploaded to this script, to make different figures
+```
+
+55cm
+```{r}
+grndmean <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "55cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY55 <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY55<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY55<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY55, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY55, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY55, by=c("date","fullname"))
+
+TSB_NONA55 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+TSB_NONA55$depth <- "55cm"
+TSB_NONA55$depth <- as.factor(TSB_NONA55$depth)
+#TSB_NONA is our finalized df for plotting with all 3 of 4 stations having a measurement or NA value for each daily average. Adjust the depth of grndmean, and adjust the season via the csv uploaded to this script, to make different figures
+```
+
+65cm
+```{r}
+grndmean <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "65cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY65 <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY65<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY65<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY65, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY65, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY65, by=c("date","fullname"))
+
+TSB_NONA65 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+TSB_NONA65$depth <- "65cm"
+TSB_NONA65$depth <- as.factor(TSB_NONA65$depth)
+#TSB_NONA is our finalized df for plotting with all 3 of 4 stations having a measurement or NA value for each daily average. Adjust the depth of grndmean, and adjust the season via the csv uploaded to this script, to make different figures
+```
+
+90cm
+```{r}
+grndmean <- dfgrndtemp %>% subset() %>% select(value,sensor,Date,depth) %>% filter( !value == "-888.8", depth == "90cm") 
+
+grndmean %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+grndmean$time <- format(as.Date(
+  grndmean$Date),format = "%H:%M:%S")
+grndmean$day <- as.Date(grndmean$Date)
+
+
+Daily_average_grnd_per_sensor <- grndmean %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+Daily_average_grnd_per_sensor <-  cSplit(Daily_average_grnd_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_grnd_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_grnd_per_sensor$fullname <- paste(Daily_average_grnd_per_sensor$station,Daily_average_grnd_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY90 <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY90<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY90<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY90, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY90, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY90, by=c("date","fullname"))
+
+TSB_NONA90 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
+TSB_NONA90$depth <- "90cm"
+TSB_NONA90$depth <- as.factor(TSB_NONA90$depth)
+#TSB_NONA is our finalized df for plotting with all 3 of 4 stations having a measurement or NA value for each daily average. Adjust the depth of grndmean, and adjust the season via the csv uploaded to this script, to make different figures
+```
+#change names of outputs above ^
+
+Bind all depth dataframes together
+```{r}
+TSB_NONE_ALLDEPTHS <- rbind(TSB_NONA10,TSB_NONA30,TSB_NONA55,TSB_NONA65,TSB_NONA90)
+```
+
+```{r fig13, fig.height = 23, fig.width = 24}
+TSB_NONE_ALLDEPTHS %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SA"| fullname == "SSMH-SB" | fullname == "BEO-B06") %>% subset(depth == "10cm" | depth == "55cm" | depth == "90cm") %>%
+  ggplot(aes(x=date, y=value, color = fullname), size = 0.9) +
+  geom_line(size=0.9) +
+  geom_point(size=1.5) +
+  guides(color = guide_legend(override.aes = list(size=15)))+
+  theme_bw() +
+  facet_wrap(depth~.,nrow=5) +
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "Daily average ground temperatures, fall 2022",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E","BEO-B05"="#6BAED6", "BEO-B06"= "#084594","SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6", "SSMH-SD"="#7A0177")) 
+
+
+#scale_y_continuous(breaks=c(-10,-7.5,-5,-2.5,0,2.5,5), limits=c(-10, 5)) + ---> this is the scale for 90cm and 65cm....
+
+```
+
+
+
+
+Winter 2022-2023
+
+
+Spring 2023
+
+
+Summer 2023
+
+Fall 2023
+
 
