@@ -1,13 +1,13 @@
 ---
 title: "ANNUAL_DIFFERENCES_PLOTTING"
 author: "Mirella Shaban"
-date: "2023-11-15"
+date: "2024-01-24"
 output: html_document
 ---
 
-THIS SCRIPT MUST BE RUN AFTER THE ANNUAL_DIFFERENCES SCRIPT (WHICH LOADS AND CLEANS THE DATA)
+THIS SCRIPT MUST BE RUN *AFTER* THE ANNUAL_DIFFERENCES SCRIPT (WHICH LOADS AND CLEANS THE DATA)
 
-THIS IS SOLELY A PLOTTING SCRIPT
+THIS IS SOLELY A STATISTICS AND PLOTTING SCRIPT for DIFFERENCES B/W YEARS
 
 ####################################################################################################################################
                                                 PLOTTING 2022 VS 2023 DATA (summer and fall)
@@ -15,15 +15,271 @@ THIS IS SOLELY A PLOTTING SCRIPT
 *ground temp:*
 summer 22: summer22grndtmp
 summer 23: sum23grndtmp
+
+combined summer data (by station daily): SUMMER_22_23_GRNDTMP
+combined summer data (by SITE) annually: Sum22_Sum23_Annual_Temps
+
 fall 22: fall22grndtemp
 fall 23:
+combined fall data:
 
-*air temp:*
+*air temp:* (code to clean airtemp data is in the Differences_in_averages.RMD)
 summer 22: summer22airtemp
 summer 23: summer23airtemp
+combined summer data:
+
 fall 22: fall22airtemp
 fall 23:
+combined fall data:
+
 ####################################################################################################################################
 
 ####################################################################################################################################
+
+*GROUND TEMP*
+
+STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
+```{r}
+wide <- sum23grndtmp %>%
+    pivot_wider(names_from = station, values_from = value)
+
+wide$TBDIFF <- wide$TNHA - wide$BEO
+wide$SBDIFF <- wide$SSMH - wide$BEO
+wide$TBSBDIFF <- wide$SSMH - wide$TNHA
+
+x<- wide %>% filter(depth == "10cm") 
+mean(x$TBDIFF,na.rm = TRUE)
+mean(x$SBDIFF, na.rm = TRUE)
+mean(x$TBSBDIFF, na.rm = TRUE)
+
+
+xxx <- sum23grndtmp %>% filter(station == "TNHA" & value == is.na(FALSE) & depth == "10cm" )
+```
+
+AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+```{r}
+averaged_by_station <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date+depth, mean)
+averaged_by_station$fullname <- c("TNHA-SA")
+averaged_by_station2 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "TNHA-SC") %>% aggregate(value~date+depth, mean)
+averaged_by_station2$fullname <- c("TNHA-SC")
+averaged_by_station3 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "SSMH-SA") %>% aggregate(value~date+depth, mean)
+averaged_by_station3$fullname <- c("SSMH-SA")
+averaged_by_station4 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "SSMH-SB") %>% aggregate(value~date+depth, mean)
+averaged_by_station4$fullname <- c("SSMH-SB")
+averaged_by_station5 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "BEO-B05" | fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
+averaged_by_station5$fullname <- c("BEO")
+TNHA_NvsS <- rbind(averaged_by_station, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5)
+```
+
+
+STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
+```{r}
+wide <- TNHA_NvsS %>%
+    pivot_wider(names_from = fullname, values_from = value)
+
+wide$TNHA_NS_DIFF <- wide$`TNHA-SA` - wide$`TNHA-SC`
+wide$TNHA_N_BEO_DIFF <- wide$`TNHA-SC` - wide$`BEO`
+wide$TNHA_S_BEO_DIFF <- wide$`TNHA-SA` - wide$`BEO`
+
+wide$SSMH_NS_DIFF <- wide$`SSMH-SA` - wide$`SSMH-SB`
+wide$SSMH_N_BEO_DIFF <- wide$`SSMH-SB` - wide$`BEO`
+wide$SSMH_S_BEO_DIFF <- wide$`SSMH-SA` - wide$`BEO`
+
+wide$TNHA_SSMH_N_COMP <- wide$`TNHA-SC`-wide$`SSMH-SB`
+wide$TNHA_SSMH_S_COMP <- wide$`TNHA-SA`-wide$`SSMH-SA`
+
+#write.csv(wide, "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_daily_average_difference_N_vs_S.csv")
+
+x<- wide %>% filter(depth == "30cm") 
+
+mean(x$TNHA_NS_DIFF,na.rm = TRUE)
+mean(x$SSMH_NS_DIFF, na.rm = TRUE)
+
+
+mean(x$TNHA_S_BEO_DIFF, na.rm = TRUE)
+mean(x$SSMH_S_BEO_DIFF, na.rm = TRUE)
+
+max(x$TNHA_NS_DIFF, na.rm = TRUE)
+max(x$SSMH_NS_DIFF, na.rm = TRUE)
+
+x<- wide %>% filter(depth == "90cm") 
+#below, p1 = 6/19-8/01 , p2= 8/01-
+p1 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2022-06-19" & date <= "2022-07-08"]))
+p1
+
+```
+
+# might want to delete the stats above, work only with 22 vs 23?
+
+
+
+Plot 2022 vs 2023 for a specified station
+
+```{r fig1, fig.height = 18, fig.width = 16}
+SUMMER_22_23_GRNDTMP %>% filter(depth == "30cm" & !fullname == "FAKEVAR" & !fullname == "FAKEVAR1" & !fullname == "FAKEVAR2" & !fullname == "FAKEVAR3" & !fullname == "FAUX1" & !fullname == "FAUX2" & !fullname == "FAUX3" & !fullname == "FAUX4" & !fullname == "FAUX5" & station == "SSMH") %>%
+  
+  ggplot(aes(x = day, y = value, colour = factor(year))) +
+  geom_line() +
+  geom_point() +
+  theme_bw()+
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "SUMMER COMPARISONS (Daily average ground temperatures), 30CM", colour = "Year", x = "Date", y = "Temperature (°C)") +
+    scale_x_date(date_labels = "%b-%d", date_breaks =  "1 weeks") +
+    scale_y_continuous(breaks=c(-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  facet_wrap(~fullname,ncol=1,strip.position="top",)
+
+```
+
+```{r fig2, fig.height = 18, fig.width = 16}
+FALL_22_23_GRNDTMP %>% filter(depth == "30cm" & !fullname == "FAKEVAR" & !fullname == "FAKEVAR1" & !fullname == "FAKEVAR2" & !fullname == "FAKEVAR3" & !fullname == "FAUX1" & !fullname == "FAUX2" & !fullname == "FAUX3" & !fullname == "FAUX4" & !fullname == "FAUX5" & station == "SSMH") %>%
+  # make datetime: force unique year
+  #mutate(datetime = lubridate::make_date(2020, month, day)) %>%  #left off at this point, need to be able to fix this 
+  
+  ggplot(aes(x = day, y = value, colour = factor(year))) +
+  geom_line() +
+  geom_point() +
+  theme_bw()+
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "FALL COMPARISONS (Daily average ground temperatures), 30CM", colour = "Year", x = "Date", y = "Temperature (°C)") +
+  scale_x_date(date_labels = "%b-%d", date_breaks =  "1 weeks") +
+    scale_y_continuous(breaks=c(-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  facet_wrap(~fullname,ncol=1,strip.position="top",)
+
+```
+
+*CONSTRAIN DATE RANGES FOR SPECIFIC STATIONS TO COMPARE 22 VS 23 TEMPERATURES DURING THOSE DOY'S*
+summer
+TNHA-BASE: NA
+TNHA-SA: 7/9-7/15 *
+TNHA-SB: NA
+TNHA-SC: 7/9-7/15 *
+TNHA-SD: 7/9-7/15 *
+SSMH-BASE: NA
+SSMH-SA: 6/28-7/04 *
+SSMH-SB: 8/15-9/01 *
+*SSMH-SD: 8/15-9/01 *NOT TRUE*
+BEO: 7/4-7/15 (BEO-B05 VS BEO-B05) --> FOR SUM 23, CAN AGGREGATE B05 & B06, BOTH HAVE DATA IN DATE RANGE *
+
+fall
+TNHA-BASE: 9/15-9/22 *
+TNHA-SA: NA *
+TNHA-SB: 9/20-10/04 *
+TNHA-SC: 9/15-10/21 *
+TNHA-SD: NA
+SSMH-BASE: NA
+SSMH-SA:NA
+*below, do together*
+SSMH-SB:9/1-10/16 *
+SSMH-SD: 9/1-10/16 *
+BEO: 9/16-10/16 (BEO-B05 VS BEO-B07) *
+
+*above, need to adjust the BEO fall figure so both 05 and 07 are on the same figure...*
+
+
+Bounds the date ranges
+```{r}
+SUMMER_22_23_GRNDTMP
+FALL_22_23_GRNDTMP
+
+#need to check the DEPTH and the DATES
+
+Summ_22_23_daterange = SUMMER_22_23_GRNDTMP %>% filter(day >= "2024-08-15" & day <= "2024-09-01" & (fullname == "SSMH-SB") & depth == "30cm")
+
+Fall_22_23_daterange = FALL_22_23_GRNDTMP %>% filter(day >= "2024-09-16" & day <= "2024-10-16" & (fullname == "BEO-B05" | fullname == "BEO-B07") & depth == "30cm")
+
+```
+
+plots the bound range
+```{r fig2, fig.height = 18, fig.width = 16}
+#check the FIGURE SIZE (one plot in facet, change to 8. more than 1 plot, change to 18)
+
+Fall_22_23_daterange %>% filter(depth == "30cm" & !fullname == "FAKEVAR" & !fullname == "FAKEVAR1" & !fullname == "FAKEVAR2" & !fullname == "FAKEVAR3" & !fullname == "FAUX1" & !fullname == "FAUX2" & !fullname == "FAUX3" & !fullname == "FAUX4" & !fullname == "FAUX5") %>%
+  # make datetime: force unique year
+  #mutate(datetime = lubridate::make_date(2020, month, day)) %>%  #left off at this point, need to be able to fix this 
+  
+  ggplot(aes(x = day, y = value, colour = factor(year))) +
+  geom_line() +
+  geom_point() +
+  theme_bw()+
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "FALLL (09/16-10/16) COMPARISONS (Daily average ground temp), 30CM", colour = "Year", x = "Date", y = "Temperature (°C)") +
+  scale_x_date(date_labels = "%b-%d", date_breaks =  "1 weeks") +
+    scale_y_continuous(breaks=c(-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  facet_wrap(~fullname,ncol=1,strip.position="top",)
+
+```
+
+
+
+
+
+
+
+
+
+                     #######
+                           ### VWC!!! ####
+                                        #######
+```{r fig3, fig.height = 18, fig.width = 16}
+SUMMER_22_23_VWC_DAILY %>% filter(depth == "15:30cm" & !fullname == "FAKEVAR" & !fullname == "FAKEVAR1" & !fullname == "FAKEVAR2" & !fullname == "FAKEVAR3" & !fullname == "FAUX1" & !fullname == "FAUX2" & !fullname == "FAUX3" & !fullname == "FAUX4" & !fullname == "FAUX5" & station == "SSMH") %>%
+  
+  ggplot(aes(x = day, y = value, colour = factor(year))) +
+  geom_line() +
+  geom_point() +
+  theme_bw()+
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "SUMMER COMPARISONS (Daily average VWC), 15:30CM", colour = "Year", x = "Date", y = "VWC ("~ m ^ 3 ~ "/" ~ m ^ 3 ~")") +
+  scale_x_date(date_labels = "%b-%d", date_breaks =  "1 weeks") +
+  scale_y_continuous(breaks=c(0,0.1,0.2,0.3,0.4,0.5,0.6), limits=c(0, 0.6)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  facet_wrap(~fullname,ncol=1,strip.position="top",)
+```
+
+```{r fig4, fig.height = 18, fig.width = 16}
+FALL_22_23_VWC_DAILY %>% filter(depth == "15:30cm" & !fullname == "FAKEVAR" & !fullname == "FAKEVAR1" & !fullname == "FAKEVAR2" & !fullname == "FAKEVAR3" & !fullname == "FAUX1" & !fullname == "FAUX2" & !fullname == "FAUX3" & !fullname == "FAUX4" & !fullname == "FAUX5" & station == "BEO" |sensor == "BEO-NEW") %>%
+  
+  ggplot(aes(x = day, y = value, colour = factor(year))) +
+  geom_line() +
+  geom_point() +
+  theme_bw()+
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "FALL COMPARISONS (VWC), 15:30CM", colour = "Year", x = "Date", y = "VWC ("~ m ^ 3 ~ "/" ~ m ^ 3 ~")") +
+  scale_x_date(date_labels = "%b-%d", date_breaks =  "1 weeks") +
+  scale_y_continuous(breaks=c(0,0.1,0.2,0.3,0.4,0.5), limits=c(0, 0.5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  facet_wrap(~fullname,ncol=1,strip.position="top",)
+```
 
