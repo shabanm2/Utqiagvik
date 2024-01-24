@@ -1,25 +1,35 @@
 ---
 title: "Differences_in_averages"
 author: "Mirella Shaban"
-date: "2023-10-23"
+date: "2024-01-24"
 output: html_document
 
 ############################################################
-THIS SCRIPT GIVES YOU THE SEASONAL AVERAGES 
-1) BY SITE & 2) BY ASPECT AT THE SAME SITE
-*RUN LOADANDCLEAN_DIFFERENCES_IN_AVERAGES.RMD BEFORE THIS SCRIPT TO LOAD IN THE CLEANED DATA FOR EACH SEASON *
+THIS SCRIPT GIVES YOU THE SEASONAL AVERAGES *(GROUND TEMPERATURE)*
+1) BY SITE & 2) BY ASPECT (AT SAME SITE)
+3*) AVERAGES SENSORS BY a) STATION AND BY b) SITE WITHIN THE SCRIPT FOR THE COMPARISONS
+
+*MUST *RUN LOADANDCLEAN_DIFFERENCES_IN_AVERAGES.RMD BEFORE THIS SCRIPT TO LOAD IN THE CLEANED DATA FOR EACH SEASON *
 ############################################################
 ---
-*Names of seasonal data files (cleaned)*
+*Names of seasonal data files (cleaned) BY STATION*
 SUMMERGRND22_ALLDEPTHS
 FALL22_ALLDEPTHS
 SPRING23_ALLDEPTHS
 SUMMERGRND23_ALLDEPTHS
+FALL23_ALLDEPTHS *use the BASE STATION as the SOUTH SENSOR here Because SA HAS NO DATA*
+
+*Names of seasonal data files (cleaned) BY SITE*
+SITES_AVG_SUM22_GRND
+SITES_AVG_FALL22_GRND
+SITES_AVG_SPRING23_GRND
+SITES_AVG_SUM23_GRND
+SITES_AVG_FALL23_GRND
 
 
 DF for HOURLY / HOUR comparisons between stations: CHANGE NAME OF DF YOU WANT --> FROM RAW DATA
 ```{r}
-grndtmp_hourly <- fall22grndtemp  %>%
+grndtmp_hourly <- summer22grndtmp  %>%
   group_by(sensor, depth, hour = floor_date(Date, "hour"), day = floor_date(Date, "day")) %>%
   summarize(avg_ground_temp = mean(value))
 
@@ -40,7 +50,8 @@ Hourly_Comparisons[which.max(Hourly_Comparisons$SSMH_NS), ]
 ```
 
 
-STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
+
+*SUMMER 22* STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
 ```{r}
 wide <- SITES_AVG_SUM22_GRND %>%
     pivot_wider(names_from = station, values_from = value)
@@ -55,25 +66,27 @@ mean(x$SBDIFF, na.rm = TRUE)
 mean(x$TBSBDIFF, na.rm = TRUE)
 ```
 
-AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+
+
+*SUMMER 23* AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
 ```{r}
-averaged_by_station <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date+depth, mean)
+averaged_by_station <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date+depth, mean)
 averaged_by_station$fullname <- c("TNHA-SA")
-averaged_by_station2 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "TNHA-SC") %>% aggregate(value~date+depth, mean)
+averaged_by_station2 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-SC") %>% aggregate(value~date+depth, mean)
 averaged_by_station2$fullname <- c("TNHA-SC")
-averaged_by_station3 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "SSMH-SA") %>% aggregate(value~date+depth, mean)
+averaged_by_station3 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-SA") %>% aggregate(value~date+depth, mean)
 averaged_by_station3$fullname <- c("SSMH-SA")
-averaged_by_station4 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "SSMH-SB") %>% aggregate(value~date+depth, mean)
+averaged_by_station4 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-SB") %>% aggregate(value~date+depth, mean)
 averaged_by_station4$fullname <- c("SSMH-SB")
-averaged_by_station5 <- SUMMERGRND22_ALLDEPTHS %>% filter(fullname == "BEO-B05" | fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
+averaged_by_station5 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "BEO-B05" | fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
 averaged_by_station5$fullname <- c("BEO")
-SU22_STATIONS_AVG<- rbind(averaged_by_station, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5)
+sum23_STATIONS_AVG<- rbind(averaged_by_station, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5)
 ```
 
 
-STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
+*SUMMER 23* STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
 ```{r}
-wide <- SU22_STATIONS_AVG %>%
+wide <- sum23_STATIONS_AVG %>%
     pivot_wider(names_from = fullname, values_from = value)
 
 wide$TNHA_NS_DIFF <- wide$`TNHA-SA` - wide$`TNHA-SC`
@@ -89,7 +102,7 @@ wide$TNHA_SSMH_S_COMP <- wide$`TNHA-SA`-wide$`SSMH-SA`
 
 #write.csv(wide, "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_daily_average_difference_N_vs_S.csv")
 
-x<- wide %>% filter(depth == "10cm") 
+x<- wide %>% filter(depth == "90cm") 
 
 mean(x$TNHA_NS_DIFF,na.rm = TRUE)
 mean(x$SSMH_NS_DIFF, na.rm = TRUE)
@@ -98,15 +111,22 @@ mean(x$SSMH_NS_DIFF, na.rm = TRUE)
 mean(x$TNHA_S_BEO_DIFF, na.rm = TRUE)
 mean(x$SSMH_S_BEO_DIFF, na.rm = TRUE)
 
+mean(x$TNHA_SSMH_N_COMP, na.rm = TRUE)
+
 max(x$TNHA_NS_DIFF, na.rm = TRUE)
 max(x$SSMH_NS_DIFF, na.rm = TRUE)
 
-p1 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2022-06-19" & date <= "2022-07-08"]))
-p1
+
+#below, p1 = 6/19-8/01 , p2= 8/01-
+#p1 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2022-06-19" & date <= "2022-07-08"])) #this excludes NA values from avging
+
+
+#x #this ignores NA values, any date with data will be factored in to the average --> USE THIS FOR THE BAR PLOTS, ABOVE FOR TABLES
+#p1
 
 ```
 
-FALL22
+*FALL 22* 
 AVERAGE BY SITE
 -----------
 ```{r}
@@ -123,7 +143,7 @@ SITES_AVG_FALL22_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, aver
 ```
 
 
-STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
+*FALL 22*  STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
 ```{r}
 wide <- SITES_AVG_FALL22_GRND %>%
     pivot_wider(names_from = station, values_from = value)
@@ -132,13 +152,13 @@ wide$TBDIFF <- wide$TNHA - wide$BEO
 wide$SBDIFF <- wide$SSMH - wide$BEO
 wide$TBSBDIFF <- wide$SSMH - wide$TNHA
 
-x<- wide %>% filter(depth == "10cm") 
+x<- wide %>% filter(depth == "30cm") 
 mean(x$TBDIFF,na.rm = TRUE)
 mean(x$SBDIFF, na.rm = TRUE)
 mean(x$TBSBDIFF, na.rm = TRUE)
 ```
 
-AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+*FALL 22*  AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
 ```{r}
 averaged_by_station <- FALL22_ALLDEPTHS %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date+depth, mean)
 averaged_by_station$fullname <- c("TNHA-SA")
@@ -154,7 +174,7 @@ FALL22_STATIONS_AVG<- rbind(averaged_by_station, averaged_by_station2, averaged_
 ```
 
 
-STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
+*FALL 22*  STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
 ```{r}
 wide <- FALL22_STATIONS_AVG %>%
     pivot_wider(names_from = fullname, values_from = value)
@@ -191,9 +211,7 @@ p2 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2022-09-01" & date <= "2022-12-01"])
 
 --------
 
-********
-
-SPRING 23
+*SPRING 23* 
 --------
 ```{r}
 averaged_by_site_TNHA <- SPRING23_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
@@ -209,7 +227,7 @@ SITES_AVG_SPRING23_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, av
 ```
 
 
-STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
+*SPRING 23*  STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
 ```{r}
 wide <- SITES_AVG_SPRING23_GRND %>%
     pivot_wider(names_from = station, values_from = value)
@@ -224,7 +242,7 @@ mean(x$SBDIFF, na.rm = TRUE)
 mean(x$TBSBDIFF, na.rm = TRUE)
 ```
 
-AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+*SPRING 23*  AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
 ```{r}
 averaged_by_station <- SPRING23_ALLDEPTHS %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date+depth, mean)
 averaged_by_station$fullname <- c("TNHA-SA")
@@ -242,7 +260,7 @@ SPRING23_STATIONS_AVG<- rbind(averaged_by_station, averaged_by_station2, average
 ```
 
 
-STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
+*SPRING 23* STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
 ```{r}
 wide <- SPRING23_STATIONS_AVG %>%
     pivot_wider(names_from = fullname, values_from = value)
@@ -260,7 +278,7 @@ wide$TNHA_SSMH_S_COMP <- wide$`TNHA-SA`-wide$`SSMH-SA`
 
 #write.csv(wide, "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_daily_average_difference_N_vs_S.csv")
 
-x<- wide %>% filter(depth == "10cm") 
+x<- wide %>% filter(depth == "30cm") 
 
 mean(x$TNHA_NS_DIFF,na.rm = TRUE)
 mean(x$SSMH_NS_DIFF, na.rm = TRUE)
@@ -271,7 +289,7 @@ max(x$SSMH_NS_DIFF, na.rm = TRUE)
 
 
 #below, p1 = 6/19-8/01 , p2= 8/01-
-p3 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2023-03-01" & date <= "2023-06-01"]))
+p3 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2023-03-01" & date <= "2023-06-01"]), na.rm = FALSE)
 
 #CHANGE DATA RANGE ABOVE
 
@@ -279,9 +297,7 @@ p3 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2023-03-01" & date <= "2023-06-01"])
 
 ------
 
-SUMMER 23
-
-**
+*SUMMER 23*
 --------
 ```{r}
 averaged_by_site_TNHA <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-BASE" | fullname == "TNHA-SA" | fullname == "TNHA-SB"| fullname == "TNHA-SC" | fullname == "TNHA-SD") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
@@ -290,14 +306,14 @@ averaged_by_site_TNHA$station <- c("TNHA")
 averaged_by_site_BEO <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "BEO-B06" | fullname == "BEO-B05") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
 averaged_by_site_BEO$station <- c("BEO") 
 
-averaged_by_site_SSMH <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
+averaged_by_site_SSMH <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-BASE" | fullname == "SSMH-SA" | fullname == "SSMH-SB"| fullname == "SSMH-SC" | fullname == "SSMH-SD" | fullname == "SSMH-SE" | fullname == "SSMH-SF" | fullname == "SSMH-SG" | fullname == "SSMH-SH" | fullname == "SSMH-SI") %>% aggregate(value~date+depth+val, mean, na.rm=FALSE)
 averaged_by_site_SSMH$station <- c("SSMH")
 
 SITES_AVG_SUMM23_GRND <- rbind(averaged_by_site_BEO, averaged_by_site_TNHA, averaged_by_site_SSMH)
 ```
 
 
-STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
+*SUMMER 23* STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
 ```{r}
 wide <- SITES_AVG_SUMM23_GRND %>%
     pivot_wider(names_from = station, values_from = value)
@@ -312,25 +328,48 @@ mean(x$SBDIFF, na.rm = TRUE)
 mean(x$TBSBDIFF, na.rm = TRUE)
 ```
 
-AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+*SUMMER 23* AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
 ```{r}
 averaged_by_station <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date+depth, mean)
 averaged_by_station$fullname <- c("TNHA-SA")
 averaged_by_station2 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-SC") %>% aggregate(value~date+depth, mean)
 averaged_by_station2$fullname <- c("TNHA-SC")
+
 averaged_by_station3 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-SA") %>% aggregate(value~date+depth, mean)
 averaged_by_station3$fullname <- c("SSMH-SA")
 averaged_by_station4 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-SB") %>% aggregate(value~date+depth, mean)
 averaged_by_station4$fullname <- c("SSMH-SB")
 averaged_by_station5 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "BEO-B05" | fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
 averaged_by_station5$fullname <- c("BEO")
-SUMM3_STATIONS_AVG<- rbind(averaged_by_station, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5)
+
+#averaged_by_station5_NEW <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "BEO-B07" | fullname == "BEO-B08") %>% aggregate(value~date+depth, mean)
+#averaged_by_station5_NEW$fullname <- c("BEO-NEW")
+
+averaged_by_station6 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-BASE") %>% aggregate(value~date+depth, mean)
+averaged_by_station6$fullname <- c("TNHA-BASE")
+
+averaged_by_station7 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-SD") %>% aggregate(value~date+depth, mean)
+averaged_by_station7$fullname <- c("TNHA-SD")
+
+averaged_by_station8 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "TNHA-SB") %>% aggregate(value~date+depth, mean)
+averaged_by_station8$fullname <- c("TNHA-SB")
+
+
+#averaged_by_station8 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-BASE") %>% aggregate(value~date+depth, mean)
+#averaged_by_station8$fullname <- c("SSMH-BASE")
+#above, no rows to aggregate (no data)
+
+averaged_by_station9 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-SD") %>% aggregate(value~date+depth, mean)
+averaged_by_station9$fullname <- c("SSMH-SD")
+
+
+SUM23_STATIONS_AVG<- rbind(averaged_by_station, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5,averaged_by_station6,averaged_by_station7,averaged_by_station9,averaged_by_station8)
 ```
 
 
-STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
+*SUMMER 23* STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
 ```{r}
-wide <- SUMM3_STATIONS_AVG %>%
+wide <- SUM23_STATIONS_AVG %>%
     pivot_wider(names_from = fullname, values_from = value)
 
 wide$TNHA_NS_DIFF <- wide$`TNHA-SA` - wide$`TNHA-SC`
@@ -344,7 +383,109 @@ wide$SSMH_S_BEO_DIFF <- wide$`SSMH-SA` - wide$`BEO`
 wide$TNHA_SSMH_N_COMP <- wide$`TNHA-SC`-wide$`SSMH-SB`
 wide$TNHA_SSMH_S_COMP <- wide$`TNHA-SA`-wide$`SSMH-SA`
 
+#write.csv(wide, "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_daily_average_difference_N_vs_S.csv")
+
+x<- wide %>% filter(depth == "90cm" & date >= "2023-06-01" & date <= "2023-09-01") 
+
+mean(x$TNHA_NS_DIFF,na.rm = TRUE)
+mean(x$SSMH_NS_DIFF, na.rm = TRUE)
+mean(x$TNHA_S_BEO_DIFF, na.rm = TRUE)
+mean(x$SSMH_S_BEO_DIFF, na.rm = TRUE)
+max(x$TNHA_NS_DIFF, na.rm = TRUE)
+max(x$SSMH_NS_DIFF, na.rm = TRUE)
+
+#below, p1 = 6/19-8/01 , p2= 8/01-
+p3 = with(x, mean(TNHA_S_BEO_DIFF), na.rm = TRUE)
+
+#CHANGE DATA RANGE ABOVE (adjusted as of now, 10:50am 1/10/24)
+
+```
+
+
+*FALL 23*
+----- 
+STATS: average daily difference between SITES (all stations combined) for Xcm depth (define in x <- )
+```{r}
+wide <- FALL23_ALLDEPTHS %>%
+    pivot_wider(names_from = station, values_from = value)
+
+wide$TBDIFF <- wide$TNHA - wide$BEO
+wide$SBDIFF <- wide$SSMH - wide$BEO
+wide$TBSBDIFF <- wide$SSMH - wide$TNHA
+
 x<- wide %>% filter(depth == "10cm") 
+mean(x$TBDIFF,na.rm = TRUE)
+mean(x$SBDIFF, na.rm = TRUE)
+mean(x$TBSBDIFF, na.rm = TRUE)
+```
+
+*FALL 23* AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+```{r}
+averaged_by_station <- FALL23_ALLDEPTHS %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date+depth, mean)
+averaged_by_station$fullname <- c("TNHA-SA")
+averaged_by_station2 <- FALL23_ALLDEPTHS %>% filter(fullname == "TNHA-SC") %>% aggregate(value~date+depth, mean)
+averaged_by_station2$fullname <- c("TNHA-SC")
+
+averaged_by_station3 <- FALL23_ALLDEPTHS %>% filter(fullname == "SSMH-SA") %>% aggregate(value~date+depth, mean)
+averaged_by_station3$fullname <- c("SSMH-SA")
+averaged_by_station4 <- FALL23_ALLDEPTHS %>% filter(fullname == "SSMH-SB") %>% aggregate(value~date+depth, mean)
+averaged_by_station4$fullname <- c("SSMH-SB")
+# averaged_by_station5 <- FALL23_ALLDEPTHS %>% filter(fullname == "BEO-B05" | fullname == "BEO-B06") %>% aggregate(value~date+depth, mean)
+# averaged_by_station5$fullname <- c("BEO")
+
+averaged_by_station6 <- FALL23_ALLDEPTHS %>% filter(fullname == "TNHA-BASE") %>% aggregate(value~date+depth, mean)
+averaged_by_station6$fullname <- c("TNHA-BASE")
+
+# averaged_by_station7 <- FALL23_ALLDEPTHS %>% filter(fullname == "TNHA-SD") %>% aggregate(value~date+depth, mean)
+# averaged_by_station7$fullname <- c("TNHA-SD")
+
+averaged_by_station8 <- FALL23_ALLDEPTHS %>% filter(fullname == "TNHA-SB") %>% aggregate(value~date+depth, mean)
+averaged_by_station8$fullname <- c("TNHA-SB")
+
+
+#averaged_by_station8 <- SUMMERGRND23_ALLDEPTHS %>% filter(fullname == "SSMH-BASE") %>% aggregate(value~date+depth, mean)
+#averaged_by_station8$fullname <- c("SSMH-BASE")
+#above, no rows to aggregate (no data)
+
+averaged_by_station10 <- FALL23_ALLDEPTHS %>% filter(fullname == "SSMH-SE") %>% aggregate(value~date+depth, mean)
+averaged_by_station10$fullname <- c("SSMH-SE")
+
+averaged_by_station11 <- FALL23_ALLDEPTHS %>% filter(fullname == "SSMH-SF") %>% aggregate(value~date+depth, mean)
+averaged_by_station11$fullname <- c("SSMH-SF")
+
+averaged_by_station12 <- FALL23_ALLDEPTHS %>% filter(fullname == "SSMH-SG") %>% aggregate(value~date+depth, mean)
+averaged_by_station12$fullname <- c("SSMH-SG")
+
+averaged_by_station13 <- FALL23_ALLDEPTHS %>% filter(fullname == "SSMH-SH") %>% aggregate(value~date+depth, mean)
+averaged_by_station13$fullname <- c("SSMH-SH")
+
+averaged_by_station14 <- FALL23_ALLDEPTHS %>% filter(fullname == "SSMH-SI") %>% aggregate(value~date+depth, mean)
+averaged_by_station14$fullname <- c("SSMH-SI")
+
+
+FALL23_STATIONS_AVG<- rbind(averaged_by_station, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5,averaged_by_station6,averaged_by_station7,averaged_by_station9,averaged_by_station8,averaged_by_station11,averaged_by_station13,averaged_by_station14)
+```
+
+
+*FALL 23* STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
+```{r}
+wide <- FALL23_STATIONS_AVG %>%
+    pivot_wider(names_from = fullname, values_from = value)
+
+wide$TNHA_NS_DIFF <- wide$`TNHA-BASE` - wide$`TNHA-SC`
+wide$TNHA_N_BEO_DIFF <- wide$`TNHA-SC` - wide$`BEO`
+wide$TNHA_S_BEO_DIFF <- wide$`TNHA-SA` - wide$`BEO`
+
+wide$SSMH_NS_DIFF <- wide$`SSMH-SA` - wide$`SSMH-SB`
+wide$SSMH_N_BEO_DIFF <- wide$`SSMH-SB` - wide$`BEO`
+wide$SSMH_S_BEO_DIFF <- wide$`SSMH-SA` - wide$`BEO`
+
+wide$TNHA_SSMH_N_COMP <- wide$`TNHA-SC`-wide$`SSMH-SB`
+wide$TNHA_SSMH_S_COMP <- wide$`TNHA-SA`-wide$`SSMH-SA`
+
+#write.csv(wide, "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_daily_average_difference_N_vs_S.csv")
+
+x<- wide %>% filter(depth == "90cm"& date >= "2023-09-01" & date <= "2023-12-01") 
 
 mean(x$TNHA_NS_DIFF,na.rm = TRUE)
 mean(x$SSMH_NS_DIFF, na.rm = TRUE)
@@ -356,7 +497,7 @@ max(x$SSMH_NS_DIFF, na.rm = TRUE)
 #below, p1 = 6/19-8/01 , p2= 8/01-
 p3 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2023-06-01" & date <= "2023-09-01"]))
 
-#CHANGE DATE RANGE ABOVE
+#using TNHA-BASE AS THE SOUTH FACING SENSOR -- NEED TO PUT THIS IN METADATA
 
 ```
 
@@ -366,113 +507,13 @@ p3 = with(x, mean(TNHA_SSMH_N_COMP[date >= "2023-06-01" & date <= "2023-09-01"])
 
 
 
-------------------------------------------------
-AIR TEMPERATURES
-
-AIR SUMMER 2022
-```{r}
-air22 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_22_airtmp_2023_11_14_20_57_51_UTC_1.csv")
-names(air22) <- sub("Temperature..RXW.THC.", "" ,names(air22))
-names(air22) <- sub("Temperature..S.THC.", "" ,names(air22))
-names(air22) <- sub("S.", "" ,names(air22))
-names(air22) <- sub("....C..RX3000_BRW1", "" ,names(air22))
-names(air22) <- sub("....C..RX3000_BRW4", "" ,names(air22))
-names(air22) <- sub("....C..RX3000_BRW5", "" ,names(air22))
-names(air22) <- sub("....C..RX3000_BRW6", "" ,names(air22))
-air22$Date <- as.POSIXct(air22$Date,format="%m/%d/%y %H:%M",tz="UTC")
-```
-
-AIR FALL 2022
-```{r}
-airfall22 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Fall_22_airtmp_2023_11_14_21_43_57_UTC_1.csv")
-names(airfall22) <- sub("Temperature..RXW.THC.", "" ,names(airfall22))
-names(airfall22) <- sub("Temperature..S.THC.", "" ,names(airfall22))
-names(airfall22) <- sub("S.", "" ,names(airfall22))
-names(airfall22) <- sub("....C..RX3000_BRW1", "" ,names(airfall22))
-names(airfall22) <- sub("....C..RX3000_BRW4", "" ,names(airfall22))
-names(airfall22) <- sub("....C..RX3000_BRW5", "" ,names(airfall22))
-names(airfall22) <- sub("....C..RX3000_BRW6", "" ,names(airfall22))
-airfall22$Date <- as.POSIXct(airfall22$Date,format="%m/%d/%y %H:%M",tz="UTC")
-```
-
-Air SUMMER 2023
-```{r}
-air_2023 =read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/UPDATED_SUMMER_23_DATA/New_Summer_2023_AIRTMP_2023_11_01_18_31_41_UTC_1.csv")
-names(air_2023) <- sub("Temperature..RXW.THC.", "" ,names(air_2023))
-names(air_2023) <- sub("Temperature..S.THC.", "" ,names(air_2023))
-names(air_2023) <- sub("S.", "" ,names(air_2023))
-names(air_2023) <- sub("....C..RX3000_BRW1", "" ,names(air_2023))
-names(air_2023) <- sub("....C..RX3000_BRW4", "" ,names(air_2023))
-names(air_2023) <- sub("....C..RX3000_BRW5", "" ,names(air_2023))
-names(air_2023) <- sub("....C..RX3000_BRW6", "" ,names(air_2023))
-air_2023$Date <- as.POSIXct(air_2023$Date,format="%m/%d/%y %H:%M",tz="UTC")
-```
 
 
 
-############# DATA CLEANING
 
-```{r}
-airtemp = gather(air22, variable, response, "21198259.21218018.1":"21401803.21397541.1") %>%
-  filter(!is.na(response)) %>%
-  mutate(variable = fct_inorder(variable))
+AIR TEMPERATURES AVERAGING
 
-summer22airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
-summer22airtemp$variable_3 <- NULL
-colnames(summer22airtemp)[3:5] <- c("value", "station", "sensor")
-summer22airtemp$value <- as.numeric(as.character(summer22airtemp$value)) 
-summer22airtemp$sensor <- as.factor(as.character(summer22airtemp$sensor))
-summer22airtemp$station <- as.factor(summer22airtemp$station)
-
-summer22airtemp$station <- revalue(summer22airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
-
-summer22airtemp$sensor <- revalue(summer22airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-??'))
-
-### need to correct the names for bueci stations, i dont have the metadata clearly on here for the air teperature sensors
-```
-
-```{r}
-airtemp = gather(airfall22, variable, response, "21198259.21218018.1":"21401803.21397541.1") %>%
-  filter(!is.na(response)) %>%
-  mutate(variable = fct_inorder(variable))
-
-fall22airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
-fall22airtemp$variable_3 <- NULL
-colnames(fall22airtemp)[3:5] <- c("value", "station", "sensor")
-fall22airtemp$value <- as.numeric(as.character(fall22airtemp$value)) 
-fall22airtemp$sensor <- as.factor(as.character(fall22airtemp$sensor))
-fall22airtemp$station <- as.factor(fall22airtemp$station)
-
-fall22airtemp$station <- revalue(fall22airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
-
-fall22airtemp$sensor <- revalue(fall22airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-??'))
-```
-
-```{r}
-airtempsum23 = gather(air_2023, variable, response, "21198259.21380919.1_TNHA":"21401801.21398667.1_MH") %>%
-  filter(!is.na(response)) %>%
-  mutate(variable = fct_inorder(variable))
-
-summer23airtemp= cSplit(airtempsum23, 'variable', sep=".", direction = "wide") 
-summer23airtemp= cSplit(summer23airtemp, 'variable_3', sep="1_", direction = "wide") 
-summer23airtemp$variable_3_1 <- NULL
-colnames(summer23airtemp)[3:6] <- c("value", "station", "sensor","site")
-summer23airtemp$value <- as.numeric(as.character(summer23airtemp$value)) 
-summer23airtemp$sensor <- as.factor(as.character(summer23airtemp$sensor))
-summer23airtemp$station <- as.factor(summer23airtemp$station)
-summer23airtemp$site <- as.factor(summer23airtemp$site)
-summer23airtemp$station <- revalue(summer23airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
-
-summer23airtemp$sensor <- revalue(summer23airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-??'))
-
-
-#### need to adjust for the air temp sensors
-```
-
-AVERAGING
-
-
-
+*(summer 22 AIR)*
 ```{r}
 AIRmean <- summer22airtemp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
 
@@ -520,7 +561,7 @@ BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
 SUMMER22_air <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA)
 ```
 
-average daily difference between TNHA and BEO SITES (all stations combined) 
+*(summer 22 AIR)*average daily difference between TNHA and BEO SITES (all stations combined) 
 ```{r}
 wide <- SUMMER22_air %>%
     pivot_wider(names_from = station, values_from = value)
@@ -533,7 +574,7 @@ mean(wide$SBDIFF, na.rm = TRUE)
 mean(wide$TBSBDIFF, na.rm = TRUE)
 ```
 
-This averages for SENSOR (can compare sensors at the same site, such as N & S) by day
+*(summer 22 AIR)* This averages for SENSOR (can compare sensors at the same site, such as N & S) by day for AIR
 ```{r}
 averaged_by_station <- SUMMER22_air %>% filter(fullname == "TNHA-SA") %>% aggregate(value~date, mean)
 averaged_by_station$fullname <- c("TNHA-SA")
@@ -546,7 +587,7 @@ averaged_by_station3$fullname <- c("BEO-BASE")
 TNHA_NvsS <- rbind(averaged_by_station, averaged_by_station2, averaged_by_station3)
 ```
 
-average daily difference between SPECIFIC STATIONS at TNHA and BEO
+*(summer 22 AIR)*average daily difference between SPECIFIC STATIONS at TNHA and BEO
 ```{r}
 wide <- TNHA_NvsS %>%
     pivot_wider(names_from = fullname, values_from = value)
