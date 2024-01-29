@@ -1,0 +1,92 @@
+---
+title: "test_barrow_tnha"
+author: "Mirella Shaban"
+date: "2023-06-20"
+output: html_document
+---
+
+
+```{r}
+
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) 
+library(naniar)
+library(RColorBrewer)
+library(clock)
+```
+
+
+```{r}
+# importing ground temp data for 6-19 through 9-20
+grndtmp=read.csv("~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Spring_grndtmp_2023_06_22_17_43_02_UTC_1.csv")
+names(grndtmp) <- sub("....C..RX3000_BRW1", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW4", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW5", "", names(grndtmp))
+names(grndtmp) <- sub("....C..RX3000_BRW6", "", names(grndtmp))
+names(grndtmp) <- sub(".RXW.GP6.", "", names(grndtmp))
+
+grndtmp$Date <-as.POSIXct(grndtmp$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+grndtmp = gather(grndtmp, variable, response, Temperature.21198259.21206939.7_TNHA:Temperature.21401803.21398591.17_BEO) %>% mutate(variable = fct_inorder(variable))
+                 
+grndtmp= cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(grndtmp)[3] <- ("value")
+colnames(grndtmp)[5:7] <- c("station", "sensor", "depth")
+
+grndtmp$variable_1 <- NULL
+grndtmp$depth <- as.factor(as.character(grndtmp$depth))
+grndtmp$sensor <- as.factor(as.character(grndtmp$sensor))
+grndtmp$station <- as.factor(grndtmp$station)
+grndtmp$station <- revalue(grndtmp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+grndtmp$sensor <- revalue(grndtmp$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05"))
+
+grndtmp= cSplit(grndtmp, 'depth', sep="_", direction = "wide") 
+
+
+grndtmp$depth_2 <- NULL
+colnames(grndtmp)[6] <- ("depth")
+grndtmp$depth <- as.factor(as.character(grndtmp$depth))
+grndtmp$depth <- revalue(grndtmp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+grndtmp$depth = factor(grndtmp$depth, c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))
+
+```
+
+```{r fig3, fig.height = 18, fig.width = 20}
+
+ggplot(subset(grndtmp, depth %in% c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")),
+       aes(x=Date, y= value, color = sensor)) + 
+  geom_point(size = 0.5) +
+  guides(color = guide_legend(override.aes = list(size=10))) +
+  facet_grid(depth~station) + 
+  theme_bw() + theme(strip.text = element_text(face = "bold"))+
+  labs(y="Temperature (°C)", color="Sensor") +
+  scale_x_datetime(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-5,-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-6, 15)) +
+  theme(axis.text.y =element_text(face="bold") ,axis.text.x=element_text(angle = 45, hjust = 1.0,face = "bold"), axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5), 
+        plot.caption = element_text(face ="italic")) +
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 30),plot.title = element_text(hjust = 0.5, size = 30), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 20),
+        axis.title = element_text(size = 20)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E", "SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6", "SSMH-SC"= "#DD3497", "SSMH-SD"="#7A0177", "BEO-B05"="#6BAED6", "BEO-B06"= "#084594", "BUECI-BASE" = "#4E79A7", "BUCEI-SA" = "#F28E2b","BUECI-SB" = "#E15759", "BUCEI-SC" = "#76B7B2", "BUCEI-SD" = "#59A14F", "BUCEI-SE" = "#EDC948"))
+
+
+
+```
+
