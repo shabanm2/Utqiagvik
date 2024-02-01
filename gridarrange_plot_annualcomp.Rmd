@@ -1,0 +1,127 @@
+---
+title: "gridarrange_plot_annualcomp"
+author: "Mirella Shaban"
+date: "2024-02-01"
+output: html_document
+---
+
+This script plots data from the LOADANDCLEAN_DIFFERENCES_IN_AVERAGES_GROUND_TEMP.RMD
+Annual comparisons for 2022 & 2023 can be plotted here by adjusting a) date ranges b) depths in chunk 1.
+
+Grid arrange allows for stacking of the plots to control y-axes (change y-axis values max & min requirements for given depth)
+
+
+Bounds the date ranges
+```{r}
+
+#each is a different depth, so that we can grid.arrange
+Summ_22_23_daterange1 = SUMMER_22_23_GRNDTMP %>% filter(day >= "2024-07-09" & day <= "2024-07-15" & (fullname == "TNHA-SA" | fullname == "TNHA-SC" |fullname == "TNHA-SD" | fullname == "BEO-B05" | fullname == "BEO-B06"  ) & depth == "10cm" )
+Summ_22_23_daterange2 = SUMMER_22_23_GRNDTMP %>% filter(day >= "2024-07-09" & day <= "2024-07-15" & (fullname == "TNHA-SA" | fullname == "TNHA-SC" |fullname == "TNHA-SD" | fullname == "BEO-B05" | fullname == "BEO-B06"  ) & depth == "30cm" )
+Summ_22_23_daterange3 = SUMMER_22_23_GRNDTMP %>% filter(day >= "2024-07-09" & day <= "2024-07-15" & (fullname == "TNHA-SA" | fullname == "TNHA-SC" |fullname == "TNHA-SD" | fullname == "BEO-B05" | fullname == "BEO-B06"  ) & depth == "55cm" )
+Summ_22_23_daterange4 = SUMMER_22_23_GRNDTMP %>% filter(day >= "2024-07-09" & day <= "2024-07-15" & (fullname == "TNHA-SA" | fullname == "TNHA-SC" |fullname == "TNHA-SD" | fullname == "BEO-B05" | fullname == "BEO-B06"  ) & depth == "90cm" )
+
+#Fall_22_23_daterange = FALL_22_23_GRNDTMP %>% filter(day >= "2024-09-16" & day <= "2024-10-16" & (fullname == "BEO-B05" | fullname == "BEO-B07") & depth == "30cm")
+
+```
+
+plots the bound range
+
+```{r fig2, fig.height = 10, fig.width = 18}
+#check the FIGURE SIZE (one plot in facet, change to 8. more than 1 plot, change to 18)
+
+p1 <- Summ_22_23_daterange1 %>% filter(!fullname == "FAKEVAR" & !fullname == "FAKEVAR1" & !fullname == "FAKEVAR2" & !fullname == "FAKEVAR3" & !fullname == "FAUX1" & !fullname == "FAUX2" & !fullname == "FAUX3" & !fullname == "FAUX4" & !fullname == "FAUX5") %>%
+  ggplot(aes(x = day, y = value, colour = factor(year))) +
+  geom_line() +
+  geom_point() +
+  theme_bw()+
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "Ground temperature comparisons (07/09 - 07/15)" , colour = "Year", x = "", y = "") +
+  scale_x_date(date_labels = "%b-%d", date_breaks =  "8 days") +
+    scale_y_continuous(breaks=c(0,2.5,5,7.5,10,12.5), limits=c(0, 12.5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=25, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  facet_wrap(~depth+fullname,strip.position="top",ncol=5)
+
+```
+
+```{r fig3, fig.height = 10, fig.width = 18}
+#check the FIGURE SIZE (one plot in facet, change to 8. more than 1 plot, change to 18)
+
+p2 <- Summ_22_23_daterange2 %>% filter(!fullname == "FAKEVAR" & !fullname == "FAKEVAR1" & !fullname == "FAKEVAR2" & !fullname == "FAKEVAR3" & !fullname == "FAUX1" & !fullname == "FAUX2" & !fullname == "FAUX3" & !fullname == "FAUX4" & !fullname == "FAUX5") %>%
+  ggplot(aes(x = day, y = value, colour = factor(year))) +
+  geom_line() +
+  geom_point() +
+  theme_bw()+
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(colour = "Year", x = "", y = "") +
+  scale_x_date(date_labels = "%b-%d", date_breaks =  "8 days") +
+    scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5,10), limits=c(-2.5, 10)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=25, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  facet_wrap(~depth+fullname,strip.position="top",ncol=5)
+
+```
+
+
+```{r fig4, fig.height = 10, fig.width = 18}
+#check the FIGURE SIZE (one plot in facet, change to 8. more than 1 plot, change to 18)
+
+p3 <- Summ_22_23_daterange3 %>% filter(!fullname == "FAKEVAR" & !fullname == "FAKEVAR1" & !fullname == "FAKEVAR2" & !fullname == "FAKEVAR3" & !fullname == "FAUX1" & !fullname == "FAUX2" & !fullname == "FAUX3" & !fullname == "FAUX4" & !fullname == "FAUX5") %>%
+  ggplot(aes(x = day, y = value, colour = factor(year))) +
+  geom_line() +
+  geom_point() +
+  theme_bw()+
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs( colour = "Year", x = "", y = "Temperature (°C)") +
+  scale_x_date(date_labels = "%b-%d", date_breaks =  "8 days") +
+    scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5), limits=c(-2.5, 7.5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=25, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  facet_wrap(~depth+fullname,strip.position="top",ncol=5)
+
+```
+
+
+
+```{r fig5, fig.height = 10, fig.width = 18}
+#check the FIGURE SIZE (one plot in facet, change to 8. more than 1 plot, change to 18)
+
+p4 <- Summ_22_23_daterange4 %>% filter(!fullname == "FAKEVAR" & !fullname == "FAKEVAR1" & !fullname == "FAKEVAR2" & !fullname == "FAKEVAR3" & !fullname == "FAUX1" & !fullname == "FAUX2" & !fullname == "FAUX3" & !fullname == "FAUX4" & !fullname == "FAUX5") %>%
+  ggplot(aes(x = day, y = value, colour = factor(year))) +
+  geom_line() +
+  geom_point() +
+  theme_bw()+
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+    labs(colour = "Year", x = "", y = "") +
+  scale_x_date(date_labels = "%b-%d", date_breaks =  "2 days") +
+    scale_y_continuous(breaks=c(-5,-2.5,0,2.5), limits=c(-5, 2.5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+        strip.text= element_text(size=25, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  facet_wrap(~depth+fullname,strip.position="top",ncol=5)
+
+```
+
+
+```{r fig4, fig.height = 20, fig.width = 26}
+grid.arrange(p1,p2,p3,p4, ncol=1)
+```
