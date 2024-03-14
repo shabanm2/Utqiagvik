@@ -1,0 +1,384 @@
+---
+title: "XY Multisite for Loaded and Cleaned Data"
+author: "Elizabeth Van Metre"
+date: "2024-01-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**NOTE: Data are coming from LOADANDCLEAN_DIFFERENCES_IN_AVERAGES.Rmd. That script should be run prior to this one in order to ensure the same data are read.**
+
+**ONLY GROUND TEMP DATA HAVE BEEN CLEANED SO FAR**
+
+
+
+*Names of seasonal data files (cleaned) BY STATION*
+SUMMERGRND22_ALLDEPTHS
+FALL22_ALLDEPTHS
+SPRING23_ALLDEPTHS
+SUMMERGRND23_ALLDEPTHS
+FALL23_ALLDEPTHS *use the BASE STATION as the SOUTH SENSOR here Because SA HAS NO DATA*
+
+*Names of seasonal data files (cleaned) BY SITE*
+SITES_AVG_SUM22_GRND
+SITES_AVG_FALL22_GRND
+SITES_AVG_SPRING23_GRND
+SITES_AVG_SUM23_GRND
+SITES_AVG_FALL23_GRND
+
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+```
+
+
+**Naming Convention**
+
+Filename: Variable_SeasonYEAR_DAILY.csv
+(or _HOURLY or _RAW)
+
+Variables:
+- GroundTemperature
+- AirTemperature
+- VWC
+- Solar
+- WindSpeed
+- WindDirection
+
+
+NOTE: Plots are created for significant variable interactions determined for research. The user can specify which year for which they wish to obtain figures. Depth is also changeable based on user need.
+
+# INPUTS
+
+```{r}
+# currently testing + loading from my local drive -- eventually update wth github link
+filepath <- "/Users/emvanmetre/Desktop/Arctic/X-Y_Plots/data/processed/Combined/"
+```
+
+## SETTINGS
+CHANGE THESE VARIABLES TO DETERMINE WHICH DATA YOU WANT TO REPRESENT
+- Ground temperature sensor depth
+- VWC sensor depth
+```{r}
+# groundtemp depth --> if using ground temperature
+# depths: [3.5cm, 10cm, 20cm, 30cm, 40cm, 50cm, 55cm, 65cm, 75cm, 85cm, 90cm]
+gt_depth <- "30cm"
+# vwc depth --> if using volumetric water content
+# depths: [0-15cm, 15-30cm, 30-45cm, 45-60cm, 60-75cm, 75-90cm]
+vwc_depth <- "30-45cm"
+```
+
+```{r}
+# years: [2022, 2023] -- depends on available data
+year <- "2023"
+```
+
+
+# Load Data
+
+## SUMMER
+
+Load Data for Each Variable:
+```{r}
+season = "Summer"
+
+groundtemp <- read.csv(paste0(filepath, "GroundTemperature_",season,year,"_DAILY.csv"))
+airtemp <- read.csv(paste0(filepath, "AirTemperature_",season,year,"_DAILY.csv"))
+solar <- read.csv(paste0(filepath, "Solar_",season,year,"_DAILY.csv"))
+vwc <- read.csv(paste0(filepath, "VWC_",season,year,"_DAILY.csv"))
+windspeed <- read.csv(paste0(filepath, "WindSpeed_",season,year,"_DAILY.csv"))
+```
+
+```{r}
+#airtemp$fullname <- recode(airtemp$fullname, "BEO-BASE" = "BEO")
+#solar$fullname <- recode(solar$fullname, "BEO-BASE" = "BEO")
+#windspeed$fullname <- recode(windspeed$fullname, "BEO-BASE" = "BEO")
+#groundtemp$fullname <- recode(groundtemp$fullname, "BEO-OLD" = "BEO", "BEO-NEW" = "BEO")
+#vwc$fullname <- recode(vwc$fullname, "BEO-OLD" = "BEO", "BEO-NEW" = "BEO")
+```
+
+
+Combine Data Frames
+```{r}
+summer_allvars <- full_join(groundtemp, airtemp, by=c("Date", "site", "station", "fullname"), suffix = c("GT", "AT")) %>% select(-XGT, -XAT, -depthAT) %>% full_join(solar, by=c("Date", "site", "station", "fullname")) %>% select(-X, -depth) %>% full_join(vwc, by=c("Date", "site", "station", "fullname"), suffix=c("SOL", "VWC")) %>% select(-X) %>% full_join(windspeed, by=c("Date", "site", "station", "fullname"), suffix = c("VWC", "WS")) %>% select(-X, -depthWS) %>% rename(maxWS = max, minWS = min, avgWS = avg, ampWS = amp) %>% filter(depthGT == gt_depth) %>% filter(depthVWC == vwc_depth)
+```
+
+
+## FALL
+
+Load Data for Each Variable:
+```{r}
+season = "Fall"
+
+groundtemp <- read.csv(paste0(filepath, "GroundTemperature_",season,year,"_DAILY.csv"))
+airtemp <- read.csv(paste0(filepath, "AirTemperature_",season,year,"_DAILY.csv"))
+solar <- read.csv(paste0(filepath, "Solar_",season,year,"_DAILY.csv"))
+vwc <- read.csv(paste0(filepath, "VWC_",season,year,"_DAILY.csv"))
+windspeed <- read.csv(paste0(filepath, "WindSpeed_",season,year,"_DAILY.csv"))
+```
+
+```{r}
+#airtemp$fullname <- recode(airtemp$fullname, "BEO-BASE" = "BEO")
+#solar$fullname <- recode(solar$fullname, "BEO-BASE" = "BEO")
+#windspeed$fullname <- recode(windspeed$fullname, "BEO-BASE" = "BEO")
+#groundtemp$fullname <- recode(groundtemp$fullname, "BEO-OLD" = "BEO", "BEO-NEW" = "BEO")
+#vwc$fullname <- recode(vwc$fullname, "BEO-OLD" = "BEO", "BEO-NEW" = "BEO")
+```
+
+Combine Data Frames
+```{r}
+fall_allvars <- full_join(groundtemp, airtemp, by=c("Date", "site", "station", "fullname"), suffix = c("GT", "AT")) %>% select(-XGT, -XAT, -depthAT) %>% full_join(solar, by=c("Date", "site", "station", "fullname")) %>% select(-X, -depth) %>% full_join(vwc, by=c("Date", "site", "station", "fullname"), suffix=c("SOL", "VWC")) %>% select(-X) %>% full_join(windspeed, by=c("Date", "site", "station", "fullname"), suffix = c("VWC", "WS")) %>% select(-X, -depthWS) %>% rename(maxWS = max, minWS = min, avgWS = avg, ampWS = amp) %>% filter(depthGT == gt_depth) %>% filter(depthVWC == vwc_depth)
+```
+
+
+
+## SPRING
+
+Load Data for Each Variable:
+```{r}
+season = "Spring"
+year = "2023"
+
+groundtemp <- read.csv(paste0(filepath, "GroundTemperature_",season,year,"_DAILY.csv"))
+airtemp <- read.csv(paste0(filepath, "AirTemperature_",season,year,"_DAILY.csv"))
+solar <- read.csv(paste0(filepath, "Solar_",season,year,"_DAILY.csv"))
+vwc <- read.csv(paste0(filepath, "VWC_",season,year,"_DAILY.csv"))
+windspeed <- read.csv(paste0(filepath, "WindSpeed_",season,year,"_DAILY.csv"))
+```
+
+```{r}
+#airtemp$fullname <- recode(airtemp$fullname, "BEO-BASE" = "BEO")
+#solar$fullname <- recode(solar$fullname, "BEO-BASE" = "BEO")
+#windspeed$fullname <- recode(windspeed$fullname, "BEO-BASE" = "BEO")
+#groundtemp$fullname <- recode(groundtemp$fullname, "BEO-OLD" = "BEO", "BEO-NEW" = "BEO")
+#vwc$fullname <- recode(vwc$fullname, "BEO-OLD" = "BEO", "BEO-NEW" = "BEO")
+```
+
+Combine Data Frames
+```{r}
+spring_allvars <- full_join(groundtemp, airtemp, by=c("Date", "site", "station", "fullname"), suffix = c("GT", "AT")) %>% select(-XGT, -XAT, -depthAT) %>% full_join(solar, by=c("Date", "site", "station", "fullname")) %>% select(-X, -depth) %>% full_join(vwc, by=c("Date", "site", "station", "fullname"), suffix=c("SOL", "VWC")) %>% select(-X) %>% full_join(windspeed, by=c("Date", "site", "station", "fullname"), suffix = c("VWC", "WS")) %>% select(-X, -depthWS) %>% rename(maxWS = max, minWS = min, avgWS = avg, ampWS = amp) %>% filter(depthGT == gt_depth) %>% filter(depthVWC == vwc_depth)
+```
+
+
+# AIR TEMPERATURE VS GROUND TEMPERATURE
+
+## SUMMER
+
+### SSMH (N/S) and BEO (Control)
+
+```{r}
+xy_at_gt <- summer_allvars %>% select(Date, site, station, avgGT, avgAT) %>% filter((site == "SSMH" & station %in% c("SA", "SB")) | site == "BEO")
+colnames(xy_at_gt)[4:5] <- c("groundtemp","airtemp")
+xy_at_gt = xy_at_gt %>% mutate(sensor = case_when(site=="BEO"~"BEO", station == "SA"~"SSMH South", T~"SSMH North"))
+```
+
+```{r}
+ggplot(data = xy_at_gt, aes(x=airtemp, y = groundtemp, color=sensor)) +
+  geom_point()+
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= paste0("Air Temperature Comparisons to Ground Temperature @ ",gt_depth,",\nfrom ", format(strptime(as.character(min(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y"),"–",format(strptime(as.character(max(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y")), x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+  theme(axis.text.y = element_text(size = 15, face="bold")) +
+  theme(axis.text.x=element_text(angle = 0, hjust = 0.5, size = 15, face="bold"), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid"),
+        title = element_text(face="bold")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15, face="bold")) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10, face="bold"),
+        legend.key.height = unit(1,'cm'))+
+  geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+  scale_color_manual(values =c("BEO"= "#084594", "SSMH North"="#F16565", "SSMH South"="#48E4C7"))
+```
+
+
+
+### TNHA (N/S) and BEO (Control)
+
+```{r}
+xy_at_gt <- summer_allvars %>% select(Date, site, station, avgGT, avgAT) %>% filter((site == "TNHA" & station %in% c("SA", "SC")) | site == "BEO")
+colnames(xy_at_gt)[4:5] <- c("groundtemp","airtemp")
+xy_at_gt = xy_at_gt %>% mutate(sensor = case_when(site=="BEO"~"BEO", station == "SA"~"TNHA South", T~"TNHA North"))
+```
+
+```{r}
+ggplot(data = xy_at_gt, aes(x=airtemp, y = groundtemp, color=sensor)) +
+  geom_point()+
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= paste0("Air Temperature Comparisons to Ground Temperature @ ",gt_depth,",\nfrom ", format(strptime(as.character(min(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y"),"–",format(strptime(as.character(max(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y")), x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+  theme(axis.text.y = element_text(size = 15, face="bold")) +
+  theme(axis.text.x=element_text(angle = 0, hjust = 0.5, size = 15, face="bold"), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid"),
+        title = element_text(face="bold")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15, face="bold")) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10, face="bold"),
+        legend.key.height = unit(1,'cm'))+
+  geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+  scale_color_manual(values =c("BEO"= "#084594", "TNHA North"="#F16565", "TNHA South"="#48E4C7"))
+```
+```{r}
+ggsave("XY_TNHA_Summer_2023.pdf", width = 9, height = 5, units="in")
+```
+
+
+## FALL
+
+### SSMH (N/S) and BEO (Control)
+
+```{r}
+xy_at_gt <- fall_allvars %>% select(Date, site, station, avgGT, avgAT) %>% filter((site == "SSMH" & station %in% c("SA", "SB")) | site == "BEO")
+colnames(xy_at_gt)[4:5] <- c("groundtemp","airtemp")
+xy_at_gt = xy_at_gt %>% mutate(sensor = case_when(site=="BEO"~"BEO", station == "SA"~"SSMH South", T~"SSMH North"))
+```
+
+```{r}
+ggplot(data = xy_at_gt, aes(x=airtemp, y = groundtemp, color=sensor)) +
+  geom_point()+
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= paste0("Air Temperature Comparisons to Ground Temperature @ ",gt_depth,",\nfrom ", format(strptime(as.character(min(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y"),"–",format(strptime(as.character(max(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y")), x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+  theme(axis.text.y = element_text(size = 15, face="bold")) +
+  theme(axis.text.x=element_text(angle = 0, hjust = 0.5, size = 15, face="bold"), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid"),
+        title = element_text(face="bold")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15, face="bold")) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10, face="bold"),
+        legend.key.height = unit(1,'cm'))+
+  geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+  scale_color_manual(values =c("BEO"= "#084594", "SSMH North"="#F16565", "SSMH South"="#48E4C7"))
+```
+
+
+### TNHA (N/S) and BEO (Control)
+
+```{r}
+xy_at_gt <- fall_allvars %>% select(Date, site, station, avgGT, avgAT) %>% filter((site == "TNHA" & station %in% c("SA", "SC")) | site == "BEO")
+colnames(xy_at_gt)[4:5] <- c("groundtemp","airtemp")
+xy_at_gt = xy_at_gt %>% mutate(sensor = case_when(site=="BEO"~"BEO", station == "SA"~"TNHA South", T~"TNHA North"))
+```
+
+```{r}
+ggplot(data = xy_at_gt, aes(x=airtemp, y = groundtemp, color=sensor)) +
+  geom_point()+
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= paste0("Air Temperature Comparisons to Ground Temperature @ ",gt_depth,",\nfrom ", format(strptime(as.character(min(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y"),"–",format(strptime(as.character(max(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y")), x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+  theme(axis.text.y = element_text(size = 15, face="bold")) +
+  theme(axis.text.x=element_text(angle = 0, hjust = 0.5, size = 15, face="bold"), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid"),
+        title = element_text(face="bold")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15, face="bold")) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10, face="bold"),
+        legend.key.height = unit(1,'cm'))+
+  geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+  scale_color_manual(values =c("BEO"= "#084594", "TNHA North"="#F16565", "TNHA South"="#48E4C7"))
+```
+
+```{r}
+ggsave("XY_TNHA_Fall_2023.pdf", width = 9, height = 5, units="in")
+```
+
+
+## SPRING
+
+
+```{r}
+xy_at_gt <- spring_allvars %>% select(Date, site, station, avgGT, avgAT) %>% filter((site == "SSMH" & station %in% c("SA", "SB")) | site == "BEO")
+colnames(xy_at_gt)[4:5] <- c("groundtemp","airtemp")
+xy_at_gt = xy_at_gt %>% mutate(sensor = case_when(site=="BEO"~"BEO", station == "SA"~"SSMH South", T~"SSMH North"))
+```
+
+```{r}
+ggplot(data = xy_at_gt, aes(x=airtemp, y = groundtemp, color=sensor)) +
+  geom_point()+
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= paste0("Air Temperature Comparisons to Ground Temperature @ ",gt_depth,",\nfrom ", format(strptime(as.character(min(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y"),"–",format(strptime(as.character(max(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y")), x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+  theme(axis.text.y = element_text(size = 15, face="bold")) +
+  theme(axis.text.x=element_text(angle = 0, hjust = 0.5, size = 15, face="bold"), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid"),
+        title = element_text(face="bold")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15, face="bold")) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10, face="bold"),
+        legend.key.height = unit(1,'cm'))+
+  geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+  scale_color_manual(values =c("BEO"= "#084594", "SSMH North"="#F16565", "SSMH South"="#48E4C7"))
+```
+
+
+### TNHA (N/S) and BEO (Control)
+
+```{r}
+xy_at_gt <- spring_allvars %>% select(Date, site, station, avgGT, avgAT) %>% filter((site == "TNHA" & station %in% c("SA", "SC")) | site == "BEO")
+colnames(xy_at_gt)[4:5] <- c("groundtemp","airtemp")
+xy_at_gt = xy_at_gt %>% mutate(sensor = case_when(site=="BEO"~"BEO", station == "SA"~"TNHA South", T~"TNHA North"))
+```
+
+```{r}
+ggplot(data = xy_at_gt, aes(x=airtemp, y = groundtemp, color=sensor)) +
+  geom_point()+
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() + 
+    labs(title= paste0("Air Temperature Comparisons to Ground Temperature @ ",gt_depth,",\nfrom ", format(strptime(as.character(min(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y"),"–",format(strptime(as.character(max(xy_at_gt$Date)), "%Y-%m-%d"), "%m/%d/%Y")), x = "Air Temperature (°C)", y="Ground Temperature (°C)",color="Station") + 
+  theme(axis.text.y = element_text(size = 15, face="bold")) +
+  theme(axis.text.x=element_text(angle = 0, hjust = 0.5, size = 15, face="bold"), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid"),
+        title = element_text(face="bold")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15, face="bold")) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10, face="bold"),
+        legend.key.height = unit(1,'cm'))+
+  geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
+  scale_color_manual(values =c("BEO"= "#084594", "TNHA North"="#F16565", "TNHA South"="#48E4C7"))
+```
+```{r}
+ggsave("XY_TNHA_Spring_2023.pdf", width = 9, height = 5, units="in")
+```
+
+
+
