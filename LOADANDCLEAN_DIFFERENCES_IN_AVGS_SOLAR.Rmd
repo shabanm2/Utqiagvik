@@ -1,0 +1,347 @@
+---
+title: "LOADANDCLEAN_DIFFERENCES_IN_AVGS_SOLAR"
+author: "Mirella Shaban"
+date: "2024-08-03"
+output: html_document
+---
+
+
+Loads, cleans, and provides daily averages for solar radiations at all sites and stations for each season provided
+
+load packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape)
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+Load files from Github
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/RECENT_CSV_DOWNLOADS/"
+
+gtfile_summ22 = "Summer_22_grndtmp_2023_11_14_20_50_46_UTC_1.csv"
+airfile_summ22 = "Summer_22_airtmp_2023_11_14_20_57_51_UTC_1.csv"
+vwcfile_summ22 = "Summer_22_VWC_2023_11_14_21_00_08_UTC_1.csv"
+solfile_summ22 = "Summer_22_solar_2023_11_14_21_01_06_UTC_1.csv"
+
+gtfile_fall22 = "Fall_22_grndtmp_2023_11_14_21_31_58_UTC_1.csv"
+airfile_fall22 = "Fall_22_airtmp_2023_11_14_21_43_57_UTC_1.csv"
+vwcfile_fall22 = "Fall_22_VWC_2023_11_14_21_46_41_UTC_1.csv"
+solfile_fall22 = "Fall_22_solar_2023_11_14_21_56_42_UTC_1.csv"
+  
+gtfile_wint22 = "Winter_grndtmp_2023_04_06_12_18_43_UTC_1.csv"
+airfile_wint22 = "Winter_airtemp_2023_04_06_12_02_30_UTC_1.csv"
+vwcfile_wint22 = "Winter_VWC_2023_04_06_12_36_52_UTC_1.csv"
+solfile_wint22 = "Winter_solar_2023_04_06_12_55_01_UTC_1.csv"
+  
+gtfile_spring23 = "New_Spring_2023_grndtmp_2023_11_01_18_20_38_UTC_1.csv"
+airfile_spring23 = "New_Spring_2023_AIRTMP_2023_11_01_18_30_56_UTC_1.csv"
+vwcfile_spring23 = "New_Spring_2023_VWC_2023_11_01_18_26_40_UTC_1.csv"
+solfile_spring23 = "New_Spring_2023_SOLAR_2023_11_01_18_29_33_UTC_1.csv"
+  
+gtfile_summ23 = "New_Summer_2023_GRNDTMP_2023_11_01_18_32_40_UTC_1.csv"
+airfile_summ23 = "New_Summer_2023_AIRTMP_2023_11_01_18_31_41_UTC_1.csv"
+vwcfile_summ23 = "New_Summer_2023_VWC_2023_11_01_18_34_52_UTC_1.csv"
+solfile_summ23 = "New_Summer_2023_SOLAR_2023_11_01_18_33_40_UTC_1.csv"
+
+gtfile_fall23 = "Fall_2023_grndtmp_2023_12_05_19_47_18_UTC_1.csv"
+airfile_fall23 = "Fall_2023_airtemp_2023_12_05_20_08_48_UTC_1.csv"
+vwcfile_fall23 = "Fall_2023_VWC_2023_12_05_20_06_01_UTC_1.csv"
+solfile_fall23 = "Fall_2023_SOLAR_2023_12_05_20_06_48_UTC_1.csv"
+
+```
+
+Solar radiation for all sites data prepping
+```{r}
+solsum22 = read.csv(paste0(filepath, solfile_summ22))
+names(solsum22) <- sub("olar.Radiation..RXW.LIB", "" ,names(solsum22))
+names(solsum22) <- sub("olar.Radiation..S.LIB", "" ,names(solsum22))
+names(solsum22) <- sub("S.", "" ,names(solsum22))
+names(solsum22) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solsum22))
+names(solsum22) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solsum22))
+names(solsum22) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solsum22))
+names(solsum22) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solsum22))
+solsum22$Date <- as.POSIXct(solsum22$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+solfall22 = read.csv(paste0(filepath, solfile_fall22))
+names(solfall22) <- sub("olar.Radiation..RXW.LIB", "" ,names(solfall22))
+names(solfall22) <- sub("olar.Radiation..S.LIB", "" ,names(solfall22))
+names(solfall22) <- sub("S.", "" ,names(solfall22))
+names(solfall22) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solfall22))
+names(solfall22) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solfall22))
+names(solfall22) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solfall22))
+names(solfall22) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solfall22))
+solfall22$Date <- as.POSIXct(solfall22$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+solwint22 = read.csv(paste0(filepath, solfile_wint22))
+names(solwint22) <- sub("olar.Radiation..RXW.LIB", "" ,names(solwint22))
+names(solwint22) <- sub("olar.Radiation..S.LIB", "" ,names(solwint22))
+names(solwint22) <- sub("S.", "" ,names(solwint22))
+names(solwint22) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solwint22))
+names(solwint22) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solwint22))
+names(solwint22) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solwint22))
+names(solwint22) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solwint22))
+solwint22$Date <- as.POSIXct(solwint22$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+solspr23 = read.csv(paste0(filepath, solfile_spring23))
+names(solspr23) <- sub("olar.Radiation..RXW.LIB", "" ,names(solspr23))
+names(solspr23) <- sub("olar.Radiation..S.LIB", "" ,names(solspr23))
+names(solspr23) <- sub("S.", "" ,names(solspr23))
+names(solspr23) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solspr23))
+names(solspr23) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solspr23))
+names(solspr23) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solspr23))
+names(solspr23) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solspr23))
+solspr23$Date <- as.POSIXct(solspr23$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+solsum23 = read.csv(paste0(filepath, solfile_summ23))
+names(solsum23) <- sub("olar.Radiation..RXW.LIB", "" ,names(solsum23))
+names(solsum23) <- sub("olar.Radiation..S.LIB", "" ,names(solsum23))
+names(solsum23) <- sub("S.", "" ,names(solsum23))
+names(solsum23) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solsum23))
+names(solsum23) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solsum23))
+names(solsum23) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solsum23))
+names(solsum23) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solsum23))
+solsum23$Date <- as.POSIXct(solsum23$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+```{r}
+solfall23 = read.csv(paste0(filepath, solfile_fall23))
+names(solfall23) <- sub("olar.Radiation..RXW.LIB", "" ,names(solfall23))
+names(solfall23) <- sub("olar.Radiation..S.LIB", "" ,names(solfall23))
+names(solfall23) <- sub("S.", "" ,names(solfall23))
+names(solfall23) <- sub("...W.m.2..RX3000_BRW1", "" ,names(solfall23))
+names(solfall23) <- sub("...W.m.2..RX3000_BRW4", "" ,names(solfall23))
+names(solfall23) <- sub("...W.m.2..RX3000_BRW5", "" ,names(solfall23))
+names(solfall23) <- sub("...W.m.2..RX3000_BRW6", "" ,names(solfall23))
+solfall23$Date <- as.POSIXct(solfall23$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+cleaning names
+```{r}
+solarrad = gather(solsum22, variable, response, '21198259.21176526.1':'21401803.21390415.1') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-BASE"))
+
+solsum22_clean <- solarrad %>% filter(!value == -888.88)
+```
+
+```{r}
+solarrad = gather(solfall22, variable, response, '21198259.21176526.1':'21401803.21390415.1') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21398616"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-BASE"))
+
+solfall22_clean <- solarrad %>% filter(!value == -888.88)
+```
+
+```{r}
+solarrad = gather(solwint22, variable, response, '21198259.21362315.1_TNHA':'21401803.21390415.1') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21362318"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-BASE"))
+
+solwint22_clean <- solarrad %>% filter(!value == -888.88)
+```
+
+```{r}
+solarrad = gather(solspr23, variable, response, '21198259.21176526.1_TNHA':'21401803.21390415.1_BEO') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21362318"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-BASE"))
+
+solspr23_clean <- solarrad %>% filter(!value == -888.88)
+```
+
+```{r}
+solarrad = gather(solsum23, variable, response, '21198259.21176526.1_TNHA':'21401803.21390415.1_BEO') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21362318"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-BASE"))
+
+solsum23_clean <- solarrad %>% filter(!value == -888.88)
+```
+
+```{r}
+solarrad = gather(solfall23, variable, response, '21401801.21362319.1_SSMH':'21198259.21398620.1_TNHA') %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+solarrad= cSplit(solarrad, 'variable', sep=".", direction = "wide") # texttocols, 
+solarrad$variable_3 <- NULL
+colnames(solarrad)[3:5] <- c("value", "station", "sensor")
+solarrad$value <- as.numeric(as.character(solarrad$value)) 
+solarrad$sensor <- as.factor(as.character(solarrad$sensor))
+solarrad$station <- as.factor(solarrad$station)
+
+solarrad$station <- revalue(solarrad$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO"))
+solarrad$sensor <- revalue(solarrad$sensor, c("21390411" = "BUECI-BASE", "21398618" = "BUECI-SA", "21398624" = "BUECI-SB", "21362313" = "BUECI-SC", "21362316" = "BUECI-SD", "21362320" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", 
+                                              "21390413" ="SSMH-BASE", "21398622" = "SSMH-SA", "21362319" = "SSMH-SB", "21166008" = "SSMH-SC", "21393049" = "SSMH-SD" ,
+                                              "21176526" = "TNHA-BASE", "21398620" = "TNHA-SA", "21362318"="TNHA-SB","21362315" = "TNHA-SD", "21362317" = "TNHA-SC", 
+                                              "21390415" = "BEO-BASE"))
+
+solfall23_clean <- solarrad %>% filter(!value == -888.88)
+```
+Daily average values per station at each site
+
+```{r}
+solsum22_clean$Date <- as.Date(solsum22_clean$Date)
+
+# Group by 'Date' and calculate average 'value' while keeping 'station' and 'sensor'
+solsum22_daily_avg <- solsum22_clean %>% 
+  group_by(sensor, Date) %>%
+  aggregate(value ~ sensor + Date, mean)
+# Print the resulting dataframe to verify
+print(solsum22_daily_avg)
+
+#write.csv(solsum22_clean, "solsum22_clean.csv", row.names = FALSE)
+#checked in Excel on 8/12/24 if the daily average is calculating correctly, CONFIRMED that is is calculating daily average correctly
+```
+
+```{r}
+solfall22_clean$Date <- as.Date(solfall22_clean$Date)
+
+# Group by 'Date' and calculate average 'value' while keeping 'station' and 'sensor'
+solfall22_daily_avg <- solfall22_clean  %>% 
+  group_by(sensor, Date) %>%
+  aggregate(value ~ sensor + Date, mean)
+
+# Print the resulting dataframe to verify
+print(solfall22_daily_avg)
+```
+
+```{r}
+solwint22_clean$Date <- as.Date(solwint22_clean$Date)
+
+# Group by 'Date' and calculate average 'value' while keeping 'station' and 'sensor'
+solwint22_daily_avg <- solwint22_clean   %>%
+  group_by(Date, station, sensor) %>%
+  summarise(
+    avg_value = mean(value, na.rm = TRUE),
+    .groups = 'drop'  # Drops the grouping structure after summarisation
+  )
+
+# Print the resulting dataframe to verify
+print(solwint22_daily_avg)
+```
+
+```{r}
+solspr23_clean$Date <- as.Date(solspr23_clean$Date)
+
+# Group by 'Date' and calculate average 'value' while keeping 'station' and 'sensor'
+solspr23_daily_avg <- solspr23_clean   %>%
+  group_by(Date, station, sensor) %>%
+  summarise(
+    avg_value = mean(value, na.rm = TRUE),
+    .groups = 'drop'  # Drops the grouping structure after summarisation
+  )
+# Print the resulting dataframe to verify
+print(solspr23_daily_avg)
+```
+
+```{r}
+solsum23_clean$Date <- as.Date(solsum23_clean$Date)
+
+# Group by 'Date' and calculate average 'value' while keeping 'station' and 'sensor'
+solsum23_daily_avg <- solsum23_clean %>%
+  group_by(Date, station, sensor) %>%
+  summarise(
+    avg_value = mean(value, na.rm = TRUE),
+    .groups = 'drop'  # Drops the grouping structure after summarisation
+  )
+
+# Print the resulting dataframe to verify
+print(solsum23_daily_avg)
+```
+
+```{r}
+solfall23_clean$Date <- as.Date(solfall23_clean$Date)
+
+# Group by 'Date' and calculate average 'value' while keeping 'station' and 'sensor'
+solfall23_daily_avg <- solfall23_clean %>%
+  group_by(Date, station, sensor) %>%
+  summarise(
+    avg_value = mean(value, na.rm = TRUE),
+    .groups = 'drop'  # Drops the grouping structure after summarisation
+  )
+
+# Print the resulting dataframe to verify
+print(solfall23_daily_avg)
+```
