@@ -1,0 +1,667 @@
+---
+title: "LOADANDCLEAN_DIFFERENCES_IN_AVERAGES_AIRTMP"
+author: "Mirella Shaban"
+date: "2024-09-09"
+output: html_document
+---
+
+Load files from Github
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/RECENT_CSV_DOWNLOADS/"
+
+gtfile_summ22 = "Summer_22_grndtmp_2023_11_14_20_50_46_UTC_1.csv"
+airfile_summ22 = "Summer_22_airtmp_2023_11_14_20_57_51_UTC_1.csv"
+vwcfile_summ22 = "Summer_22_VWC_2023_11_14_21_00_08_UTC_1.csv"
+solfile_summ22 = "Summer_22_solar_2023_11_14_21_01_06_UTC_1.csv"
+
+gtfile_fall22 = "Fall_22_grndtmp_2023_11_14_21_31_58_UTC_1.csv"
+airfile_fall22 = "Fall_22_airtmp_2023_11_14_21_43_57_UTC_1.csv"
+vwcfile_fall22 = "Fall_22_VWC_2023_11_14_21_46_41_UTC_1.csv"
+solfile_fall22 = "Fall_22_solar_2023_11_14_21_56_42_UTC_1.csv"
+  
+gtfile_wint22 = "Winter_grndtmp_2023_04_06_12_18_43_UTC_1.csv"
+airfile_wint22 = "Winter_airtemp_2023_04_06_12_02_30_UTC_1.csv"
+vwcfile_wint22 = "Winter_VWC_2023_04_06_12_36_52_UTC_1.csv"
+solfile_wint22 = "Winter_solar_2023_04_06_12_55_01_UTC_1.csv"
+  
+gtfile_spring23 = "New_Spring_2023_grndtmp_2023_11_01_18_20_38_UTC_1.csv"
+airfile_spring23 = "New_Spring_2023_AIRTMP_2023_11_01_18_30_56_UTC_1.csv"
+vwcfile_spring23 = "New_Spring_2023_VWC_2023_11_01_18_26_40_UTC_1.csv"
+solfile_spring23 = "New_Spring_2023_SOLAR_2023_11_01_18_29_33_UTC_1.csv"
+  
+gtfile_summ23 = "New_Summer_2023_GRNDTMP_2023_11_01_18_32_40_UTC_1.csv"
+airfile_summ23 = "New_Summer_2023_AIRTMP_2023_11_01_18_31_41_UTC_1.csv"
+vwcfile_summ23 = "New_Summer_2023_VWC_2023_11_01_18_34_52_UTC_1.csv"
+solfile_summ23 = "New_Summer_2023_SOLAR_2023_11_01_18_33_40_UTC_1.csv"
+
+gtfile_fall23 = "Fall_2023_grndtmp_2023_12_05_19_47_18_UTC_1.csv"
+airfile_fall23 = "Fall_2023_airtemp_2023_12_05_20_08_48_UTC_1.csv"
+vwcfile_fall23 = "Fall_2023_VWC_2023_12_05_20_06_01_UTC_1.csv"
+solfile_fall23 = "Fall_2023_SOLAR_2023_12_05_20_06_48_UTC_1.csv"
+
+gtfile_wint24 = "Winter_grndtmp_2024_2024_04_15_15_48_46_UTC_1.csv"
+airfile_wint24 = "Winter_airtemp_2024_2024_04_15_15_57_35_UTC_1.csv"
+vwcfile_wint24 = "Winter_VWC_2024_2024_04_15_16_29_21_UTC_1.csv"
+solfile_wint24 = "Winter_solar_2024_2024_04_15_16_00_03_UTC_1.csv"
+
+gtfile_spring24 = "Spring_24_grndtmp_2024_09_05_18_29_26_UTC_1.csv"
+airfile_spring24 = "Spring_24_airtmp_2024_09_05_18_35_01_UTC_1.csv"
+vwcfile_spring24 = "Spring_24_VWC_2024_09_05_18_35_56_UTC_1.csv"
+solfile_spring24 = "Spring_24_solar_2024_09_05_18_39_10_UTC_1.csv"
+
+gtfile_summ24 = "Summer_24_grndtmp_2024_09_05_18_47_49_UTC_1.csv"
+airfile_summ24 = "Summer_24_airtmp_2024_09_05_18_48_59_UTC_1.csv"
+vwcfile_summ24 = "Summer_24_VWC_2024_09_05_18_46_46_UTC_1.csv"
+solfile_summ24 = "Summer_24_solar_2024_09_05_18_46_02_UTC_1.csv"
+
+#need to code in winter 24, spring 24, summer 24
+
+```
+
+
+
+#################################
+*AIR TEMPERATURES AVERAGING*
+#################################
+-----------------
+
+AIR SUMMER 2022
+```{r}
+air22 =read.csv(paste0(filepath, airfile_summ22))
+names(air22) <- sub("Temperature..RXW.THC.", "" ,names(air22))
+names(air22) <- sub("Temperature..S.THC.", "" ,names(air22))
+names(air22) <- sub("S.", "" ,names(air22))
+names(air22) <- sub("....C..RX3000_BRW1", "" ,names(air22))
+names(air22) <- sub("....C..RX3000_BRW4", "" ,names(air22))
+names(air22) <- sub("....C..RX3000_BRW5", "" ,names(air22))
+names(air22) <- sub("....C..RX3000_BRW6", "" ,names(air22))
+air22$Date <- as.POSIXct(air22$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+AIR FALL 2022
+
+```{r}
+airfall22 =read.csv(paste0(filepath, airfile_fall22))
+names(airfall22) <- sub("Temperature..RXW.THC.", "" ,names(airfall22))
+names(airfall22) <- sub("Temperature..S.THC.", "" ,names(airfall22))
+names(airfall22) <- sub("S.", "" ,names(airfall22))
+names(airfall22) <- sub("....C..RX3000_BRW1", "" ,names(airfall22))
+names(airfall22) <- sub("....C..RX3000_BRW4", "" ,names(airfall22))
+names(airfall22) <- sub("....C..RX3000_BRW5", "" ,names(airfall22))
+names(airfall22) <- sub("....C..RX3000_BRW6", "" ,names(airfall22))
+airfall22$Date <- as.POSIXct(airfall22$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+AIR SPRING 2023
+```{r}
+air_sp2023=read.csv(paste0(filepath, airfile_spring23))
+names(air_sp2023) <- sub("Temperature..RXW.THC.", "" ,names(air_sp2023))
+names(air_sp2023) <- sub("Temperature..S.THC.", "" ,names(air_sp2023))
+names(air_sp2023) <- sub("S.", "" ,names(air_sp2023))
+names(air_sp2023) <- sub("....C..RX3000_BRW1", "" ,names(air_sp2023))
+names(air_sp2023) <- sub("....C..RX3000_BRW4", "" ,names(air_sp2023))
+names(air_sp2023) <- sub("....C..RX3000_BRW5", "" ,names(air_sp2023))
+names(air_sp2023) <- sub("....C..RX3000_BRW6", "" ,names(air_sp2023))
+air_sp2023$Date <- as.POSIXct(air_sp2023$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+AIR SUMMER 2023
+```{r}
+air_sum2023=read.csv(paste0(filepath, airfile_summ23))
+names(air_sum2023) <- sub("Temperature..RXW.THC.", "" ,names(air_sum2023))
+names(air_sum2023) <- sub("Temperature..S.THC.", "" ,names(air_sum2023))
+names(air_sum2023) <- sub("S.", "" ,names(air_sum2023))
+names(air_sum2023) <- sub("....C..RX3000_BRW1", "" ,names(air_sum2023))
+names(air_sum2023) <- sub("....C..RX3000_BRW4", "" ,names(air_sum2023))
+names(air_sum2023) <- sub("....C..RX3000_BRW5", "" ,names(air_sum2023))
+names(air_sum2023) <- sub("....C..RX3000_BRW6", "" ,names(air_sum2023))
+air_sum2023$Date <- as.POSIXct(air_sum2023$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+AIR FALL 2023 
+Fall_2023_airtemp_2023_12_05_20_08_48_UTC_1.csv
+```{r}
+air_fall2023=read.csv(paste0(filepath, airfile_fall23))
+names(air_fall2023) <- sub("Temperature..RXW.THC.", "" ,names(air_fall2023))
+names(air_fall2023) <- sub("Temperature..S.THC.", "" ,names(air_fall2023))
+names(air_fall2023) <- sub("S.", "" ,names(air_fall2023))
+names(air_fall2023) <- sub("....C..RX3000_BRW1", "" ,names(air_fall2023))
+names(air_fall2023) <- sub("....C..RX3000_BRW4", "" ,names(air_fall2023))
+names(air_fall2023) <- sub("....C..RX3000_BRW5", "" ,names(air_fall2023))
+names(air_fall2023) <- sub("....C..RX3000_BRW6", "" ,names(air_fall2023))
+air_fall2023$Date <- as.POSIXct(air_fall2023$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+WINTER 23 - 24
+```{r}
+air_wint2024=read.csv(paste0(filepath, airfile_wint24))
+names(air_wint2024) <- sub("Temperature..RXW.THC.", "" ,names(air_wint2024))
+names(air_wint2024) <- sub("Temperature..S.THC.", "" ,names(air_wint2024))
+names(air_wint2024) <- sub("S.", "" ,names(air_wint2024))
+names(air_wint2024) <- sub("....C..RX3000_BRW1", "" ,names(air_wint2024))
+names(air_wint2024) <- sub("....C..RX3000_BRW4", "" ,names(air_wint2024))
+names(air_wint2024) <- sub("....C..RX3000_BRW5", "" ,names(air_wint2024))
+names(air_wint2024) <- sub("....C..RX3000_BRW6", "" ,names(air_wint2024))
+air_wint2024$Date <- as.POSIXct(air_wint2024$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+SPRING 24
+```{r}
+air_spring2024=read.csv(paste0(filepath, airfile_spring24))
+names(air_spring2024) <- sub("Temperature..RXW.THC.", "" ,names(air_spring2024))
+names(air_spring2024) <- sub("Temperature..S.THC.", "" ,names(air_spring2024))
+names(air_spring2024) <- sub("S.", "" ,names(air_spring2024))
+names(air_spring2024) <- sub("....C..RX3000_BRW1", "" ,names(air_spring2024))
+names(air_spring2024) <- sub("....C..RX3000_BRW4", "" ,names(air_spring2024))
+names(air_spring2024) <- sub("....C..RX3000_BRW5", "" ,names(air_spring2024))
+names(air_spring2024) <- sub("....C..RX3000_BRW6", "" ,names(air_spring2024))
+air_spring2024$Date <- as.POSIXct(air_spring2024$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+SUMMER 24
+```{r}
+air_summ24=read.csv(paste0(filepath, airfile_summ24))
+names(air_summ24) <- sub("Temperature..RXW.THC.", "" ,names(air_summ24))
+names(air_summ24) <- sub("Temperature..S.THC.", "" ,names(air_summ24))
+names(air_summ24) <- sub("S.", "" ,names(air_summ24))
+names(air_summ24) <- sub("....C..RX3000_BRW1", "" ,names(air_summ24))
+names(air_summ24) <- sub("....C..RX3000_BRW4", "" ,names(air_summ24))
+names(air_summ24) <- sub("....C..RX3000_BRW5", "" ,names(air_summ24))
+names(air_summ24) <- sub("....C..RX3000_BRW6", "" ,names(air_summ24))
+air_summ24$Date <- as.POSIXct(air_summ24$Date,format="%m/%d/%y %H:%M",tz="UTC")
+```
+
+
+
+
+############# DATA CLEANING
+
+summer22
+```{r}
+airtemp = gather(air22, variable, response, "21198259.21218018.1":"21401803.21397541.1") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+summer22airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+summer22airtemp$variable_3 <- NULL
+colnames(summer22airtemp)[3:5] <- c("value", "station", "sensor")
+summer22airtemp$value <- as.numeric(as.character(summer22airtemp$value)) 
+summer22airtemp$sensor <- as.factor(as.character(summer22airtemp$sensor))
+summer22airtemp$station <- as.factor(summer22airtemp$station)
+
+summer22airtemp$station <- revalue(summer22airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+summer22airtemp$sensor <- revalue(summer22airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-SB'))
+
+### need to correct the names for bueci stations, i dont have the metadata clearly on here for the air teperature sensors
+```
+fall22
+```{r}
+airtemp = gather(airfall22, variable, response, "21198259.21218018.1":"21401803.21397541.1") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+fall22airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+fall22airtemp$variable_3 <- NULL
+colnames(fall22airtemp)[3:5] <- c("value", "station", "sensor")
+fall22airtemp$value <- as.numeric(as.character(fall22airtemp$value)) 
+fall22airtemp$sensor <- as.factor(as.character(fall22airtemp$sensor))
+fall22airtemp$station <- as.factor(fall22airtemp$station)
+
+fall22airtemp$station <- revalue(fall22airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+fall22airtemp$sensor <- revalue(fall22airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-SB'))
+```
+spring23
+
+# need to adjust the column names in first line of code to properly represent the file #
+```{r}
+airtemp = gather(air_sp2023, variable, response, "21198259.21380919.1_TNHA":"21401803.21397541.1_BEO") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+spr23airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+spr23airtemp= cSplit(spr23airtemp, 'variable_3', sep="1_", direction = "wide") 
+spr23airtemp$variable_3_1 <- NULL
+colnames(spr23airtemp)[3:6] <- c("value", "station", "sensor","site")
+spr23airtemp$value <- as.numeric(as.character(spr23airtemp$value)) 
+spr23airtemp$sensor <- as.factor(as.character(spr23airtemp$sensor))
+spr23airtemp$station <- as.factor(spr23airtemp$station)
+spr23airtemp$site <- as.factor(spr23airtemp$site)
+spr23airtemp$station <- revalue(spr23airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+spr23airtemp$sensor <- revalue(spr23airtemp$sensor,c('21187245'='BUECI-SE','21218018'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-SB'))
+
+```
+
+
+summer23
+```{r}
+airtempsum23 = gather(air_sum2023, variable, response, "21198259.21380919.1_TNHA":"21401801.21398667.1_MH") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+summer23airtemp= cSplit(airtempsum23, 'variable', sep=".", direction = "wide") 
+summer23airtemp= cSplit(summer23airtemp, 'variable_3', sep="1_", direction = "wide") 
+summer23airtemp$variable_3_1 <- NULL
+colnames(summer23airtemp)[3:6] <- c("value", "station", "sensor","site")
+summer23airtemp$value <- as.numeric(as.character(summer23airtemp$value)) 
+summer23airtemp$sensor <- as.factor(as.character(summer23airtemp$sensor))
+summer23airtemp$station <- as.factor(summer23airtemp$station)
+summer23airtemp$site <- as.factor(summer23airtemp$site)
+summer23airtemp$station <- revalue(summer23airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+summer23airtemp$sensor <- revalue(summer23airtemp$sensor, c('21187245'='BUECI-SE','21218018'='TNHA-BASEOLD','21390850'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-SB', '21380922'='SSMH-REPEATER2', '21398667'='SSMH-SI'))
+
+
+#### need to adjust for the air temp sensors
+```
+
+fall23
+```{r}
+names(air_fall2023) <- sub("Temperature..RXW.TMB.", "", names(air_fall2023))
+airtemp = gather(air_fall2023, variable, response, "21198259.21380919.1_TNHA":"21198259.21212510.1_TNHA") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+fall23airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+fall23airtemp= cSplit(fall23airtemp, 'variable_3', sep="1_", direction = "wide") 
+fall23airtemp$variable_3_1 <- NULL
+colnames(fall23airtemp)[3:6] <- c("value", "station", "sensor", "site")
+fall23airtemp$value <- as.numeric(as.character(fall23airtemp$value)) 
+fall23airtemp$sensor <- as.factor(as.character(fall23airtemp$sensor))
+fall23airtemp$station <- as.factor(fall23airtemp$station)
+fall23airtemp$site <- as.factor(fall23airtemp$site)
+fall23airtemp$station <- revalue(fall23airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+fall23airtemp$sensor <- revalue(fall23airtemp$sensor, c('21187245'='BUECI-SE','21390850'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-SB', '21212510'='TNHA-SE'))
+```
+
+wint23-24
+```{r}
+names(air_wint2024) <- sub("Temperature..RXW.TMB.", "", names(air_wint2024))
+airtemp = gather(air_wint2024, variable, response, "21198259.21390850.1_TNHA":"21401801.21215426.1_MH") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+wint23airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+wint23airtemp$'21401801.21215426.1_MH' <- NULL
+wint23airtemp= cSplit(wint23airtemp, 'variable_3', sep="1_", direction = "wide") 
+wint23airtemp$'variable_3_1' <- NULL
+
+colnames(wint23airtemp)[3:6] <- c("value", "station", "sensor", "site")
+wint23airtemp$value <- as.numeric(as.character(wint23airtemp$value)) 
+wint23airtemp$sensor <- as.factor(as.character(wint23airtemp$sensor))
+wint23airtemp$station <- as.factor(wint23airtemp$station)
+wint23airtemp$site <- as.factor(wint23airtemp$site)
+wint23airtemp$station <- revalue(wint23airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+wint23airtemp$sensor <- revalue(wint23airtemp$sensor, c('21187245'='BUECI-SE','21390850'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21380919' = 'TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-SB', '21212510'='TNHA-SE'))
+
+wint23airtemp <- wint23airtemp %>% filter(!value == -888.88)
+```
+
+spring 24
+```{r}
+names(air_spring2024) <- sub("Temperature..RXW.TMB.", "", names(air_spring2024))
+airtemp = gather(air_spring2024, variable, response, "21198259.21380919.1_TNHA":"21401801.21398670.1_MH") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+spr24airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+spr24airtemp= cSplit(spr24airtemp, 'variable_3', sep="1_", direction = "wide") 
+spr24airtemp$variable_3_1 <- NULL
+colnames(spr24airtemp)[3:6] <- c("value", "station", "sensor", "site")
+spr24airtemp$value <- as.numeric(as.character(spr24airtemp$value)) 
+spr24airtemp$sensor <- as.factor(as.character(spr24airtemp$sensor))
+spr24airtemp$station <- as.factor(spr24airtemp$station)
+spr24airtemp$site <- as.factor(spr24airtemp$site)
+spr24airtemp$station <- revalue(spr24airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+spr24airtemp$sensor <- revalue(spr24airtemp$sensor, c('21187245'='BUECI-SE','21390850'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA', '21380919' = 'TNHA-SA', '21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-SB', '21212510'='TNHA-SE'))
+```
+
+summ24
+```{r}
+names(air_summ24) <- sub("Temperature..RXW.TMB.", "", names(air_summ24))
+airtemp = gather(air_summ24, variable, response, "21198259.21380919.1_TNHA":"21401803.21981318.1_BEO") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+summ24airtemp= cSplit(airtemp, 'variable', sep=".", direction = "wide") 
+summ24airtemp= cSplit(summ24airtemp, 'variable_3', sep="1_", direction = "wide") 
+summ24airtemp$variable_3_1 <- NULL
+colnames(summ24airtemp)[3:6] <- c("value", "station", "sensor", "site")
+summ24airtemp$value <- as.numeric(as.character(summ24airtemp$value)) 
+summ24airtemp$sensor <- as.factor(as.character(summ24airtemp$sensor))
+summ24airtemp$station <- as.factor(summ24airtemp$station)
+summ24airtemp$site <- as.factor(summ24airtemp$site)
+summ24airtemp$station <- revalue(summ24airtemp$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) 
+
+summ24airtemp$sensor <- revalue(summ24airtemp$sensor, c('21187245'='BUECI-SE','21390850'='TNHA-BASE','21362254'='BUECI-SB','21362256'='BUECI-SD','21380919'='TNHA-SA','21390849'='SSMH-BASE','21390851'='BUECI-BASE','21397541'='BEO-BASE','21398665'='SSMH-SB','21398666'='TNHA-SD','21398668'='BUECI-SC','21398670'='SSMH-SA','21398671'='BUECI-SA','21398674'='TNHA-SC','21398676'='TNHA-SB','21397542'='BUECI-BASE??','21398659'='BUECI-__','21398661'='BUECI-__','21398664'='TNHA-SB', '21212510'='TNHA-SE'))
+```
+
+
+# now we need to get daily averages (similar to grnd tmp script, without multidepth!)
+#####################
+
+summ 22
+```{r}
+air_daily_summ22 <- summer22airtemp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
+
+air_daily_summ22 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+air_daily_summ22$time <- format(as.Date(
+  air_daily_summ22$Date),format = "%H:%M:%S")
+air_daily_summ22$day <- as.Date(air_daily_summ22$Date)
+
+
+Daily_average_air_per_sensor <- air_daily_summ22 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_air_per_sensor <-  cSplit(Daily_average_air_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_air_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_air_per_sensor$fullname <- paste(Daily_average_air_per_sensor$station,Daily_average_air_per_sensor$sensor,sep="-")
+
+TNHA_DAILY <- Daily_average_air_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_air_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_air_per_sensor %>% filter(station == "BEO")
+BUECI_DAILY <- Daily_average_air_per_sensor %>% filter(station == "BUECI")
+
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2022-09-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=75)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=75)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=75)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BUECI-SC", "BUECI-SB","BUECI-SD", "BUECI-SE", "BUECI-BASE", "BUECI-SA", "BUECI-SF01", "BUECI-SF02", "FAKEVAR", "FAKEVAR2", "FAKEVAR3", "FAKERVAR4", "FAKRVAR5", "FAKEVAR6", "FAKEVAR7"),each=25)
+testdf3 <- data.frame(date,fullname,val)
+BUECI_NONA <- left_join(testdf3,BUECI_DAILY, by=c("date","fullname"))
+
+DAILY_AIR_SUMM22 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA, BUECI_NONA)
+
+```
+
+fall 22
+```{r}
+air_daily_fall22 <- fall22airtemp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
+
+air_daily_fall22 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+air_daily_fall22$time <- format(as.Date(
+  air_daily_fall22$Date),format = "%H:%M:%S")
+air_daily_fall22$day <- as.Date(air_daily_fall22$Date)
+
+
+Daily_average_air_per_sensor <- air_daily_fall22 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_air_per_sensor <-  cSplit(Daily_average_air_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_air_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_air_per_sensor$fullname <- paste(Daily_average_air_per_sensor$station,Daily_average_air_per_sensor$sensor,sep="-")
+
+TNHA_DAILY <- Daily_average_air_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_air_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_air_per_sensor %>% filter(station == "BEO")
+BUECI_DAILY <- Daily_average_air_per_sensor %>% filter(station == "BUECI")
+
+date <- rep(seq(as.Date("2022-09-01"), as.Date("2022-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=92)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BUECI-SC", "BUECI-SB","BUECI-SD", "BUECI-SE", "BUECI-BASE", "BUECI-SA", "BUECI-SF01", "BUECI-SF02", "FAKEVAR", "FAKEVAR2"),each=46)
+testdf3 <- data.frame(date,fullname,val)
+BUECI_NONA <- left_join(testdf3,BUECI_DAILY, by=c("date","fullname"))
+
+DAILY_AIR_FALL22 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA, BUECI_NONA)
+
+```
+
+
+spr 23
+```{r}
+air_daily_spr23 <- spr23airtemp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
+
+air_daily_spr23 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+air_daily_spr23$time <- format(as.Date(
+  air_daily_spr23$Date),format = "%H:%M:%S")
+air_daily_spr23$day <- as.Date(air_daily_spr23$Date)
+
+
+Daily_average_air_per_sensor <- air_daily_spr23 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_air_per_sensor <-  cSplit(Daily_average_air_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_air_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_air_per_sensor$fullname <- paste(Daily_average_air_per_sensor$station,Daily_average_air_per_sensor$sensor,sep="-")
+
+TNHA_DAILY <- Daily_average_air_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_air_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_air_per_sensor %>% filter(station == "BEO")
+BUECI_DAILY <- Daily_average_air_per_sensor %>% filter(station == "BUECI")
+
+date <- rep(seq(as.Date("2023-03-01"), as.Date("2023-06-01"), by="day"),5)
+val <- rep(1,length(date))
+
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=93)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=93)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=93)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BUECI-SC", "BUECI-SB","BUECI-SD", "BUECI-SE", "BUECI-BASE", "BUECI-SA", "BUECI-SF01", "BUECI-SF02", "FAKEVAR", "FAKEVAR2", "FAKEVAR3", "FAKERVAR4", "FAKRVAR5", "FAKEVAR6", "FAKEVAR7"),each=31)
+testdf3 <- data.frame(date,fullname,val)
+BUECI_NONA <- left_join(testdf3,BUECI_DAILY, by=c("date","fullname"))
+
+DAILY_AIR_SPR23 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA, BUECI_NONA)
+```
+
+summ 23
+```{r}
+air_daily_summ23 <- sum23grndtmp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
+
+air_daily_spr23 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+air_daily_summ23$time <- format(as.Date(
+  air_daily_summ23$Date),format = "%H:%M:%S")
+air_daily_summ23$day <- as.Date(air_daily_summ23$Date)
+
+
+Daily_average_air_per_sensor <- air_daily_summ23 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_air_per_sensor <-  cSplit(Daily_average_air_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_air_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_air_per_sensor$fullname <- paste(Daily_average_air_per_sensor$station,Daily_average_air_per_sensor$sensor,sep="-")
+
+TNHA_DAILY <- Daily_average_air_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_air_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_air_per_sensor %>% filter(station == "BEO")
+BUECI_DAILY <- Daily_average_air_per_sensor %>% filter(station == "BUECI")
+
+date <- rep(seq(as.Date("2023-06-01"), as.Date("2023-09-01"), by="day"),5)
+val <- rep(1,length(date))
+
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=93)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD", "SSMH-SE","SSMH-SF","SSMH-SG", "SSMH-SH", "SSMH-SI", "FAUX1", "FAUX2", "FAUX3", "FAUX4", "FAUX5"),each=31)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","BEO-B07", "BEO-B08", "FAKEVAR3"),each=93)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BUECI-SC", "BUECI-SB","BUECI-SD", "BUECI-SE", "BUECI-BASE", "BUECI-SA", "BUECI-SF01", "BUECI-SF02", "FAKEVAR", "FAKEVAR2", "FAKEVAR3", "FAKERVAR4", "FAKRVAR5", "FAKEVAR6", "FAKEVAR7"),each=31)
+testdf3 <- data.frame(date,fullname,val)
+BUECI_NONA <- left_join(testdf3,BUECI_DAILY, by=c("date","fullname"))
+
+DAILY_AIR_SUMM23 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA, BUECI_NONA)
+```
+
+
+fall 23
+```{r}
+air_daily_fall23 <- fall23airtemp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
+
+air_daily_fall23 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+air_daily_fall23$time <- format(as.Date(
+  air_daily_fall23$Date),format = "%H:%M:%S")
+air_daily_fall23$day <- as.Date(air_daily_fall23$Date)
+
+
+Daily_average_air_per_sensor <- air_daily_fall23 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_air_per_sensor <-  cSplit(Daily_average_air_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_air_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_air_per_sensor$fullname <- paste(Daily_average_air_per_sensor$station,Daily_average_air_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+BUECI_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "BUECI")
+
+date <- rep(seq(as.Date("2023-09-01"), as.Date("2023-12-01"), by="day"),5)
+val <- rep(1,length(date))
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD", "SSMH-SE","SSMH-SF","SSMH-SG", "SSMH-SH", "SSMH-SI"),each=46)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","BEO-B07", "BEO-B08", "FAKEVAR3"),each=92)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BUECI-SC", "BUECI-SB","BUECI-SD", "BUECI-SE", "BUECI-BASE", "BUECI-SA", "BUECI-SF01", "BUECI-SF02", "FAKEVAR", "FAKEVAR2"),each=46)
+testdf3 <- data.frame(date,fullname,val)
+BUECI_NONA <- left_join(testdf3,BUECI_DAILY, by=c("date","fullname"))
+
+DAILY_AIR_FALL23 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA, BUECI_NONA)
+```
+
+#need to add spring 2024
+
+summ 24
+```{r}
+air_daily_summ24 <- summ24airtemp %>% subset() %>% select(value,sensor,Date) %>% filter( !value == "-888.8") 
+
+air_daily_summ24 %>%
+  mutate(date = day(Date))  %>%
+  group_by(date,sensor,value) %>%
+  summarize(mean_X1 = mean(value)) %>% 
+  aggregate( value ~ sensor, mean ) %>%
+  group_by(sensor)
+
+air_daily_summ24$time <- format(as.Date(
+  air_daily_summ24$Date),format = "%H:%M:%S")
+air_daily_summ24$day <- as.Date(air_daily_summ24$Date)
+
+
+Daily_average_air_per_sensor <- air_daily_summ24 %>% 
+  group_by(sensor, day) %>%
+  aggregate(value ~ sensor + day, mean)
+
+
+Daily_average_air_per_sensor <-  cSplit(Daily_average_air_per_sensor, 'sensor', sep="-", direction = "wide")
+colnames(Daily_average_air_per_sensor)[1:4] <- c("date","value","station","sensor")
+Daily_average_air_per_sensor$fullname <- paste(Daily_average_air_per_sensor$station,Daily_average_air_per_sensor$sensor,sep="-")
+
+
+TNHA_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "TNHA")
+SSMH_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "SSMH")
+BEO_DAILY<- Daily_average_grnd_per_sensor %>% filter(station == "BEO")
+BUECI_DAILY <- Daily_average_grnd_per_sensor %>% filter(station == "BUECI")
+
+date <- rep(seq(as.Date("2024-06-01"), as.Date("2024-08-31"), by="day"),5)
+val <- rep(1,length(date))
+
+fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=92)
+testdf <- data.frame(date,fullname,val)
+TNHA_NONA <- left_join(testdf,TNHA_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD", "SSMH-SE","SSMH-SF","SSMH-SG", "SSMH-SH", "SSMH-SI"),each=46)
+testdf2 <- data.frame(date,fullname,val)
+SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BEO-B05", "BEO-B06","BEO-B07", "BEO-B08"),each=115)
+testdf3 <- data.frame(date,fullname,val)
+BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
+
+fullname <- rep(c("BUECI-SC", "BUECI-SB","BUECI-SD", "BUECI-SE", "BUECI-BASE", "BUECI-SA", "BUECI-SF01", "BUECI-SF02", "FAKEVAR", "FAKEVAR2"),each=46)
+testdf3 <- data.frame(date,fullname,val)
+BUECI_NONA <- left_join(testdf3,BUECI_DAILY, by=c("date","fullname"))
+
+DAILY_AIR_SUMM24 <- rbind(TNHA_NONA,BEO_NONA,SSMH_NONA, BUECI_NONA)
+```
