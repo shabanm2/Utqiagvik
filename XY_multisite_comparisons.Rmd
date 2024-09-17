@@ -1,7 +1,7 @@
 ---
 title: "X-Y Multisite Comparison Plots"
 author: "Mirella Shaban"
-date: '2024-01-24'
+date: '2024-09-17'
 output: html_document
 ---
 
@@ -12,7 +12,7 @@ filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorolog
 
 #Daily Step
 datemin = "2022-06-19"
-datemax = "2022-09-19"
+datemax = "2022-09-01"
 
 #Depth of Interest
 bestdepth = 8 #8 == 10cm
@@ -426,6 +426,36 @@ XY_grnd_air= averages %>% filter(station == "TNHA" | station == "BEO")
 
 ```
 
+
+
+```{r}
+#get linear regressions for each ind. slope ??
+fit1 <- lm(grndtmp ~ airtemp, data = XY_grnd_air)
+summary(fit1)
+corfit <- cor(XY_grnd_air$airtemp,XY_grnd_air$grndtmp, use = 'complete.obs')
+print("Correlation coefficint")
+print(corfit)
+
+```
+```{r}
+# Get the model residuals
+model_residuals = fit1$residuals
+
+# Plot the result
+hist(model_residuals)
+```
+```{r}
+# Plot the residuals
+qqnorm(model_residuals)
+# Plot the Q-Q line
+qqline(model_residuals)
+```
+
+
+
+
+
+
 All SSMH sites (w/airtemp sensors) vs BEO-B06 comparisons
 
 ```{r}
@@ -458,8 +488,77 @@ XY_grnd_air= averages %>% filter(station == "SSMH" | station == "BEO")
 #color references:  "TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E",
 
 ```
+```{r}
+fit1 <- lm(grndtmp ~ airtemp, data = XY_grnd_air)
+summary(fit1)
+corfit <- cor(XY_grnd_air$airtemp,XY_grnd_air$grndtmp, use = 'complete.obs')
+print("Correlation coefficint")
+print(corfit)
+```
+
+```{r}
+# Get the model residuals
+model_residuals = fit1$residuals
+
+# Plot the result
+hist(model_residuals)
+```
+```{r}
+# Plot the residuals
+qqnorm(model_residuals)
+# Plot the Q-Q line
+qqline(model_residuals)
+```
 
 
+#ALL STATIONS (EXCL. BUECI) FOR LM ANALYSIS
+
+```{r}
+
+XY_grnd_avgs = averages %>% filter(!station == "BUECI") 
+  ggplot(data = XY_grnd_avgs, aes(x=airtemp, y = amplitude, color=sensor)) +
+  geom_point()+
+  theme_bw() + 
+    labs(title= "TNHA-SC vs. TNHA-SD (°C) @ 10cm, 6/19/22-9/19/22", x = "Air Temperature", y="Ground Temperature Amplitude (°C) @ 10cm",color="Station") + 
+  theme(axis.text.y = element_text(size = 15)) +
+  theme(axis.text.x=element_text(angle = 45, hjust = 1.0, size = 15), 
+        axis.line = element_line(colour = "black", size =0.5, 
+                                 linetype = "solid")) +
+  theme(strip.text.y = element_text(size = 15),plot.title = element_text(hjust = 0.5, size = 15), 
+        plot.caption = element_text(face ="italic"),
+        strip.text = element_text(size = 15),
+        axis.title = element_text(size = 15)) +
+  theme(axis.title.y = element_text(margin = margin(r=15))) +
+  theme(axis.title.x = element_text(margin = margin(t=15))) +
+  theme(legend.title = element_text(size = 15),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(1,'cm')) +
+    geom_smooth(method=lm, se=TRUE)
+
+```
+
+```{r}
+#pay attention to XY grnd AIR vs XT grnd AVERAGES --> plotting with one but running stats with another???
+fit1 <- lm(grndtmp ~ airtemp, data = XY_grnd_avgs)
+summary(fit1)
+corfit <- cor(XY_grnd_avgs$airtemp,XY_grnd_avgs$grndtmp, use = 'complete.obs')
+print("Correlation coefficint")
+print(corfit)
+```
+
+```{r}
+# Get the model residuals
+model_residuals = fit1$residuals
+
+# Plot the result
+hist(model_residuals)
+```
+```{r}
+# Plot the residuals
+qqnorm(model_residuals)
+# Plot the Q-Q line
+qqline(model_residuals)
+```
 
 --- AMPLTIUDE GRAPHS ---
 ```{r}
@@ -488,7 +587,7 @@ XY_grnd_avgs = averages %>% filter(station == "TNHA"| station == "BEO", !sensor 
 SOLAR RADIATION VS GROUND TEMP
 
 ```{r}
-XY_grnd_sol= averages %>% filter(station == "TNHA" | station == "BEO", !sensor == "TNHA-SD", !sensor == "TNHA-SC", !sensor == "TNHA-BASE", !sensor == "TNHA-SB",!sensor == "BEO-BASE") 
+XY_grnd_sol= averages %>% filter(station == "TNHA" | station == "BEO", !sensor == "TNHA-SD", !sensor == "TNHA-SC", !sensor == "TNHA-SA", !sensor == "TNHA-SB",!sensor == "BEO-BASE") 
 
   ggplot(data = XY_grnd_sol, aes(x=solar, y = amplitude, color=sensor)) +
     geom_point()+
@@ -511,7 +610,7 @@ XY_grnd_sol= averages %>% filter(station == "TNHA" | station == "BEO", !sensor =
    scale_x_continuous(breaks=c(0,100,200,300), limits = c(0,300)) +
   scale_y_continuous(breaks=c(0,2,4,6,8,10,12), limits = c(0,12)) +
     geom_smooth(method=lm, se=TRUE) + #add a line of best fit 
-    scale_color_manual(values =c("TNHA-SA"= "#D95F02"))
+    scale_color_manual(values =c("TNHA-BASE"= "#D95F02"))
   
   #"TNHA-BASE" = "#1B9E77","TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E",
   
