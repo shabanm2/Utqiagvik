@@ -1,7 +1,7 @@
 ---
 title: "LOADANDCLEAN_DIFFERENCES_IN_AVERAGES_VWC"
 author: "Mirella Shaban"
-date: "2024-01-08"
+date: "2024-09-08"
 output: html_document
 ---
 
@@ -18,58 +18,151 @@ library(splitstackshape) # basically like text to columns
 library(naniar)
 library(RColorBrewer)
 library(caret)
+library(scales)
 ```
 
+############################################################
+THIS SCRIPT IMPORTS (VWC) DATA FOR SUMMER 22, FALL 22, SPRING 23, SUMMER 23, AND FALL 23* TO THEN BE ANALYZED IN DIFFERENCES_IN_AVERAGES.RMD
+*Run this BEFORE YOU RUN Differences_in_averages*
 
-Load files from Github
+1) BY SITE & 2) BY ASPECT AT THE SAME SITE
+############################################################
 
 
+Data loading and cleaning (summ22,fall22,summ23,fall23)
+----
+Ground Moisture for all sites data prepping
 ```{r}
-filepath1 = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/"
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/RECENT_CSV_DOWNLOADS/"
+mst1=read.csv(paste(filepath,"Summer_22_VWC_2023_11_14_21_00_08_UTC_1.csv",sep = ""))
+mst2=read.csv(paste(filepath,"Fall_22_VWC_2023_11_14_21_46_41_UTC_1.csv", sep = ""))
+mst3=read.csv(paste(filepath,"New_Summer_2023_VWC_2023_11_01_18_34_52_UTC_1.csv", sep = ""))
+mst4=read.csv(paste(filepath,"Fall_2023_VWC_2023_12_05_20_06_01_UTC_1.csv", sep = ""))
 
-vwcfile1 = "vwc_daily.csv"
-vwc = read.csv(paste0(filepath1, vwcfile1))
+#column name cleaning
+names(mst1) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst1))
+names(mst1) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst1))
+names(mst1) <- sub("...m.3.m.3..RX3000_BRW5", "", names(mst1))
+names(mst1) <- sub("...m.3.m.3..RX3000_BRW6", "", names(mst1))
+names(mst1) <- sub("..RXW.GP6.", "", names(mst1))
+names(mst1) <- sub("Water.Content", "", names(mst1))
+mst1$Date <-as.POSIXct(mst1$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
-filepath2 = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/Combined/"
+names(mst2) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst2))
+names(mst2) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst2))
+names(mst2) <- sub("...m.3.m.3..RX3000_BRW5", "", names(mst2))
+names(mst2) <- sub("...m.3.m.3..RX3000_BRW6", "", names(mst2))
+names(mst2) <- sub("..RXW.GP6.", "", names(mst2))
+names(mst2) <- sub("Water.Content", "", names(mst2))
+mst2$Date <-as.POSIXct(mst2$Date,format="%m/%d/%y %H:%M",tz="UTC")
 
-vwcfile2 = "VWC_Summer2023.csv"
-vwc2 = read.csv(paste0(filepath2, vwcfile2))
+names(mst3) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst3))
+names(mst3) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst3))
+names(mst3) <- sub("...m.3.m.3..RX3000_BRW5", "", names(mst3))
+names(mst3) <- sub("...m.3.m.3..RX3000_BRW6", "", names(mst3))
+names(mst3) <- sub("..RXW.GP6.", "", names(mst3))
+names(mst3) <- sub("_TNHA", "", names(mst3))
+names(mst3) <- sub("_BUECI", "", names(mst3))
+names(mst3) <- sub("_SSMH", "", names(mst3))
+names(mst3) <- sub("_BEO", "", names(mst3))
+names(mst3) <- sub("Water.Content", "", names(mst3))
+
+mst3$Date <-as.POSIXct(mst3$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
+names(mst4) <- sub("...m.3.m.3..RX3000_BRW1", "", names(mst4))
+names(mst4) <- sub("...m.3.m.3..RX3000_BRW4", "", names(mst4))
+names(mst4) <- sub("...m.3.m.3..RX3000_BRW5", "", names(mst4))
+names(mst4) <- sub("...m.3.m.3..RX3000_BRW6", "", names(mst4))
+names(mst4) <- sub("..RXW.GP6.", "", names(mst4))
+names(mst4) <- sub("Water.Content", "", names(mst4))
+names(mst4) <- sub("_TNHA", "", names(mst4))
+names(mst4) <- sub("_BUECI", "", names(mst4))
+names(mst4) <- sub("_SSMH", "", names(mst4))
+names(mst4) <- sub("_BEO", "", names(mst4))
+mst4$Date <-as.POSIXct(mst4$Date,format="%m/%d/%y %H:%M",tz="UTC")
+
 ```
 
-Cleaning data to fit Elizabeth's code for the stacked average figures
+summer 22
 ```{r}
-vwc1=vwc%>%
-  rename(Date=date, value=vwcavg)%>%
-  select(Date,station,sensor,depth,value)
+#pivot longer vs gather
+mst1_df = gather(mst1, variable, response, "21198259.21206939.1":"21401803.21398591.6") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+vwc_summ22 = cSplit(mst1_df , 'variable', sep=".", direction = "wide") 
+colnames(vwc_summ22)[3:6] <- c("value","station", "sensor", "depth")
+vwc_summ22$depth <- as.factor(as.character(vwc_summ22$depth)) 
+vwc_summ22$station <- as.factor(vwc_summ22$station)
+vwc_summ22$sensor <- as.factor(as.character(vwc_summ22$sensor))
+vwc_summ22$station <- revalue(vwc_summ22$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+vwc_summ22$depth <- revalue(vwc_summ22$depth, c("1" = "0:15cm", "2" = "15:30cm", "3" = "30:45cm", "4" = "45:60cm", "5" = "60:75cm", "6" = "75:90cm"))
+vwc_summ22$sensor <- revalue(vwc_summ22$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398587"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05")) 
 ```
-
-Appending dates to get complete Summer 2023 season
+fall 22
 ```{r}
-vwc2$Date <- as.POSIXct(vwc2$Date, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
-
-
-vwc2$Date <- as.Date(vwc2$Date)
-
-
-vwc2 = vwc2 %>% 
-  group_by(Date, station, sensor, depth) %>% 
-  summarise(vwcavg = mean(value))%>%
-  rename(value=vwcavg)
-
-vwc2 = vwc2%>%
-  filter(Date>="2023-07-01" & Date<="2023-09-01")
-
-vwc1$Date <- as.Date(vwc1$Date)
-vwc2$Date <- as.Date(vwc2$Date)
-
-vwc_all=rbind(vwc1,vwc2)
-
-vwc_all <- cbind(X = seq_len(nrow(vwc_all)), vwc_all) # This should have daily averages for all sensors, at all depths between the dates 2022-06-19 and 2023-09-01 in a format that plugs into Elizbeth's code appropriately
+mst2_df = gather(mst2, variable, response, "21198259.21206939.1":"21401803.21398591.6") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+vwc_fall22 = cSplit(mst2_df , 'variable', sep=".", direction = "wide") 
+colnames(vwc_fall22)[3:6] <- c("value","station", "sensor", "depth")
+vwc_fall22$depth <- as.factor(as.character(vwc_fall22$depth)) 
+vwc_fall22$station <- as.factor(vwc_fall22$station)
+vwc_fall22$sensor <- as.factor(as.character(vwc_fall22$sensor))
+vwc_fall22$station <- revalue(vwc_fall22$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+vwc_fall22$depth <- revalue(vwc_fall22$depth, c("1" = "0:15cm", "2" = "15:30cm", "3" = "30:45cm", "4" = "45:60cm", "5" = "60:75cm", "6" = "75:90cm"))
+vwc_fall22$sensor <- revalue(vwc_fall22$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUCEI-SA", "21398583" = "BUECI-SB", "21393042" = "BUCEI-SC", "21398584" = "BUCEI-SD", "21398579" = "BUCEI-SE", "21398578" = "BUCEI-SF.01", "21398598" = "BUCEI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398587"="TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05")) 
 ```
+
+summer 23
+```{r}
+mst3_df = gather(mst3, variable, response, "21198259.21206939.1":"21401803.21398591.6") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+vwc_summ23 = cSplit(mst3_df , 'variable', sep=".", direction = "wide") 
+colnames(vwc_summ23)[3:6] <- c("value","station", "sensor", "depth")
+vwc_summ23$depth <- as.factor(as.character(vwc_summ23$depth)) 
+vwc_summ23$station <- as.factor(vwc_summ23$station)
+vwc_summ23$sensor <- as.factor(as.character(vwc_summ23$sensor))
+vwc_summ23$station <- revalue(vwc_summ23$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+vwc_summ23$depth <- revalue(vwc_summ23$depth, c("1" = "0:15cm", "2" = "15:30cm", "3" = "30:45cm", "4" = "45:60cm", "5" = "60:75cm", "6" = "75:90cm"))
+vwc_summ23$sensor <- revalue(vwc_summ23$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05","21393045" = "BEO-B07", "21398576" = "BEO-B08",
+                                                      "21393043" = "SSMH-SE",
+                                                      "21398594" = "SSMH-SF",
+                                                      "21398580" = "SSMH-SG",
+                                                      "21398586" = "SSMH-SH",
+                                                      "21398581" = "SSMH-SI")) 
+```
+
+fall 23
+```{r}
+mst4_df = gather(mst4, variable, response, "21198259.21206939.1":"21401803.21398576.6") %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+vwc_fall23 = cSplit(mst4_df , 'variable', sep=".", direction = "wide") 
+colnames(vwc_fall23)[3:6] <- c("value","station", "sensor", "depth")
+vwc_fall23$depth <- as.factor(as.character(vwc_fall23$depth)) 
+vwc_fall23$station <- as.factor(vwc_fall23$station)
+vwc_fall23$sensor <- as.factor(as.character(vwc_fall23$sensor))
+vwc_fall23$station <- revalue(vwc_fall23$station, c("21198259" = "TNHA", "21401800" = "BUECI", "21401801" = "SSMH", "21401803" = "BEO")) #renaming the stations
+vwc_fall23$depth <- revalue(vwc_fall23$depth, c("1" = "0:15cm", "2" = "15:30cm", "3" = "30:45cm", "4" = "45:60cm", "5" = "60:75cm", "6" = "75:90cm"))
+vwc_fall23$sensor <- revalue(vwc_fall23$sensor, c("21398585" = "BUECI-BASE", "21398590" = "BUECI-SA", "21398583" = "BUECI-SB", "21393042" = "BUECI-SC", "21398584" = "BUECI-SD", "21398579" = "BUECI-SE", "21398578" = "BUECI-SF.01", "21398598" = "BUECI-SF.02", "21398588" ="SSMH-BASE","21393049" = "SSMH-SD", "21398599" = "SSMH-SA", "21393044" = "SSMH-SB", "21393049" = "SSMH-SD" , "21206939" = "TNHA-BASE", "21398593" = "TNHA-SA", "21398576"="TNHA-SB","21398587" = "TNHA-SB","21398601" = "TNHA-SD", "21393047" = "TNHA-SC", "21393048" = "BEO-B06", "21398591" = "BEO-B05","21393045" = "BEO-B07", "21398576" = "BEO-B08",
+                                                      "21393043" = "SSMH-SE",
+                                                      "21398594" = "SSMH-SF",
+                                                      "21398580" = "SSMH-SG",
+                                                      "21398586" = "SSMH-SH",
+                                                      "21398581" = "SSMH-SI")) 
+```
+combine all 
+```{r}
+VWC22_23_combined <- rbind(vwc_summ22,vwc_fall22,vwc_summ23,vwc_fall23)
+```
+
+
+---
 
 0 to 15 cm
 ```{r}
-vwcmean <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "1") 
+vwcmean <- VWC22_23_combined %>% subset() %>% select(Date,value,sensor,depth) %>% filter(depth == "0:15cm") 
 
 vwcmean %>%
   mutate(date = day(Date))  %>%
@@ -98,7 +191,7 @@ SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
 BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
 
 
-date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-12-01"), by="day"),5)
 val <- rep(1,length(date))
 fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
 testdf <- data.frame(date,fullname,val)
@@ -108,7 +201,7 @@ fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=
 testdf2 <- data.frame(date,fullname,val)
 SSMH_NONA <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
 
-fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+fullname <- rep(c("BEO-B05", "BEO-B06","BEO-B07", "BEO-B08", "FAKEVAR3"),each=length(date)/5)
 testdf3 <- data.frame(date,fullname,val)
 BEO_NONA <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
 
@@ -119,7 +212,7 @@ TSB_NONA$depth <- as.factor(TSB_NONA$depth)
 
 15 to 30 cm
 ```{r}
-vwcmean1 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "2") 
+vwcmean1 <- VWC22_23_combined %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "15:30cm") 
 
 vwcmean1 %>%
   mutate(date = day(Date))  %>%
@@ -148,7 +241,7 @@ SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
 BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
 
 
-date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-12-01"), by="day"),5)
 val <- rep(1,length(date))
 fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
 testdf <- data.frame(date,fullname,val)
@@ -158,7 +251,7 @@ fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=
 testdf2 <- data.frame(date,fullname,val)
 SSMH_NONA15 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
 
-fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+fullname <- rep(c("BEO-B05", "BEO-B06","BEO-B07", "BEO-B08", "FAKEVAR3"),each=length(date)/5)
 testdf3 <- data.frame(date,fullname,val)
 BEO_NONA15 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
 
@@ -169,7 +262,7 @@ TSB_NONA15$depth <- as.factor(TSB_NONA15$depth)
 
 30 to 45 cm
 ```{r}
-vwcmean2 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "3") 
+vwcmean2 <- VWC22_23_combined %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "30:45cm") 
 
 vwcmean2 %>%
   mutate(date = day(Date))  %>%
@@ -198,7 +291,7 @@ SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
 BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
 
 
-date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-12-01"), by="day"),5)
 val <- rep(1,length(date))
 fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
 testdf <- data.frame(date,fullname,val)
@@ -208,7 +301,7 @@ fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=
 testdf2 <- data.frame(date,fullname,val)
 SSMH_NONA30 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
 
-fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+fullname <- rep(c("BEO-B05", "BEO-B06","BEO-B07", "BEO-B08", "FAKEVAR3"),each=length(date)/5)
 testdf3 <- data.frame(date,fullname,val)
 BEO_NONA30 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
 
@@ -220,7 +313,7 @@ TSB_NONA30$depth <- as.factor(TSB_NONA30$depth)
 
 45 to 60 cm
 ```{r}
-vwcmean3 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "4") 
+vwcmean3 <- VWC22_23_combined %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "45:60cm") 
 
 vwcmean3 %>%
   mutate(date = day(Date))  %>%
@@ -249,7 +342,7 @@ SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
 BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
 
 
-date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-12-01"), by="day"),5)
 val <- rep(1,length(date))
 fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
 testdf <- data.frame(date,fullname,val)
@@ -259,7 +352,7 @@ fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=
 testdf2 <- data.frame(date,fullname,val)
 SSMH_NONA55 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
 
-fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+fullname <- rep(c("BEO-B05", "BEO-B06","BEO-B07", "BEO-B08", "FAKEVAR3"),each=length(date)/5)
 testdf3 <- data.frame(date,fullname,val)
 BEO_NONA55 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
 
@@ -270,7 +363,7 @@ TSB_NONA55$depth <- as.factor(TSB_NONA55$depth)
 
 60 to 75 cm
 ```{r}
-vwcmean4 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "5") 
+vwcmean4 <- VWC22_23_combined %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "60:75cm") 
 
 vwcmean4 %>%
   mutate(date = day(Date))  %>%
@@ -299,7 +392,7 @@ SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
 BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
 
 
-date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-12-01"), by="day"),5)
 val <- rep(1,length(date))
 fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
 testdf <- data.frame(date,fullname,val)
@@ -309,7 +402,7 @@ fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=
 testdf2 <- data.frame(date,fullname,val)
 SSMH_NONA65 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
 
-fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+fullname <- rep(c("BEO-B05", "BEO-B06","BEO-B07", "BEO-B08", "FAKEVAR3"),each=length(date)/5)
 testdf3 <- data.frame(date,fullname,val)
 BEO_NONA65 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
 
@@ -320,7 +413,7 @@ TSB_NONA65$depth <- as.factor(TSB_NONA65$depth)
 
 75 to 90 cm
 ```{r}
-vwcmean5 <- vwc_all %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "6") 
+vwcmean5 <- VWC22_23_combined %>% subset() %>% select(value,sensor,Date,depth) %>% filter(depth == "75:90cm") 
 
 vwcmean5 %>%
   mutate(date = day(Date))  %>%
@@ -349,7 +442,7 @@ SSMH_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "SSMH")
 BEO_DAILY<- Daily_average_vwc_per_sensor %>% filter(station == "BEO")
 
 
-date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-09-01"), by="day"),5)
+date <- rep(seq(as.Date("2022-06-19"), as.Date("2023-12-01"), by="day"),5)
 val <- rep(1,length(date))
 fullname <- rep(c("TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD"),each=length(date)/5)
 testdf <- data.frame(date,fullname,val)
@@ -359,7 +452,7 @@ fullname <- rep(c("SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SC", "SSMH-SD"),each=
 testdf2 <- data.frame(date,fullname,val)
 SSMH_NONA90 <- left_join(testdf2,SSMH_DAILY, by=c("date","fullname"))
 
-fullname <- rep(c("BEO-B05", "BEO-B06","FAKEVAR", "FAKEVAR2", "FAKEVAR3"),each=length(date)/5)
+fullname <- rep(c("BEO-B05", "BEO-B06","BEO-B07", "BEO-B08", "FAKEVAR3"),each=length(date)/5)
 testdf3 <- data.frame(date,fullname,val)
 BEO_NONA90 <- left_join(testdf3,BEO_DAILY, by=c("date","fullname"))
 
@@ -370,19 +463,65 @@ TSB_NONA90$depth <- as.factor(TSB_NONA90$depth)
 
 Combining
 ```{r}
-TSB_NONE_ALLDEPTHS3 <- rbind(TSB_NONA,TSB_NONA15,TSB_NONA30,TSB_NONA55,TSB_NONA65,TSB_NONA90)
+VWC_DLYAVG_COMB_22_23 <- rbind(TSB_NONA,TSB_NONA15,TSB_NONA30,TSB_NONA55,TSB_NONA65,TSB_NONA90)
 ```
 
 Renaming depth vector values to be more intuitive
 ```{r}
-TSB_NONE_ALLDEPTHS4 <- TSB_NONE_ALLDEPTHS3 %>%
+VWC_DLYAVG_COMB_22_23 <- VWC_DLYAVG_COMB_22_23 %>%
   mutate(depth = case_when(
-    depth == 1 ~ "0 to 15 cm",
-    depth == 2 ~ "15 to 30 cm",
-    depth == 3 ~ "30 to 45 cm",
-    depth == 4 ~ "45 to 60 cm",
-    depth == 5 ~ "60 to 75 cm",
-    depth == 6 ~ "75 to 90 cm",
+    depth == 1 ~ "0:15cm",
+    depth == 2 ~ "15:30cm",
+    depth == 3 ~ "30:45cm",
+    depth == 4 ~ "45:60cm",
+    depth == 5 ~ "60:75cm",
+    depth == 6 ~ "75:90cm",
     TRUE ~ as.character(depth)  
   ))
 ```
+
+Split into seasons for station vs station analysis
+```{r}
+VWC_Summer22_Daily = VWC_DLYAVG_COMB_22_23 %>% filter(date >= "2022-06-01" & date <= "2022-09-01") %>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+VWC_Fall22_Daily = VWC_DLYAVG_COMB_22_23 %>% filter(date >= "2022-09-01" & date <= "2022-12-01") %>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+VWC_Summer23_Daily = VWC_DLYAVG_COMB_22_23 %>% filter(date >= "2023-06-01" & date <= "2023-09-01") %>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+VWC_Fall23_Daily = VWC_DLYAVG_COMB_22_23 %>% filter(date >= "2023-09-01" & date <= "2023-12-01") %>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+```
+
+Summer 22 vs summer 23
+```{r}
+#makes an additonal column substring of the month and day only for both 22 and 23 data
+#makes an additonal column substring of the year only for both 22 and 23 data
+#rbind the 22 and 23 data
+
+VWC_Summer22_Daily$day <- substr(VWC_Summer22_Daily$date, 6,10)
+VWC_Summer22_Daily$day <- as.Date(VWC_Summer22_Daily$day, format = "%m-%d")
+VWC_Summer22_Daily$year <- substr(VWC_Summer22_Daily$date, 1,4)
+
+VWC_Summer23_Daily$day <- substr(VWC_Summer23_Daily$date, 6,10)
+VWC_Summer23_Daily$year <- substr(VWC_Summer23_Daily$date, 1,4)
+VWC_Summer23_Daily$day <- as.Date(VWC_Summer23_Daily$day, format = "%m-%d")
+
+SUMMER_22_23_VWC_DAILY <- rbind(VWC_Summer22_Daily,VWC_Summer23_Daily)
+
+```
+
+Fall 22 vs fall 23
+```{r}
+VWC_Fall22_Daily$day <- substr(VWC_Fall22_Daily$date, 6,10)
+VWC_Fall22_Daily$day <- as.Date(VWC_Fall22_Daily$day, format = "%m-%d")
+VWC_Fall22_Daily$year <- substr(VWC_Fall22_Daily$date, 1,4)
+
+VWC_Fall23_Daily$day <- substr(VWC_Fall23_Daily$date, 6,10)
+VWC_Fall23_Daily$year <- substr(VWC_Fall23_Daily$date, 1,4)
+VWC_Fall23_Daily$day <- as.Date(VWC_Fall23_Daily$day, format = "%m-%d")
+
+FALL_22_23_VWC_DAILY <- rbind(VWC_Fall22_Daily,VWC_Fall23_Daily)
+
+```
+
+
