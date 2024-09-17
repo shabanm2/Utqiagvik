@@ -1,0 +1,106 @@
+---
+title: "N-factor calculations"
+author: "Mirella Shaban"
+date: "2023-06-09"
+output: html_document
+---
+
+*Formula for n-factor:*
+nt = DDTs/DDTa = ∫(0 to thetas) (Ts-Tf)dt / ∫(0 to thetaa) (Ta-Tf)dt = Σ(0 to theta s) T overbar S / Σ(0 to theta a) T overbar a
+
+nt = thaw season n-factor (dimensionless)
+DDTs and DDTa = thaawing degree day sums for soil surface and air temp (deg C days)
+Tf = temperaure of freezing point (0 deg C)
+Ts and Ta = temp of soil surface and air (deg C)
+theta s and theta a = periods of thawing season for soil surface and air (days)
+T overbars and T overbar a = mean daily soil-surface and air temperatures (deg C)
+
+DDTs and DDTa calculated by summing mean daily temperatures above 0 deg C
+
+Our stab at the n-factor will be taking the slope of the line of XY plots of air temperature versus ground temperature 
+
+*LOADING SCRIPT COMES FROM XY_MULTISIDE_COMPARISONS.RMD*
+
+* Run the LOADANDCLEAN......RMD scripts for air temp and ground temp before running this! NO PLOTTING IN THIS SCRIPT, ONLY LM FITS!*
+
+NAMES:
+#############################
+*SUMMER*
+*2022
+DAILY_AIR_SUMM22
+SUMMERGRND22_ALLDEPTHS
+
+
+*2023
+DAILY_AIR_SUMM23
+SUMMERGRND23_ALLDEPTHS
+
+*2024
+DAILY_AIR_SUMM24
+SUMM24_ALLDEPTHS
+
+##############################
+*FALL*
+*2022 
+*2023
+##############################
+
+
+change name of value for air temp and ground temp to distinguish
+
+```{r}
+colnames(DAILY_AIR_SUMM22)[4] <- c("airtemp")
+colnames(SUMMERGRND22_ALLDEPTHS)[4] <- c("grndtmp")
+```
+
+
+-------Merge Data Frames-------
+
+```{r}
+averages = DAILY_AIR_SUMM22 %>% full_join(SUMMERGRND22_ALLDEPTHS, by=c("date","sensor","station", "val", "fullname"))
+
+```
+
+
+
+TNHA
+```{r}
+XY_grnd_air= averages %>% filter(station == "TNHA", !fullname == "TNHA-SB", !fullname == "TNHA-SA", !fullname == "TNHA-SC", !fullname == "TNHA-SD", depth == "10cm") 
+
+print(XY_grnd_air)
+
+fit1 <- lm(grndtmp ~ airtemp, data = XY_grnd_air)
+summary(fit1)
+corfit <- cor(XY_grnd_air$airtemp,XY_grnd_air$grndtmp, use = 'complete.obs')
+
+print("Correlation coefficint")
+print(corfit)
+```
+
+SSMH
+```{r}
+XY_grnd_air= averages %>% filter(station == "SSMH", !fullname == "SSMH-BASE", !fullname == "SSMH-SE", !fullname == "SSMH-SD", !fullname == "SSMH-SB", !fullname == "SSMH-SH", depth == "10cm") 
+
+print(XY_grnd_air)
+
+fit1 <- lm(grndtmp ~ airtemp, data = XY_grnd_air)
+summary(fit1)
+corfit <- cor(XY_grnd_air$airtemp,XY_grnd_air$grndtmp, use = 'complete.obs')
+
+print("Correlation coefficint")
+print(corfit)
+```
+
+BEO
+```{r}
+XY_grnd_air= averages %>% filter(station == "BEO", depth == "10cm") 
+
+print(XY_grnd_air)
+
+fit1 <- lm(grndtmp ~ airtemp, data = XY_grnd_air)
+summary(fit1)
+corfit <- cor(XY_grnd_air$airtemp,XY_grnd_air$grndtmp, use = 'complete.obs')
+
+print("Correlation coefficint")
+print(corfit)
+```
