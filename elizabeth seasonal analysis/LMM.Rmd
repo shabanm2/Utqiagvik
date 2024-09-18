@@ -1,0 +1,155 @@
+---
+title: "Linear Mixed Models"
+author: "Elizabeth Van Metre"
+date: "2024-04-14"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Linear Mixed-Effect Models
+
+Packages:
+nlme
+lme4
+
+```{r}
+library(nlme)
+library(lme4)
+library(afex)
+library(dplyr)
+```
+
+## FILEPATH:
+
+```{r}
+filepath = "/Users/emvanmetre/Desktop/Arctic/X-Y_Plots/data/processed/Combined/"
+szn = "Summer"
+yr = 2022
+curdepth = "30cm"
+```
+
+
+```{r}
+gtfile = paste0("GroundTemperature_",szn,yr,"_HOURLY.csv")
+airfile = paste0("AirTemperature_",szn,yr,"_HOURLY.csv")
+vwcfile = paste0("VWC_",szn,yr,"_HOURLY.csv")
+solfile = paste0("Solar_",szn,yr,"_HOURLY.csv")
+windspeed = paste0("WindSpeed_",szn,yr,"_HOURLY.csv")
+winddir = paste0("WindDirection_",szn,yr,"_HOURLY.csv")
+```
+
+```{r}
+grndtmp <- read.csv(paste0(filepath, gtfile))
+airtmp <- read.csv(paste0(filepath, airfile))
+vwc <- read.csv(paste0(filepath, vwcfile))
+solar <- read.csv(paste0(filepath, solfile))
+wind <- read.csv(paste0(filepath, windspeed))
+```
+
+
+Examine Frequency Distributions of Our Variables
+```{r}
+par(mfrow = c(2,3))
+barplot(table(grndtmp$avg), ylab = "Frequency", main = "Ground Temp")
+barplot(table(airtmp$avg), ylab = "Frequency", main = "Air Temp")
+barplot(table(vwc$avg), ylab = "Frequency", las = 2, main = "VWC")
+barplot(table(solar$avg), ylab = "Frequency", main = "Solar")
+barplot(table(wind$avg), ylab = "Frequency", main = "Wind Speed")
+```
+
+
+
+
+**NEED TO JOIN TABLES FOR ANALYSIS**
+
+are we doing one variable vs one variable based on different fixed effects?
+
+```{r}
+ground <- grndtmp %>% filter(depth == curdepth) %>% select(Date, fullname, site, station, depth, avg)
+sol <- solar %>% select(Date, fullname, site, station, avg)
+
+lm_data <- ground %>% full_join(sol, by=c("Date", "fullname", "site", "station"))
+colnames(lm_data)[c(6:7)] = c("groundtemp", "solar")
+```
+
+### We Should Standardize Our Data
+
+Source: https://ourcodingclub.github.io/tutorials/mixed-models/#explore-the-data
+
+```{r}
+lm_data$groundtemp <- scale(lm_data$groundtemp, center = TRUE, scale = TRUE)
+lm_data$solar <- scale(lm_data$solar, center = TRUE, scale = TRUE)
+
+par(mfrow = c(1,2))
+barplot(table(lm_data$groundtemp), ylab = "Frequency", main = "Ground Temp")
+barplot(table(lm_data$solar), ylab = "Frequency", main = "Solar")
+```
+It looks like we have a lot of observations for solar in the low (0) range. Should we take out zeroes? I suppose they are still important.
+
+## LMM
+
+```{r}
+LM <- lm(lm_data$groundtemp ~ lm_data$solar + lm_data$site + lm_data$station)
+summary(LM)
+par(mfrow = c(2,2))
+plot(LM)
+```
+
+```{r}
+#GLM <- gls(groundtemp ~ lm_data$solar + lm_data$site + lm_data$station,
+#method = "ML")
+#summary(GLM)
+```
+
+
+
+```{r}
+lmermodg <- lme4::lmer(groundtemp ~ solar + (1 + site|station), data=lm_data)
+lmermodg
+```
+
+![fixed effects table](/Users/emvanmetre/Desktop/Arctic/Spring 2024/LMM_Random.png)
+
+![random effects table](/Users/emvanmetre/Desktop/Arctic/Spring 2024/LMM_Codes.png)
+
+LMM Model
+Groundtemp is the dependent variable
+site is the fixed effect
+solar is the random effect ** you can't treat continuous variables as random
+
+**Comparing different sites based on similar solar data**
+
+```{r}
+mod <- lme4::lmer(groundtemp ~ solar + (1 | site), data=lm_data)
+summary(mod)
+```
+
+I believe we can try making a comparison between this and a similar model with no fixed effects to test if they are different and the site does in fact play into the results.
+
+We can also test stations instead of just the site. We probably could also do north- vs south-facing.
+
+```{r}
+library(ggplot2)
+tdat <- data.frame(predicted=predict(mod), residual = residuals(mod), site = model.frame(mod)$site)
+ggplot(tdat,aes(x=predicted,y=residual, color = site)) + geom_point() + geom_hline(yintercept=0, lty=3)
+```
+
+These are grouped by the site as fixed effects to examine the difference in solar radiation at different sites.
+
+```{r}
+ggplot(tdat,aes(x=residual)) + geom_histogram(bins=20, color="black")
+```
+
+```{r}
+ggplot(tdat,aes(sample=residual)) + stat_qq() + stat_qq_line()
+```
+
+```{r}
+#glmer
+```
+
