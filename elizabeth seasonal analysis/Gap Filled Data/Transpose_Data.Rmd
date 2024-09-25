@@ -41,7 +41,7 @@ df_long <- gather(df, sensor, value, 2:ncol(df))
 df_long <- cSplit(df_long, 'sensor', sep=".", direction = "wide")
 df_long$sensor_1 <- gsub('X', '', df_long$sensor_1)
 df_long <- select(df_long, Date, sensor_1, sensor_2, value)
-colnames(temp_long)[2:3] <- c("sensor", "sensordepth")
+colnames(df_long)[2:3] <- c("sensor", "sensordepth")
 
 # --delete--
 # separate date and time by a space
@@ -49,7 +49,7 @@ colnames(temp_long)[2:3] <- c("sensor", "sensordepth")
 # ----------
 
 # format date and time
-dates <- as.POSIXct(temp_long$date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+df_long$Date <- as.POSIXct(df_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
 ```
 
 
