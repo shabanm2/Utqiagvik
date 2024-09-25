@@ -1,5 +1,6 @@
 # link to file path with gap filled data
 # the files are too big to read from github (too many columns)
+#
 path <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data"
 
 tempfile <- "Temp_data_CLEAN_TNHA_from_2022_07_15_to_2024_08_14.csv"
