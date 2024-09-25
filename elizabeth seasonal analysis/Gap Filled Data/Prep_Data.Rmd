@@ -1,0 +1,67 @@
+# Prep Data
+
+This file is for loading gap-filled data and renaming the sensors and modifying it so that it can be easily cleaned for plotting and other statistical analysis.
+
+## Files
+
+### Temperature
+Temp_data_CLEAN_TNHA_from_2022_05_17_to_2024_08_14_no_gps.csv
+Temp_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv
+Temp_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv
+
+### Volumetric Water Content
+Moist_data_CLEAN_TNHA_from_2022_05_17_to_2024_08_14_no_gps.csv
+Moist_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv
+Moist_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv
+
+### Set Filepath and File
+```{r}
+filepath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/"
+file <- "Moist_data_CLEAN_TNHA_from_2022_05_17_to_2024_08_14_no_gps.csv"
+```
+
+### Read File
+```{r}
+df <- read.csv(paste0(filepath, file))
+```
+
+
+## Sensors
+
+These are the names and corresponding IDs of sensors based on the variable they measure.
+
+### Temperature
+```{r}
+tempsensors <- c('21393048'='BEO-OLD','21398591'='BEO-OLD','21398585'='BUECI-BASE',
+               '21398590'='BUECI-SA','21398583'='BUECI-SB','21393042'='BUECI-SC',
+               '21398584'='BUECI-SD','21398579'='BUECI-SE','21398578'='BUECI-SF01',
+               '21398598'='BUECI-SF02','21398588'='SSMH-BASE','21398599'='SSMH-SA',
+               '21393044'='SSMH-SB','21398576'='SSMH-BASE','21393049'='SSMH-SD',
+               '21398594'='SSMH-SE01','21393043'='SSMH-SE02','21398586'='SSMH-SF01',
+               '21398580'='SSMH-SF02','21398581'='SSMH-SG','21206939'='TNHA-BASE',
+               '21398593'='TNHA-SA','21398587'='TNHA-SB','21393047'='TNHA-SC',
+               '21398601'='TNHA-SD','21212510'='TNHA-SE','21398577'='TNHA-??')
+```
+
+
+### VWC
+```{r}
+vwcsensors <- c('21393048'='BEO-OLD','21398591'='BEO-OLD','21398585'='BUECI-BASE',
+                '21398590'='BUECI-SA','21398583'='BUECI-SB','21393042'='BUECI-SC',
+                '21398584'='BUECI-SD','21398579'='BUECI-SE','21398578'='BUECI-SF01',
+                '21398598'='BUECI-SF02','21398576'='REMOVE','21398588'='SSMH-BASE',
+                '21398599'='SSMH-SA','21393044'='SSMH-SB','21393049'='SSMH-SD',
+                '21398594'='SSMH-SE01','21393043'='SSMH-SE02','21398586'='SSMH-SF01',
+                '21398580'='SSMH-SF02','21398581'='SSMH-SG','21206939'='TNHA-BASE',
+                '21398593'='TNHA-SA','21398587'='TNHA-SB','21393047'='TNHA-SC',
+                '21398601'='TNHA-SD','21398577'='TNHA-SE')
+```
+
+
+
+## Create and Select Columns
+
+```{r}
+df_col <- cSplit(df, 'sensor', sep="-", direction = "wide")
+```
+

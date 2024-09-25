@@ -35,15 +35,13 @@ df <- read.csv(paste0(filepath, file))
 
 ```{r}
 # rename sensors and columns first
-colnames(temp)[1:4] <- c("sensor", "depthcm", "latitude", "longitude")
+# colnames(temp)[1:4] <- c("sensor", "depthcm", "latitude", "longitude")
 
-temp_long <- gather(temp, date, value, 5:ncol(temp))
-temp_long <- cSplit(temp_long, 'sensor', sep="-", direction = "wide")
-temp_long <- select(temp_long, date, sensor_1, sensor_2, depthcm, longitude, latitude, value)
+df_long <- gather(df, sensor, value, 2:ncol(df))
+df_long <- cSplit(df_long, 'sensor', sep=".", direction = "wide")
+df_long$sensor_1 <- gsub('X', '', df_long$sensor_1)
+df_long <- select(df_long, Date, sensor_1, sensor_2, value)
 colnames(temp_long)[2:3] <- c("sensor", "sensordepth")
-
-# get rid of leading X
-temp_long$date <- gsub('X', '', temp_long$date)
 
 # --delete--
 # separate date and time by a space
@@ -51,7 +49,7 @@ temp_long$date <- gsub('X', '', temp_long$date)
 # ----------
 
 # format date and time
-dates <- as.POSIXct(temp_long$date,format="%Y.%m.%d.%H.%M.%S",tz="UTC")
+dates <- as.POSIXct(temp_long$date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
 ```
 
 
