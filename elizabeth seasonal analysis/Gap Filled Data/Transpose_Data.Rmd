@@ -48,6 +48,25 @@ filenames <- list.files(filepath, pattern="*.csv", full.names=F)
 filenames
 ```
 
+## Function
+
+Load and Transpose
+```{r}
+transpose <- function(filepath, file) {
+  # Load data
+  df <- read.csv(paste0(filepath, file))
+  # Transpose data
+  df_long <- gather(df, sensor, value, 2:ncol(df))
+  df_long <- cSplit(df_long, 'sensor', sep=".", direction = "wide")
+  df_long$sensor_1 <- gsub('X', '', df_long$sensor_1)
+  df_long <- select(df_long, Date, sensor_1, sensor_2, value)
+  colnames(df_long)[2:3] <- c("sensor", "depth")
+  df_long$Date <- as.POSIXct(df_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+  return(df_long)
+}
+```
+
+
 
 ## Moisture
 
@@ -57,136 +76,162 @@ vwc_files <- filenames[substr(filenames, 1, 5) == "Moist"]
 vwc_files
 ```
 
-**Sensor name and ID**
-```{r}
-vwcsensors <- c('21393048'='BEO-OLD','21398591'='BEO-OLD','21393045'='BEO-NEW','21398585'='BUECI-BASE','21398590'='BUECI-SA','21398583'='BUECI-SB','21393042'='BUECI-SC','21398584'='BUECI-SD','21398579'='BUECI-SE','21398578'='BUECI-SF01','21398598'='BUECI-SF02','21398576'='REMOVE','21398588'='SSMH-BASE','21398599'='SSMH-SA','21393044'='SSMH-SB','21166008'='SSMH-SB','21393049'='SSMH-SD','21398594'='SSMH-SE01','21393043'='SSMH-SE02','21398586'='SSMH-SF01','21398580'='SSMH-SF02','21398581'='SSMH-SG','21206939'='TNHA-BASE','21398593'='TNHA-SA','21398587'='TNHA-SB','21393047'='TNHA-SC','21393046'='TNHA-SC','21398601'='TNHA-SD','21398577'='TNHA-SE')
-```
 
 ### BEO
 
-Set context for reading and saving the data!
 ```{r}
 file <- "Moist_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"
-variable <- "vwc"
-site <- "BEO"
-```
 
-
-**Read File**
-```{r}
-df <- read.csv(paste0(filepath, file))
-```
-
-
-**Transpose Data**
-```{r}
-df_long <- gather(df, sensor, value, 2:ncol(df))
-df_long <- cSplit(df_long, 'sensor', sep=".", direction = "wide")
-df_long$sensor_1 <- gsub('X', '', df_long$sensor_1)
-df_long <- select(df_long, Date, sensor_1, sensor_2, value)
-colnames(df_long)[2:3] <- c("sensor", "depth")
-
-df_long$Date <- as.POSIXct(df_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
-```
-
-**Rename Sensors**
-
-```{r}
-df_long$fullname <- recode(df_long$sensor, !!!vwcsensors)
-df_long$copy <- df_long$fullname
-df_long <- cSplit(df_long, 'copy', sep="-", direction = "wide")
-colnames(df_long)[6:7] <- c("site", "station")
-df_final <- df_long %>% select(Date, sensor, site, station, fullname, depth, value)
-```
-
-**Export File**
-```{r}
-write.csv(df_long, paste0(exportpath, variable, "_gap_filled_", site, ".csv"))
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "vwc", "_gap_filled_", "BEO", ".csv"))
 ```
 
 
 ### TNHA
 
-Set context for reading and saving the data!
 ```{r}
-file <- "Moist_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv" 
-variable <- "vwc"
-site <- "TNHA"
+file <- "Moist_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "vwc", "_gap_filled_", "TNHA", ".csv"))
 ```
-
-
-**Read File**
-```{r}
-df <- read.csv(paste0(filepath, file))
-```
-
-
-**Transpose Data**
-```{r}
-df_long <- gather(df, sensor, value, 2:ncol(df))
-df_long <- cSplit(df_long, 'sensor', sep=".", direction = "wide")
-df_long$sensor_1 <- gsub('X', '', df_long$sensor_1)
-df_long <- select(df_long, Date, sensor_1, sensor_2, value)
-colnames(df_long)[2:3] <- c("sensor", "depth")
-
-df_long$Date <- as.POSIXct(df_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
-```
-
-**Rename Sensors**
-
-```{r}
-df_long$fullname <- recode(df_long$sensor, !!!vwcsensors)
-df_long$copy <- df_long$fullname
-df_long <- cSplit(df_long, 'copy', sep="-", direction = "wide")
-colnames(df_long)[6:7] <- c("site", "station")
-df_final <- df_long %>% select(Date, sensor, site, station, fullname, depth, value)
-```
-
-**Export File**
-```{r}
-write.csv(df_long, paste0(exportpath, variable, "_gap_filled_", site, ".csv"))
-```
-
 
 
 ### SSMH
 
-Set context for reading and saving the data!
 ```{r}
 file <- "Moist_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv"
-variable <- "vwc"
-site <- "SSMH"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "vwc", "_gap_filled_", "SSMH", ".csv"))
 ```
 
 
-**Read File**
+
+
+## Temperature
+(Ground and Air Combined)
+
+**List temp files**
 ```{r}
-df <- read.csv(paste0(filepath, file))
+temp_files <- filenames[substr(filenames, 1, 4) == "Temp"]
+temp_files
 ```
 
 
-**Transpose Data**
-```{r}
-df_long <- gather(df, sensor, value, 2:ncol(df))
-df_long <- cSplit(df_long, 'sensor', sep=".", direction = "wide")
-df_long$sensor_1 <- gsub('X', '', df_long$sensor_1)
-df_long <- select(df_long, Date, sensor_1, sensor_2, value)
-colnames(df_long)[2:3] <- c("sensor", "depth")
+### BEO
 
-df_long$Date <- as.POSIXct(df_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+```{r}
+file <- "Temp_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv" 
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "temp", "_gap_filled_", "BEO", ".csv"))
 ```
 
-**Rename Sensors**
+### TNHA
 
 ```{r}
-df_long$fullname <- recode(df_long$sensor, !!!vwcsensors)
-df_long$copy <- df_long$fullname
-df_long <- cSplit(df_long, 'copy', sep="-", direction = "wide")
-colnames(df_long)[6:7] <- c("site", "station")
-df_final <- df_long %>% select(Date, sensor, site, station, fullname, depth, value)
+file <- "Temp_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "temp", "_gap_filled_", "TNHA", ".csv"))
 ```
 
-**Export File**
+### SSMH
+
 ```{r}
-write.csv(df_long, paste0(exportpath, variable, "_gap_filled_", site, ".csv"))
+file <- "Temp_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "temp", "_gap_filled_", "SSMH", ".csv"))
+```
+
+
+
+
+## Solar Radiation
+
+**List solar files**
+```{r}
+solar_files <- filenames[substr(filenames, 1, 5) == "Solar"]
+solar_files
+```
+
+
+### BEO
+
+```{r}
+file <- "Solar_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv" 
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "solar", "_gap_filled_", "BEO", ".csv"))
+```
+
+### TNHA
+
+```{r}
+file <- "Solar_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "solar", "_gap_filled_", "TNHA", ".csv"))
+```
+
+### SSMH
+
+```{r}
+file <- "Solar_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "solar", "_gap_filled_", "SSMH", ".csv"))
+```
+
+
+
+
+## Wind
+
+**List wind files**
+```{r}
+wind_files <- filenames[substr(filenames, 1, 4) == "Wind"]
+wind_files
+```
+
+
+### BEO
+
+```{r}
+file <- "Wind_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv" 
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "wind", "_gap_filled_", "BEO", ".csv"))
+```
+
+### TNHA
+
+```{r}
+file <- "Wind_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "solar", "_gap_filled_", "TNHA", ".csv"))
+```
+
+### SSMH
+
+```{r}
+file <- "Wind_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(df_long, paste0(exportpath, "wind", "_gap_filled_", "SSMH", ".csv"))
 ```

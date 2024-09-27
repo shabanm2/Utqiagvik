@@ -2,26 +2,20 @@
 
 This file is for loading gap-filled data and renaming the sensors and modifying it so that it can be easily cleaned for plotting and other statistical analysis.
 
-## Files
 
-### Temperature
-Temp_data_CLEAN_TNHA_from_2022_05_17_to_2024_08_14_no_gps.csv
-Temp_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv
-Temp_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv
+### Set Filepath
 
-### Volumetric Water Content
-Moist_data_CLEAN_TNHA_from_2022_05_17_to_2024_08_14_no_gps.csv
-Moist_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv
-Moist_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv
-
-### Set Filepath and File
+List all the files in the folder
 ```{r}
-filepath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/"
-file <- "Moist_data_CLEAN_TNHA_from_2022_05_17_to_2024_08_14_no_gps.csv"
+filepath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/Transposed/"
+exportpath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/Transposed/"
+filenames <- list.files(filepath, pattern="*.csv", full.names=F)
+filenames
 ```
 
 ### Read File
 ```{r}
+file <- "vwc_gap_filled_BEO.csv"
 df <- read.csv(paste0(filepath, file))
 ```
 
@@ -61,7 +55,14 @@ vwcsensors <- c('21393048'='BEO-OLD','21398591'='BEO-OLD','21398585'='BUECI-BASE
 
 ## Create and Select Columns
 
+**Rename Sensors**
+
 ```{r}
-df_col <- cSplit(df, 'sensor', sep="-", direction = "wide")
+df_long$fullname <- recode(df_long$sensor, !!!vwcsensors)
+df_long$copy <- df_long$fullname
+df_long <- cSplit(df_long, 'copy', sep="-", direction = "wide")
+colnames(df_long)[6:7] <- c("site", "station")
+df_final <- df_long %>% select(Date, sensor, site, station, fullname, depth, value)
 ```
+
 
