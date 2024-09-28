@@ -231,7 +231,7 @@ file <- "Wind_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(final, paste0(exportpath, "solar", "_gap_filled_", "TNHA", ".csv"))
+write.csv(final, paste0(exportpath, "wind", "_gap_filled_", "TNHA", ".csv"))
 ```
 
 ### SSMH

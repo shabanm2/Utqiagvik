@@ -3,6 +3,11 @@
 This file is for loading gap-filled data and renaming the sensors and modifying it so that it can be easily cleaned for plotting and other statistical analysis.
 
 
+```{r}
+library(dplyr)
+```
+
+
 ### Set Filepath
 
 List all the files in the folder
@@ -13,42 +18,37 @@ filenames <- list.files(filepath, pattern="*.csv", full.names=F)
 filenames
 ```
 
-### Read File
-```{r}
-file <- "vwc_gap_filled_BEO.csv"
-df <- read.csv(paste0(filepath, file))
-```
-
 
 ## Sensors
 
 These are the names and corresponding IDs of sensors based on the variable they measure.
 
-### Temperature
+
+
+### VWC & Ground Temp
 ```{r}
-tempsensors <- c('21393048'='BEO-OLD','21398591'='BEO-OLD','21398585'='BUECI-BASE',
-               '21398590'='BUECI-SA','21398583'='BUECI-SB','21393042'='BUECI-SC',
-               '21398584'='BUECI-SD','21398579'='BUECI-SE','21398578'='BUECI-SF01',
-               '21398598'='BUECI-SF02','21398588'='SSMH-BASE','21398599'='SSMH-SA',
-               '21393044'='SSMH-SB','21398576'='SSMH-BASE','21393049'='SSMH-SD',
-               '21398594'='SSMH-SE01','21393043'='SSMH-SE02','21398586'='SSMH-SF01',
-               '21398580'='SSMH-SF02','21398581'='SSMH-SG','21206939'='TNHA-BASE',
-               '21398593'='TNHA-SA','21398587'='TNHA-SB','21393047'='TNHA-SC',
-               '21398601'='TNHA-SD','21212510'='TNHA-SE','21398577'='TNHA-??')
+vwcgroundsensors <- c('21393048'='BEO-OLD','21398591'='BEO-OLD','21393045'='BEO-NEW','21398585'='BUECI-BASE','21398590'='BUECI-SA','21398583'='BUECI-SB','21393042'='BUECI-SC','21398584'='BUECI-SD','21398579'='BUECI-SE','21398578'='BUECI-SF01','21398598'='BUECI-SF02','21398576'='REMOVE','21398588'='SSMH-BASE','21398599'='SSMH-SA','21393044'='SSMH-SB','21166008'='SSMH-SB','21393049'='SSMH-SD','21398594'='SSMH-SE01','21393043'='SSMH-SE02','21398586'='SSMH-SF01','21398580'='SSMH-SF02','21398581'='SSMH-SG','21206939'='TNHA-BASE','21398593'='TNHA-SA','21398587'='TNHA-SB','21393047'='TNHA-SC','21393046'='TNHA-SC','21398601'='TNHA-SD','21398577'='TNHA-SE')
+```
+
+```{r}
+airtempsensors <- c('21397541'='BEO-BASE','21398585'='BUECI-BASE','21398659'='BUECI-__','21398661'='BUECI-__','21390851'='BUECI-BASE','21397542'='BUECI-__','21398671'='BUECI-SA','21362254'='BUECI-SB','21398668'='BUECI-SC','21362256'='BUECI-SD','21187245'='BUECI-SE','21390849'='SSMH-BASE','21398670'='SSMH-SA','21398665'='SSMH-SB','21398667'='SSMH-SI','21212510'='TNHA-SE','21218018'='TNHA-BASE','21390850'='TNHA-BASE','21380919'='TNHA-SA','21398676'='TNHA-SB','21398664'='TNHA-SB','21398674'='TNHA-SC','21398666'='TNHA-SD')
+
+airids <- c('21397541','21398585','21398659','21398661','21390851','21397542','21398671','21362254','21398668','21362256','21187245','21390849','21398670','21398665','21398667','21212510','21218018','21390850','21380919','21398676','21398664','21398674','21398666')
 ```
 
 
-### VWC
+### Solar
 ```{r}
-vwcsensors <- c('21393048'='BEO-OLD','21398591'='BEO-OLD','21398585'='BUECI-BASE',
-                '21398590'='BUECI-SA','21398583'='BUECI-SB','21393042'='BUECI-SC',
-                '21398584'='BUECI-SD','21398579'='BUECI-SE','21398578'='BUECI-SF01',
-                '21398598'='BUECI-SF02','21398576'='REMOVE','21398588'='SSMH-BASE',
-                '21398599'='SSMH-SA','21393044'='SSMH-SB','21393049'='SSMH-SD',
-                '21398594'='SSMH-SE01','21393043'='SSMH-SE02','21398586'='SSMH-SF01',
-                '21398580'='SSMH-SF02','21398581'='SSMH-SG','21206939'='TNHA-BASE',
-                '21398593'='TNHA-SA','21398587'='TNHA-SB','21393047'='TNHA-SC',
-                '21398601'='TNHA-SD','21398577'='TNHA-SE')
+solarsensors <- c('21390415'='BEO-BASE','21362314'='BUECI-__','21398617'='BUECI-__','21398621'='BUECI-__','21398623'='BUECI-???','21390411'='BUECI-BASE','21390414'='BUECI-BASE??','21398618'='BUECI-SA','21398624'='BUECI-SB','21362313'='BUECI-SC','21362316'='BUECI-SD','21362320'='BUECI-SE','21390413'='SSMH-BASE','21398622'='SSMH-SA','21362319'='SSMH-SB','21398619'='SSMH-SG','21362318'='TNHA-??','21176526'='TNHA-BASE','21398620'='TNHA-SA','21398616'='TNHA-SB','21362317'='TNHA-SC','21362315'='TNHA-SD')
+```
+
+### Wind
+```{r}
+windsensors <- c('21350915'='BEO-BASE','21350894'='BUECI-BASE','21398590'='BUECI-SA','21398729'='BUECI-SB','21398724'='BUECI-SC','21398660'='BUECI-SD','21398719'='BUECI-SE','21350901'='SSMH-BASE','21350910'='SSMH-BASE','21206911'='SSMH-SA','21206912'='SSMH-SB','21398711'='SSMH-SG','21176861'='TNHA-BASE','21398709'='TNHA-SA','21181033'='TNHA-SB','21398715'='TNHA-SB','21206909'='TNHA-SC','21398712'='TNHA-SD','21350855'='BEO-BASE','21350894'='BUECI-BASE','21398590'='BUECI-SA','21398729'='BUECI-SB','21398724'='BUECI-SC','21398660'='BUECI-SD','21398719'='BUECI-SE','21350820'='SSMH-BASE','21206911'='SSMH-SA','21206912'='SSMH-SB','21398711'='SSMH-SG','21181033'='TNHA-SB','21167037'='TNHA-BASE','21398709'='TNHA-SA','21398715'='TNHA-SB','21206909'='TNHA-SC','21398712'='TNHA-SD')
+
+winddir_ids <- c('21350894','21398590','21398729','21398724','21398660','21398719','21350820','21206911','21206912','21398711','21181033','21167037','21398709','21398715','21206909','21398712')
+
+windspeed_ids <- c('21350915','21350894','21398590','21398729','21398724','21398660','21398719','21350901','21350910','21206911','21206912','21398711','21176861','21398709','21181033','21398715','21206909','21398712')
 ```
 
 
@@ -58,11 +58,142 @@ vwcsensors <- c('21393048'='BEO-OLD','21398591'='BEO-OLD','21398585'='BUECI-BASE
 **Rename Sensors**
 
 ```{r}
-df_long$fullname <- recode(df_long$sensor, !!!vwcsensors)
-df_long$copy <- df_long$fullname
-df_long <- cSplit(df_long, 'copy', sep="-", direction = "wide")
-colnames(df_long)[6:7] <- c("site", "station")
-df_final <- df_long %>% select(Date, sensor, site, station, fullname, depth, value)
+rename_sensors <- function(file, sensornames) {
+  df <- read.csv(paste0(filepath, file))
+  df$sensor <- as.character(df$sensor)
+  df$fullname <- recode(df$sensor, !!!sensornames)
+  df$copy <- df$fullname
+  df <- df[, names(df) !="X"]
+  df <- cSplit(df, 'copy', sep="-", direction = "wide")
+  colnames(df)[6:7] <- c("site", "station")
+  df <- df %>% select(Date, sensor, site, station, fullname, depth, value)
+  return(df)
+}
 ```
 
 
+
+## Moisture
+
+```{r}
+file <- "vwc_gap_filled_BEO.csv"
+df_final <- rename_sensors(file, vwcgroundsensors)
+write.csv(df_final, paste0(exportpath, "vwc", "_gap_filled_renamed_", "BEO", ".csv"))
+```
+
+```{r}
+file <- "vwc_gap_filled_TNHA.csv"
+df_final <- rename_sensors(file, vwcgroundsensors)
+write.csv(df_final, paste0(exportpath, "vwc", "_gap_filled_renamed_", "TNHA", ".csv"))
+```
+
+```{r}
+file <- "vwc_gap_filled_SSMH.csv"
+df_final <- rename_sensors(file, vwcgroundsensors)
+write.csv(df_final, paste0(exportpath, "vwc", "_gap_filled_renamed_", "SSMH", ".csv"))
+```
+
+## Temperature & Air Temp
+
+```{r}
+file <- "temp_gap_filled_BEO.csv"
+df_final <- rename_sensors(file, vwcgroundsensors)
+airtemp <- df_final %>% filter(sensor %in% airids)
+groundtemp <- df_final %>% filter(!(sensor %in% airids))
+
+airtemp <- airtemp %>% select(Date, sensor, fullname, depth, value)
+airtemp$fullname <- recode(airtemp$fullname, !!!airtempsensors)
+airtemp$copy <- airtemp$fullname
+  airtemp <- cSplit(airtemp, 'copy', sep="-", direction = "wide")
+  colnames(airtemp)[6:7] <- c("site", "station")
+  airtemp <- airtemp %>% select(Date, sensor, site, station, fullname, depth, value)
+
+write.csv(groundtemp, paste0(exportpath, "groundtemp", "_gap_filled_renamed_", "BEO", ".csv"))
+write.csv(airtemp, paste0(exportpath, "airtemp", "_gap_filled_renamed_", "BEO", ".csv"))
+```
+
+```{r}
+file <- "temp_gap_filled_TNHA.csv"
+df_final <- rename_sensors(file, vwcgroundsensors)
+airtemp <- df_final %>% filter(sensor %in% airids)
+groundtemp <- df_final %>% filter(!(sensor %in% airids))
+
+airtemp <- airtemp %>% select(Date, sensor, fullname, depth, value)
+airtemp$fullname <- recode(airtemp$fullname, !!!airtempsensors)
+airtemp$copy <- airtemp$fullname
+  airtemp <- cSplit(airtemp, 'copy', sep="-", direction = "wide")
+  colnames(airtemp)[6:7] <- c("site", "station")
+  airtemp <- airtemp %>% select(Date, sensor, site, station, fullname, depth, value)
+
+write.csv(groundtemp, paste0(exportpath, "groundtemp", "_gap_filled_renamed_", "TNHA", ".csv"))
+write.csv(airtemp, paste0(exportpath, "airtemp", "_gap_filled_renamed_", "TNHA", ".csv"))
+```
+
+
+```{r}
+file <- "temp_gap_filled_SSMH.csv"
+df_final <- rename_sensors(file, vwcgroundsensors)
+airtemp <- df_final %>% filter(sensor %in% airids)
+groundtemp <- df_final %>% filter(!(sensor %in% airids))
+
+airtemp <- airtemp %>% select(Date, sensor, fullname, depth, value)
+airtemp$fullname <- recode(airtemp$fullname, !!!airtempsensors)
+airtemp$copy <- airtemp$fullname
+  airtemp <- cSplit(airtemp, 'copy', sep="-", direction = "wide")
+  colnames(airtemp)[6:7] <- c("site", "station")
+  airtemp <- airtemp %>% select(Date, sensor, site, station, fullname, depth, value)
+
+write.csv(groundtemp, paste0(exportpath, "groundtemp", "_gap_filled_renamed_", "SSMH", ".csv"))
+write.csv(airtemp, paste0(exportpath, "airtemp", "_gap_filled_renamed_", "SSMH", ".csv"))
+```
+
+
+## Solar
+
+```{r}
+file <- "solar_gap_filled_BEO.csv"
+df_final <- rename_sensors(file, solarsensors)
+write.csv(df_final, paste0(exportpath, "solar", "_gap_filled_renamed_", "BEO", ".csv"))
+```
+
+```{r}
+file <- "solar_gap_filled_TNHA.csv"
+df_final <- rename_sensors(file, solarsensors)
+write.csv(df_final, paste0(exportpath, "solar", "_gap_filled_renamed_", "TNHA", ".csv"))
+```
+
+```{r}
+file <- "solar_gap_filled_SSMH.csv"
+df_final <- rename_sensors(file, solarsensors)
+write.csv(df_final, paste0(exportpath, "solar", "_gap_filled_renamed_", "SSMH", ".csv"))
+```
+
+
+## Wind
+
+```{r}
+file <- "wind_gap_filled_BEO.csv"
+df_final <- rename_sensors(file, windsensors)
+windspeed <- df_final %>% filter(sensor %in% windspeed_ids)
+winddir <- df_final %>% filter(sensor %in% winddir_ids)
+write.csv(windspeed, paste0(exportpath, "windspeed", "_gap_filled_renamed_", "BEO", ".csv"))
+write.csv(winddir, paste0(exportpath, "winddirection", "_gap_filled_renamed_", "BEO", ".csv"))
+```
+
+```{r}
+file <- "wind_gap_filled_TNHA.csv"
+df_final <- rename_sensors(file, windsensors)
+windspeed <- df_final %>% filter(sensor %in% windspeed_ids)
+winddir <- df_final %>% filter(sensor %in% winddir_ids)
+write.csv(windspeed, paste0(exportpath, "windspeed", "_gap_filled_renamed_", "TNHA", ".csv"))
+write.csv(winddir, paste0(exportpath, "winddirection", "_gap_filled_renamed_", "TNHA", ".csv"))
+```
+
+```{r}
+file <- "wind_gap_filled_SSMH.csv"
+df_final <- rename_sensors(file, windsensors)
+windspeed <- df_final %>% filter(sensor %in% windspeed_ids)
+winddir <- df_final %>% filter(sensor %in% winddir_ids)
+write.csv(windspeed, paste0(exportpath, "windspeed", "_gap_filled_renamed_", "SSMH", ".csv"))
+write.csv(winddir, paste0(exportpath, "winddirection", "_gap_filled_renamed_", "SSMH", ".csv"))
+```
