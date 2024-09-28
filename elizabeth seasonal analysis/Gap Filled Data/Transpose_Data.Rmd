@@ -55,6 +55,14 @@ Load and Transpose
 transpose <- function(filepath, file) {
   # Load data
   df <- read.csv(paste0(filepath, file))
+  names(df) <- sub("Solar.Radiation..S.LIB.", "", names(df))
+  names(df) <- sub("...W.m.2..RX3000_BRW6", "", names(df))
+  names(df) <- sub("Wind.Direction..S.WDA.21401803.", "", names(df))
+  names(df) <- sub("Wind.Speed..S.WSB.", "", names(df))
+  names(df) <- sub("......RX3000_BRW6", "", names(df))
+  names(df) <- sub("_BEO", "", names(df))
+  df <- df[, names(df) !="21401803.21390415.1.1"]
+  names(df) <- sub("21401803.", "", names(df))
   # Transpose data
   df_long <- gather(df, sensor, value, 2:ncol(df))
   df_long <- cSplit(df_long, 'sensor', sep=".", direction = "wide")
@@ -84,7 +92,7 @@ file <- "Moist_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "vwc", "_gap_filled_", "BEO", ".csv"))
+write.csv(final, paste0(exportpath, "vwc", "_gap_filled_", "BEO", ".csv"))
 ```
 
 
@@ -95,7 +103,7 @@ file <- "Moist_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "vwc", "_gap_filled_", "TNHA", ".csv"))
+write.csv(final, paste0(exportpath, "vwc", "_gap_filled_", "TNHA", ".csv"))
 ```
 
 
@@ -106,7 +114,7 @@ file <- "Moist_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "vwc", "_gap_filled_", "SSMH", ".csv"))
+write.csv(final, paste0(exportpath, "vwc", "_gap_filled_", "SSMH", ".csv"))
 ```
 
 
@@ -129,7 +137,7 @@ file <- "Temp_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "temp", "_gap_filled_", "BEO", ".csv"))
+write.csv(final, paste0(exportpath, "temp", "_gap_filled_", "BEO", ".csv"))
 ```
 
 ### TNHA
@@ -139,7 +147,7 @@ file <- "Temp_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "temp", "_gap_filled_", "TNHA", ".csv"))
+write.csv(final, paste0(exportpath, "temp", "_gap_filled_", "TNHA", ".csv"))
 ```
 
 ### SSMH
@@ -149,7 +157,7 @@ file <- "Temp_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "temp", "_gap_filled_", "SSMH", ".csv"))
+write.csv(final, paste0(exportpath, "temp", "_gap_filled_", "SSMH", ".csv"))
 ```
 
 
@@ -171,7 +179,7 @@ file <- "Solar_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "solar", "_gap_filled_", "BEO", ".csv"))
+write.csv(final, paste0(exportpath, "solar", "_gap_filled_", "BEO", ".csv"))
 ```
 
 ### TNHA
@@ -181,7 +189,7 @@ file <- "Solar_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "solar", "_gap_filled_", "TNHA", ".csv"))
+write.csv(final, paste0(exportpath, "solar", "_gap_filled_", "TNHA", ".csv"))
 ```
 
 ### SSMH
@@ -191,7 +199,7 @@ file <- "Solar_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "solar", "_gap_filled_", "SSMH", ".csv"))
+write.csv(final, paste0(exportpath, "solar", "_gap_filled_", "SSMH", ".csv"))
 ```
 
 
@@ -213,7 +221,7 @@ file <- "Wind_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "wind", "_gap_filled_", "BEO", ".csv"))
+write.csv(final, paste0(exportpath, "wind", "_gap_filled_", "BEO", ".csv"))
 ```
 
 ### TNHA
@@ -223,7 +231,7 @@ file <- "Wind_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "solar", "_gap_filled_", "TNHA", ".csv"))
+write.csv(final, paste0(exportpath, "solar", "_gap_filled_", "TNHA", ".csv"))
 ```
 
 ### SSMH
@@ -233,5 +241,6 @@ file <- "Wind_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
-write.csv(df_long, paste0(exportpath, "wind", "_gap_filled_", "SSMH", ".csv"))
+write.csv(final, paste0(exportpath, "wind", "_gap_filled_", "SSMH", ".csv"))
 ```
+
