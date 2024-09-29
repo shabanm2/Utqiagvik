@@ -1,0 +1,24 @@
+# Average Gap Filled Data
+Get statistics and prep for data visualization.
+
+```{r}
+filepath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/Transposed/"
+```
+
+
+## BEO
+
+Load ground temperature, air temperature, volumetric water content, solar radiation, wind direction, and wind speed datasets. (From Prep_Data.Rmd)
+```{r}
+gt <- read.csv(paste0(filepath, "groundtemp_gap_filled_renamed_BEO.csv"))
+at <- read.csv(paste0(filepath, "airtemp_gap_filled_renamed_BEO.csv"))
+vwc <- read.csv(paste0(filepath, "vwc_gap_filled_renamed_BEO.csv"))
+sol <- read.csv(paste0(filepath, "solar_gap_filled_renamed_BEO.csv"))
+ws <- read.csv(paste0(filepath, "windspeed_gap_filled_renamed_BEO.csv"))
+wd <- read.csv(paste0(filepath, "winddirection_gap_filled_renamed_BEO.csv"))
+```
+
+
+## TNHA
+
+## SSMH
