@@ -78,6 +78,8 @@ rename_sensors <- function(file, sensornames) {
 ```{r}
 file <- "vwc_gap_filled_BEO.csv"
 df_final <- rename_sensors(file, vwcgroundsensors)
+df_final$fullname <- "BEO-BASE"
+df_final$station <- "BASE"
 write.csv(df_final, paste0(exportpath, "vwc", "_gap_filled_renamed_", "BEO", ".csv"))
 ```
 
@@ -108,6 +110,12 @@ airtemp$copy <- airtemp$fullname
   colnames(airtemp)[6:7] <- c("site", "station")
   airtemp <- airtemp %>% select(Date, sensor, site, station, fullname, depth, value)
 
+groundtemp$fullname <- "BEO-BASE"
+groundtemp$station <- "BASE"
+
+airtemp$fullname <- "BEO-BASE"
+airtemp$station <- "BASE"
+  
 write.csv(groundtemp, paste0(exportpath, "groundtemp", "_gap_filled_renamed_", "BEO", ".csv"))
 write.csv(airtemp, paste0(exportpath, "airtemp", "_gap_filled_renamed_", "BEO", ".csv"))
 ```
@@ -153,6 +161,8 @@ write.csv(airtemp, paste0(exportpath, "airtemp", "_gap_filled_renamed_", "SSMH",
 ```{r}
 file <- "solar_gap_filled_BEO.csv"
 df_final <- rename_sensors(file, solarsensors)
+df_final$fullname <- "BEO-BASE"
+df_final$station <- "BASE"
 write.csv(df_final, paste0(exportpath, "solar", "_gap_filled_renamed_", "BEO", ".csv"))
 ```
 
@@ -176,6 +186,12 @@ file <- "wind_gap_filled_BEO.csv"
 df_final <- rename_sensors(file, windsensors)
 windspeed <- df_final %>% filter(sensor %in% windspeed_ids)
 winddir <- df_final %>% filter(sensor %in% winddir_ids)
+
+windspeed$fullname <- "BEO-BASE"
+windspeed$station <- "BASE"
+winddir$fullname <- "BEO-BASE"
+winddir$station <- "BASE"
+
 write.csv(windspeed, paste0(exportpath, "windspeed", "_gap_filled_renamed_", "BEO", ".csv"))
 write.csv(winddir, paste0(exportpath, "winddirection", "_gap_filled_renamed_", "BEO", ".csv"))
 ```

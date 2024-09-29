@@ -5,6 +5,11 @@ Get statistics and prep for data visualization.
 filepath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/Transposed/"
 ```
 
+```{r}
+library(dplyr)
+```
+
+
 
 ## BEO
 
@@ -18,7 +23,285 @@ ws <- read.csv(paste0(filepath, "windspeed_gap_filled_renamed_BEO.csv"))
 wd <- read.csv(paste0(filepath, "winddirection_gap_filled_renamed_BEO.csv"))
 ```
 
+```{r}
+ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, depth) %>% summarize(mean = mean(value, na.rm = T))
+ground_hourly$hour[ground_hourly$hour == ""] = "00"
+ground_hourly$Date <- as.POSIXct(paste0(ground_hourly$date, " ", ground_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(ground_hourly)[5] = "groundtemp"
+ground_hourly <- ground_hourly[,c(3:6)]
+
+vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, depth) %>% summarize(mean = mean(value, na.rm = T))
+vwc_hourly$hour[vwc_hourly$hour == ""] = "00"
+vwc_hourly$Date <- as.POSIXct(paste0(vwc_hourly$date, " ", vwc_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(vwc_hourly)[5] = "vwc"
+vwc_hourly <- vwc_hourly[,c(3:6)]
+
+air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+air_hourly$hour[air_hourly$hour == ""] = "00"
+air_hourly$Date <- as.POSIXct(paste0(air_hourly$date, " ", air_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(air_hourly)[4] = "airtemp"
+air_hourly <- air_hourly[,c(3:5)]
+
+solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+solar_hourly$hour[solar_hourly$hour == ""] = "00"
+solar_hourly$Date <- as.POSIXct(paste0(solar_hourly$date, " ", solar_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(solar_hourly)[4] = "solar"
+solar_hourly <- solar_hourly[,c(3:5)]
+
+wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+wspeed_hourly$hour[wspeed_hourly$hour == ""] = "00"
+wspeed_hourly$Date <- as.POSIXct(paste0(wspeed_hourly$date, " ", wspeed_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(wspeed_hourly)[4] = "windspeed"
+wspeed_hourly <- wspeed_hourly[,c(3:5)]
+
+wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+wdir_hourly$hour[wdir_hourly$hour == ""] = "00"
+wdir_hourly$Date <- as.POSIXct(paste0(wdir_hourly$date, " ", wdir_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(wdir_hourly)[4] = "winddir"
+wdir_hourly <- wdir_hourly[,c(3:5)]
+```
+
+Ground Depth
+7 = "3.5cm" [1]
+8 = "10cm" [1]
+9 = "20cm" [2]
+10 = "30cm" [2]
+11 = "40cm" [3]
+12 = "50cm"[4]
+13 = "55cm" [4]
+14 = "65cm" [5]
+15 = "75cm" [5]
+16 = "85cm" [6]
+17 = "90cm" [6]
+
+VWC Depths
+1 = "0:15cm"
+2 = "15:30cm"
+3 = "30:45cm"
+4 = "45:60cm"
+5 = "60:75cm"
+6 = "75:90cm"
+
+Join variables
+```{r}
+ground_hourly <- ground_hourly %>% mutate(vwcdepth = case_when(depth == 7 ~ 1,
+          depth == 8 ~ 1,
+          depth == 9 ~ 2,
+          depth == 10 ~ 2,
+          depth == 11 ~ 3,
+          depth == 12 ~ 4,
+          depth == 13 ~ 4,
+          depth == 14 ~ 5,
+          depth == 15 ~ 5,
+          depth == 16 ~ 6,
+          depth == 17 ~ 6)) %>% filter(depth != 1)
+colnames(vwc_hourly)[2] = "vwcdepth"
+beo <- full_join(ground_hourly, vwc_hourly, by=c("Date", "fullname", "vwcdepth")) 
+colnames(beo)[2] = "grounddepth"
+beo <- full_join(beo, air_hourly, by=c("Date", "fullname"))
+beo <- full_join(beo, solar_hourly, by=c("Date", "fullname"))
+beo <- full_join(beo, wspeed_hourly, by=c("Date", "fullname"))
+# beo <- full_join(beo, wdir_hourly, by=c("Date", "fullname")) - no data
+```
+
+```{r}
+write.csv(beo, paste0(filepath, "BEO", "_hourly_gap_filled", ".csv"))
+```
+
+
 
 ## TNHA
 
+Load ground temperature, air temperature, volumetric water content, solar radiation, wind direction, and wind speed datasets. (From Prep_Data.Rmd)
+```{r}
+gt <- read.csv(paste0(filepath, "groundtemp_gap_filled_renamed_TNHA.csv"))
+at <- read.csv(paste0(filepath, "airtemp_gap_filled_renamed_TNHA.csv"))
+vwc <- read.csv(paste0(filepath, "vwc_gap_filled_renamed_TNHA.csv"))
+sol <- read.csv(paste0(filepath, "solar_gap_filled_renamed_TNHA.csv"))
+ws <- read.csv(paste0(filepath, "windspeed_gap_filled_renamed_TNHA.csv"))
+wd <- read.csv(paste0(filepath, "winddirection_gap_filled_renamed_TNHA.csv"))
+```
+
+```{r}
+ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, depth) %>% summarize(mean = mean(value, na.rm = T))
+ground_hourly$hour[ground_hourly$hour == ""] = "00"
+ground_hourly$Date <- as.POSIXct(paste0(ground_hourly$date, " ", ground_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(ground_hourly)[5] = "groundtemp"
+ground_hourly <- ground_hourly[,c(3:6)]
+
+vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, depth) %>% summarize(mean = mean(value, na.rm = T))
+vwc_hourly$hour[vwc_hourly$hour == ""] = "00"
+vwc_hourly$Date <- as.POSIXct(paste0(vwc_hourly$date, " ", vwc_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(vwc_hourly)[5] = "vwc"
+vwc_hourly <- vwc_hourly[,c(3:6)]
+
+air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+air_hourly$hour[air_hourly$hour == ""] = "00"
+air_hourly$Date <- as.POSIXct(paste0(air_hourly$date, " ", air_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(air_hourly)[4] = "airtemp"
+air_hourly <- air_hourly[,c(3:5)]
+
+solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+solar_hourly$hour[solar_hourly$hour == ""] = "00"
+solar_hourly$Date <- as.POSIXct(paste0(solar_hourly$date, " ", solar_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(solar_hourly)[4] = "solar"
+solar_hourly <- solar_hourly[,c(3:5)]
+
+wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+wspeed_hourly$hour[wspeed_hourly$hour == ""] = "00"
+wspeed_hourly$Date <- as.POSIXct(paste0(wspeed_hourly$date, " ", wspeed_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(wspeed_hourly)[4] = "windspeed"
+wspeed_hourly <- wspeed_hourly[,c(3:5)]
+
+wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+wdir_hourly$hour[wdir_hourly$hour == ""] = "00"
+wdir_hourly$Date <- as.POSIXct(paste0(wdir_hourly$date, " ", wdir_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(wdir_hourly)[4] = "winddir"
+wdir_hourly <- wdir_hourly[,c(3:5)]
+```
+
+Ground Depth
+7 = "3.5cm" [1]
+8 = "10cm" [1]
+9 = "20cm" [2]
+10 = "30cm" [2]
+11 = "40cm" [3]
+12 = "50cm"[4]
+13 = "55cm" [4]
+14 = "65cm" [5]
+15 = "75cm" [5]
+16 = "85cm" [6]
+17 = "90cm" [6]
+
+VWC Depths
+1 = "0:15cm"
+2 = "15:30cm"
+3 = "30:45cm"
+4 = "45:60cm"
+5 = "60:75cm"
+6 = "75:90cm"
+
+Join variables
+```{r}
+ground_hourly <- ground_hourly %>% mutate(vwcdepth = case_when(depth == 7 ~ 1,
+          depth == 8 ~ 1,
+          depth == 9 ~ 2,
+          depth == 10 ~ 2,
+          depth == 11 ~ 3,
+          depth == 12 ~ 4,
+          depth == 13 ~ 4,
+          depth == 14 ~ 5,
+          depth == 15 ~ 5,
+          depth == 16 ~ 6,
+          depth == 17 ~ 6)) %>% filter(depth != 1)
+colnames(vwc_hourly)[2] = "vwcdepth"
+tnha <- full_join(ground_hourly, vwc_hourly, by=c("Date", "fullname", "vwcdepth")) 
+colnames(tnha)[2] = "grounddepth"
+tnha <- full_join(tnha, air_hourly, by=c("Date", "fullname"))
+tnha <- full_join(tnha, solar_hourly, by=c("Date", "fullname"))
+tnha <- full_join(tnha, wspeed_hourly, by=c("Date", "fullname"))
+tnha <- full_join(tnha, wdir_hourly, by=c("Date", "fullname"))
+```
+
+```{r}
+write.csv(tnha, paste0(filepath, "TNHA", "_hourly_gap_filled", ".csv"))
+```
+
+
 ## SSMH
+
+Load ground temperature, air temperature, volumetric water content, solar radiation, wind direction, and wind speed datasets. (From Prep_Data.Rmd)
+```{r}
+gt <- read.csv(paste0(filepath, "groundtemp_gap_filled_renamed_SSMH.csv"))
+at <- read.csv(paste0(filepath, "airtemp_gap_filled_renamed_SSMH.csv"))
+vwc <- read.csv(paste0(filepath, "vwc_gap_filled_renamed_SSMH.csv"))
+sol <- read.csv(paste0(filepath, "solar_gap_filled_renamed_SSMH.csv"))
+ws <- read.csv(paste0(filepath, "windspeed_gap_filled_renamed_SSMH.csv"))
+wd <- read.csv(paste0(filepath, "winddirection_gap_filled_renamed_SSMH.csv"))
+```
+
+```{r}
+ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, depth) %>% summarize(mean = mean(value, na.rm = T))
+ground_hourly$hour[ground_hourly$hour == ""] = "00"
+ground_hourly$Date <- as.POSIXct(paste0(ground_hourly$date, " ", ground_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(ground_hourly)[5] = "groundtemp"
+ground_hourly <- ground_hourly[,c(3:6)]
+
+vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, depth) %>% summarize(mean = mean(value, na.rm = T))
+vwc_hourly$hour[vwc_hourly$hour == ""] = "00"
+vwc_hourly$Date <- as.POSIXct(paste0(vwc_hourly$date, " ", vwc_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(vwc_hourly)[5] = "vwc"
+vwc_hourly <- vwc_hourly[,c(3:6)]
+
+air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+air_hourly$hour[air_hourly$hour == ""] = "00"
+air_hourly$Date <- as.POSIXct(paste0(air_hourly$date, " ", air_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(air_hourly)[4] = "airtemp"
+air_hourly <- air_hourly[,c(3:5)]
+
+solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+solar_hourly$hour[solar_hourly$hour == ""] = "00"
+solar_hourly$Date <- as.POSIXct(paste0(solar_hourly$date, " ", solar_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(solar_hourly)[4] = "solar"
+solar_hourly <- solar_hourly[,c(3:5)]
+
+wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+wspeed_hourly$hour[wspeed_hourly$hour == ""] = "00"
+wspeed_hourly$Date <- as.POSIXct(paste0(wspeed_hourly$date, " ", wspeed_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(wspeed_hourly)[4] = "windspeed"
+wspeed_hourly <- wspeed_hourly[,c(3:5)]
+
+wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname) %>% summarize(mean = mean(value, na.rm = T))
+wdir_hourly$hour[wdir_hourly$hour == ""] = "00"
+wdir_hourly$Date <- as.POSIXct(paste0(wdir_hourly$date, " ", wdir_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
+colnames(wdir_hourly)[4] = "winddir"
+wdir_hourly <- wdir_hourly[,c(3:5)]
+```
+
+Ground Depth
+7 = "3.5cm" [1]
+8 = "10cm" [1]
+9 = "20cm" [2]
+10 = "30cm" [2]
+11 = "40cm" [3]
+12 = "50cm"[4]
+13 = "55cm" [4]
+14 = "65cm" [5]
+15 = "75cm" [5]
+16 = "85cm" [6]
+17 = "90cm" [6]
+
+VWC Depths
+1 = "0:15cm"
+2 = "15:30cm"
+3 = "30:45cm"
+4 = "45:60cm"
+5 = "60:75cm"
+6 = "75:90cm"
+
+Join variables
+```{r}
+ground_hourly <- ground_hourly %>% mutate(vwcdepth = case_when(depth == 7 ~ 1,
+          depth == 8 ~ 1,
+          depth == 9 ~ 2,
+          depth == 10 ~ 2,
+          depth == 11 ~ 3,
+          depth == 12 ~ 4,
+          depth == 13 ~ 4,
+          depth == 14 ~ 5,
+          depth == 15 ~ 5,
+          depth == 16 ~ 6,
+          depth == 17 ~ 6)) %>% filter(depth != 1)
+colnames(vwc_hourly)[2] = "vwcdepth"
+ssmh <- full_join(ground_hourly, vwc_hourly, by=c("Date", "fullname", "vwcdepth")) 
+colnames(ssmh)[2] = "grounddepth"
+ssmh <- full_join(ssmh, air_hourly, by=c("Date", "fullname"))
+ssmh <- full_join(ssmh, solar_hourly, by=c("Date", "fullname"))
+ssmh <- full_join(ssmh, wspeed_hourly, by=c("Date", "fullname"))
+ssmh <- full_join(ssmh, wdir_hourly, by=c("Date", "fullname"))
+```
+
+```{r}
+write.csv(ssmh, paste0(filepath, "SSMH", "_hourly_gap_filled", ".csv"))
+```
+
