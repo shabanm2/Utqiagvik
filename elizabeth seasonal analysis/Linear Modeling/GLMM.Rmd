@@ -1,0 +1,57 @@
+---
+title: "Generalized Linear Mixed Models"
+author: "Elizabeth Van Metre"
+date: "2024-10-01"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Generalized Linear Mixed Models
+
+Created: October 1, 2024
+
+**Fixed Effects**: variables that we expect to have an effect on the
+response variable (i.e. independent or explanatory variables)
+
+**Random Effects**: [grouping factors]{.underline} that may cause variation
+that we want to control; ALWAYS CATEGORICAL
+
+The data for our random effects are just a sample of all the
+possibilities - our data are limited by time and resources, and
+therefore are only a representation of part of the population.
+
+```{r}
+library(lme4)
+```
+
+## Load Data
+
+```{r}
+filepath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/Transposed/"
+df <- read.csv(paste0(filepath, "all_sites_hourly_gap_filled.csv"))
+df$copy <- df$fullname
+df <- cSplit(df, 'copy', sep="-", direction = "wide")
+colnames(df)[12:13] <- c("site", "station")
+```
+
+
+We need to look at the distribution of our data.
+
+First we fit a linear mixed model.
+
+```{r}
+mixed.lmer <- lmer(groundtemp ~ airtemp + (1|site), data = df)
+summary(mixed.lmer)
+```
+
+Check Assumptions
+```{r}
+plot(mixed.lmer)
+```
+
+
+Sources:
+https://ourcodingclub.github.io/tutorials/mixed-models/#what
+

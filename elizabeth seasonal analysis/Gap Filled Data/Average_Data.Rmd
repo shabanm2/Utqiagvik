@@ -305,3 +305,15 @@ ssmh <- full_join(ssmh, wdir_hourly, by=c("Date", "fullname"))
 write.csv(ssmh, paste0(filepath, "SSMH", "_hourly_gap_filled", ".csv"))
 ```
 
+
+## Combine All Sites
+
+```{r}
+all_sites <- rbind(beo, tnha)
+all_sites <- rbind(all_sites, ssmh)
+```
+
+```{r}
+write.csv(all_sites, paste0(filepath, "all_sites", "_hourly_gap_filled", ".csv"))
+```
+
