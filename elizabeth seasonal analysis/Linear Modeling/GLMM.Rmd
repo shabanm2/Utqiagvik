@@ -55,3 +55,23 @@ plot(mixed.lmer)
 Sources:
 https://ourcodingclub.github.io/tutorials/mixed-models/#what
 
+
+
+
+START
+1. North vs South at one site - try to figure out that there is a difference
+2. South vs South at two different sites
+Eventually... do we see a difference between years in our North vs South GLMMs
+
+
+Seasonal
+Summer 2022, Fall 2022, Spring 2023 - separate GLMMs
+Site by Site
+Also aspect by aspect (n vs s)
+Depth: start with 10cm; 30cm; 55cm; 65cm; 90cm
+
+change this order:
+- aspects
+- locations
+- depth
+- season
