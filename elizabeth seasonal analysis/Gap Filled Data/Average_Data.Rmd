@@ -24,41 +24,41 @@ wd <- read.csv(paste0(filepath, "winddirection_gap_filled_renamed_BEO.csv"))
 ```
 
 ```{r}
-ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor, depth) %>% summarize(mean = mean(value, na.rm = T))
+ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 ground_hourly$hour[ground_hourly$hour == ""] = "00"
 ground_hourly$Date <- as.POSIXct(paste0(ground_hourly$date, " ", ground_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(ground_hourly)[8] = "groundtemp"
-ground_hourly <- ground_hourly[,c(3:9)]
+colnames(ground_hourly)[7] = "groundtemp"
+ground_hourly <- ground_hourly[,c(3:8)]
 
-vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor, depth) %>% summarize(mean = mean(value, na.rm = T))
+vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
 vwc_hourly$hour[vwc_hourly$hour == ""] = "00"
 vwc_hourly$Date <- as.POSIXct(paste0(vwc_hourly$date, " ", vwc_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(vwc_hourly)[8] = "vwc"
-vwc_hourly <- vwc_hourly[,c(3:9)]
+colnames(vwc_hourly)[7] = "vwc"
+vwc_hourly <- vwc_hourly[,c(3:8)]
 
-air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 air_hourly$hour[air_hourly$hour == ""] = "00"
 air_hourly$Date <- as.POSIXct(paste0(air_hourly$date, " ", air_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(air_hourly)[7] = "airtemp"
-air_hourly <- air_hourly[,c(3:8)]
+colnames(air_hourly)[6] = "airtemp"
+air_hourly <- air_hourly[,c(3:7)]
 
-solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 solar_hourly$hour[solar_hourly$hour == ""] = "00"
 solar_hourly$Date <- as.POSIXct(paste0(solar_hourly$date, " ", solar_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(solar_hourly)[7] = "solar"
-solar_hourly <- solar_hourly[,c(3:8)]
+colnames(solar_hourly)[6] = "solar"
+solar_hourly <- solar_hourly[,c(3:7)]
 
-wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 wspeed_hourly$hour[wspeed_hourly$hour == ""] = "00"
 wspeed_hourly$Date <- as.POSIXct(paste0(wspeed_hourly$date, " ", wspeed_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(wspeed_hourly)[7] = "windspeed"
-wspeed_hourly <- wspeed_hourly[,c(3:8)]
+colnames(wspeed_hourly)[6] = "windspeed"
+wspeed_hourly <- wspeed_hourly[,c(3:7)]
 
-wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 wdir_hourly$hour[wdir_hourly$hour == ""] = "00"
 wdir_hourly$Date <- as.POSIXct(paste0(wdir_hourly$date, " ", wdir_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(wdir_hourly)[7] = "winddir"
-wdir_hourly <- wdir_hourly[,c(3:8)]
+colnames(wdir_hourly)[6] = "winddir"
+wdir_hourly <- wdir_hourly[,c(3:7)]
 ```
 **subject to change**
 Ground Depth
@@ -95,12 +95,12 @@ ground_hourly <- ground_hourly %>% mutate(vwcdepth = case_when(depth == 7 ~ 1,
           depth == 15 ~ 6,
           depth == 16 ~ 6,
           depth == 17 ~ 6)) %>% filter(depth != 1)
-colnames(vwc_hourly)[5] = "vwcdepth"
+colnames(vwc_hourly)[4] = "vwcdepth"
 beo <- full_join(ground_hourly, vwc_hourly, by=c("Date", "fullname", "site", "station", "vwcdepth")) 
-colnames(beo)[5] = "grounddepth"
-beo <- full_join(beo, air_hourly, by=c("Date", "fullname", "site", "station"))
-beo <- full_join(beo, solar_hourly, by=c("Date", "fullname", "site", "station"))
-beo <- full_join(beo, wspeed_hourly, by=c("Date", "fullname", "site", "station"))
+colnames(beo)[4] = "grounddepth"
+beo <- full_join(beo, air_hourly %>% ungroup() %>% select(-c(fullname, station)), by=c("Date", "site"))
+beo <- full_join(beo, solar_hourly %>% ungroup() %>% select(-c(fullname, station)), by=c("Date", "site"))
+beo <- full_join(beo, wspeed_hourly %>% ungroup() %>% select(-c(fullname, station)), by=c("Date", "site"))
 # beo <- full_join(beo, wdir_hourly, by=c("Date", "fullname")) - no data
 ```
 
@@ -112,17 +112,17 @@ write.csv(beo, paste0(filepath, "BEO", "_hourly_gap_filled", ".csv"))
 ### Get Sensors
 
 ```{r}
-ground_sensors <- ground_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+ground_sensors <- ground_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-air_sensors <- air_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+air_sensors <- air_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-vwc_sensors <- vwc_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+vwc_sensors <- vwc_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-solar_sensors <- solar_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+solar_sensors <- solar_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-winddir_sensors <- wdir_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+winddir_sensors <- wdir_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-windspeed_sensors <- wspeed_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+windspeed_sensors <- wspeed_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
 all_ground_sensors <- ground_sensors
 all_air_sensors <- air_sensors
@@ -146,37 +146,37 @@ wd <- read.csv(paste0(filepath, "winddirection_gap_filled_renamed_TNHA.csv"))
 ```
 
 ```{r}
-ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor, depth) %>% summarize(mean = mean(value, na.rm = T))
+ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
 ground_hourly$hour[ground_hourly$hour == ""] = "00"
 ground_hourly$Date <- as.POSIXct(paste0(ground_hourly$date, " ", ground_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(ground_hourly)[8] = "groundtemp"
 ground_hourly <- ground_hourly[,c(3:9)]
 
-vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor, depth) %>% summarize(mean = mean(value, na.rm = T))
+vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
 vwc_hourly$hour[vwc_hourly$hour == ""] = "00"
 vwc_hourly$Date <- as.POSIXct(paste0(vwc_hourly$date, " ", vwc_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(vwc_hourly)[8] = "vwc"
 vwc_hourly <- vwc_hourly[,c(3:9)]
 
-air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 air_hourly$hour[air_hourly$hour == ""] = "00"
 air_hourly$Date <- as.POSIXct(paste0(air_hourly$date, " ", air_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(air_hourly)[7] = "airtemp"
 air_hourly <- air_hourly[,c(3:8)]
 
-solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 solar_hourly$hour[solar_hourly$hour == ""] = "00"
 solar_hourly$Date <- as.POSIXct(paste0(solar_hourly$date, " ", solar_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(solar_hourly)[7] = "solar"
 solar_hourly <- solar_hourly[,c(3:8)]
 
-wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 wspeed_hourly$hour[wspeed_hourly$hour == ""] = "00"
 wspeed_hourly$Date <- as.POSIXct(paste0(wspeed_hourly$date, " ", wspeed_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(wspeed_hourly)[7] = "windspeed"
 wspeed_hourly <- wspeed_hourly[,c(3:8)]
 
-wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 wdir_hourly$hour[wdir_hourly$hour == ""] = "00"
 wdir_hourly$Date <- as.POSIXct(paste0(wdir_hourly$date, " ", wdir_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(wdir_hourly)[7] = "winddir"
@@ -226,17 +226,17 @@ write.csv(tnha, paste0(filepath, "TNHA", "_hourly_gap_filled", ".csv"))
 ### Get Sensors
 
 ```{r}
-ground_sensors <- ground_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+ground_sensors <- ground_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-air_sensors <- air_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+air_sensors <- air_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-vwc_sensors <- vwc_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+vwc_sensors <- vwc_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-solar_sensors <- solar_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+solar_sensors <- solar_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-winddir_sensors <- wdir_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+winddir_sensors <- wdir_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-windspeed_sensors <- wspeed_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+windspeed_sensors <- wspeed_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
 all_ground_sensors <- rbind(all_ground_sensors, ground_sensors)
 all_air_sensors <- rbind(all_air_sensors, air_sensors)
@@ -260,37 +260,37 @@ wd <- read.csv(paste0(filepath, "winddirection_gap_filled_renamed_SSMH.csv"))
 ```
 
 ```{r}
-ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor, depth) %>% summarize(mean = mean(value, na.rm = T))
+ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
 ground_hourly$hour[ground_hourly$hour == ""] = "00"
 ground_hourly$Date <- as.POSIXct(paste0(ground_hourly$date, " ", ground_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(ground_hourly)[8] = "groundtemp"
 ground_hourly <- ground_hourly[,c(3:9)]
 
-vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor, depth) %>% summarize(mean = mean(value, na.rm = T))
+vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
 vwc_hourly$hour[vwc_hourly$hour == ""] = "00"
 vwc_hourly$Date <- as.POSIXct(paste0(vwc_hourly$date, " ", vwc_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(vwc_hourly)[8] = "vwc"
 vwc_hourly <- vwc_hourly[,c(3:9)]
 
-air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 air_hourly$hour[air_hourly$hour == ""] = "00"
 air_hourly$Date <- as.POSIXct(paste0(air_hourly$date, " ", air_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(air_hourly)[7] = "airtemp"
 air_hourly <- air_hourly[,c(3:8)]
 
-solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 solar_hourly$hour[solar_hourly$hour == ""] = "00"
 solar_hourly$Date <- as.POSIXct(paste0(solar_hourly$date, " ", solar_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(solar_hourly)[7] = "solar"
 solar_hourly <- solar_hourly[,c(3:8)]
 
-wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 wspeed_hourly$hour[wspeed_hourly$hour == ""] = "00"
 wspeed_hourly$Date <- as.POSIXct(paste0(wspeed_hourly$date, " ", wspeed_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(wspeed_hourly)[7] = "windspeed"
 wspeed_hourly <- wspeed_hourly[,c(3:8)]
 
-wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, sensor) %>% summarize(mean = mean(value, na.rm = T))
+wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
 wdir_hourly$hour[wdir_hourly$hour == ""] = "00"
 wdir_hourly$Date <- as.POSIXct(paste0(wdir_hourly$date, " ", wdir_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(wdir_hourly)[7] = "winddir"
@@ -341,17 +341,17 @@ write.csv(ssmh, paste0(filepath, "SSMH", "_hourly_gap_filled", ".csv"))
 ### Get Sensors
 
 ```{r}
-ground_sensors <- ground_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+ground_sensors <- ground_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-air_sensors <- air_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+air_sensors <- air_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-vwc_sensors <- vwc_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+vwc_sensors <- vwc_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-solar_sensors <- solar_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+solar_sensors <- solar_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-winddir_sensors <- wdir_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+winddir_sensors <- wdir_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
-windspeed_sensors <- wspeed_hourly %>% select(sensor, fullname, Date) %>% group_by(sensor, fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
+windspeed_sensors <- wspeed_hourly %>% select( fullname, Date) %>% group_by( fullname) %>% summarize(mindate = substr(min(Date), 1, 10), maxdate = substr(max(Date), 1, 10))
 
 all_ground_sensors <- rbind(all_ground_sensors, ground_sensors)
 all_air_sensors <- rbind(all_air_sensors, air_sensors)

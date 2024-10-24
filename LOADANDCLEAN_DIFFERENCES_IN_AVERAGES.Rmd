@@ -406,6 +406,9 @@ summ24grndtmp <- summ24grndtmp %>% filter(!value == -888.88)
 
 
 
+```{r}
+all_hourly <- read.csv("/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/Transposed/all_sites_hourly_gap_filled.csv")
+```
 
 
 Daily Averaging per season + depth + station

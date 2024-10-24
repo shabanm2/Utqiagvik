@@ -137,6 +137,7 @@ file <- "Temp_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
+final <- final %>% filter(sensor != "21390850")
 write.csv(final, paste0(exportpath, "temp", "_gap_filled_", "BEO", ".csv"))
 ```
 
