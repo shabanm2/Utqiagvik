@@ -10,6 +10,7 @@ library(dplyr)
 ```
 
 
+# Hourly Averages
 
 ## BEO
 
@@ -325,3 +326,21 @@ all_sites <- rbind(all_sites, ssmh)
 write.csv(all_sites, paste0(filepath, "all_sites", "_hourly_gap_filled", ".csv"))
 ```
 
+
+
+# Daily Averages
+
+```{r}
+daily_avg <- all_sites %>% mutate(day = substr(Date, 1, 10)) %>% group_by(day, fullname, site, station, grounddepth, vwcdepth) %>% summarize(groundtemp = mean(groundtemp, na.rm = TRUE), vwc = mean(vwc, na.rm = TRUE), airtemp = mean(airtemp, na.rm = TRUE), solar = mean(solar, na.rm = TRUE), windspeed = mean(windspeed, na.rm = TRUE), winddir = mean(winddir, na.rm = TRUE))
+
+daily_avg$groundtemp[is.nan(daily_avg$groundtemp)] = NA
+daily_avg$vwc[is.nan(daily_avg$vwc)] = NA
+daily_avg$airtemp[is.nan(daily_avg$airtemp)] = NA
+daily_avg$solar[is.nan(daily_avg$solar)] = NA
+daily_avg$windspeed[is.nan(daily_avg$windspeed)] = NA
+daily_avg$winddir[is.nan(daily_avg$winddir)] = NA
+```
+
+```{r}
+write.csv(daily_avg, paste0(filepath, "all_sites", "_daily_gap_filled", ".csv"))
+```
