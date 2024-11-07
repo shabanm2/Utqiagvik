@@ -1,0 +1,247 @@
+# Transpose Data
+## NOTE: THIS FILE IS NO LONGER NEEDED BUT THE CODE IS PRESERVED FOR REFERENCE OR POTENTIAL USE IN THE FUTURE
+
+### Load Libraries
+```{r}
+library(dplyr)
+library(tidyr)
+library(splitstackshape)
+```
+
+
+
+
+## Files
+
+### Moisture
+ [1] "Moist_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"    
+ [2] "Moist_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv"   
+ [3] "Moist_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"  
+ 
+### Other
+ [4] "Other_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"   
+ [5] "Other_sensors_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv" 
+ [6] "Other_sensors_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+ 
+### Solar
+ [7] "Solar_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"    
+ [8] "Solar_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"   
+ [9] "Solar_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"  
+
+### Temperature
+[10] "Temp_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"     
+[11] "Temp_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv"    
+[12] "Temp_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv" 
+
+### Wind
+[13] "Wind_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"     
+[14] "Wind_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"    
+[15] "Wind_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv" 
+
+### Set Filepath
+
+List all the files in the folder
+```{r}
+filepath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/"
+exportpath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/Transposed/"
+filenames <- list.files(filepath, pattern="*.csv", full.names=F)
+filenames
+```
+
+## Function
+
+Load and Transpose
+```{r}
+transpose <- function(filepath, file) {
+  # Load data
+  df <- read.csv(paste0(filepath, file))
+  names(df) <- sub("Solar.Radiation..S.LIB.", "", names(df))
+  names(df) <- sub("...W.m.2..RX3000_BRW6", "", names(df))
+  names(df) <- sub("Wind.Direction..S.WDA.21401803.", "", names(df))
+  names(df) <- sub("Wind.Speed..S.WSB.", "", names(df))
+  names(df) <- sub("......RX3000_BRW6", "", names(df))
+  names(df) <- sub("_BEO", "", names(df))
+  df <- df[, names(df) !="21401803.21390415.1.1"]
+  names(df) <- sub("21401803.", "", names(df))
+  # Transpose data
+  df_long <- gather(df, sensor, value, 2:ncol(df))
+  df_long <- cSplit(df_long, 'sensor', sep=".", direction = "wide")
+  df_long$sensor_1 <- gsub('X', '', df_long$sensor_1)
+  df_long <- select(df_long, Date, sensor_1, sensor_2, value)
+  colnames(df_long)[2:3] <- c("sensor", "depth")
+  df_long$Date <- as.POSIXct(df_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+  return(df_long)
+}
+```
+
+
+
+## Moisture
+
+**List moisture files**
+```{r}
+vwc_files <- filenames[substr(filenames, 1, 5) == "Moist"]
+vwc_files
+```
+
+
+### BEO
+
+```{r}
+file <- "Moist_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "vwc", "_gap_filled_", "BEO", ".csv"))
+```
+
+
+### TNHA
+
+```{r}
+file <- "Moist_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "vwc", "_gap_filled_", "TNHA", ".csv"))
+```
+
+
+### SSMH
+
+```{r}
+file <- "Moist_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "vwc", "_gap_filled_", "SSMH", ".csv"))
+```
+
+
+
+
+## Temperature
+(Ground and Air Combined)
+
+**List temp files**
+```{r}
+temp_files <- filenames[substr(filenames, 1, 4) == "Temp"]
+temp_files
+```
+
+
+### BEO
+
+```{r}
+file <- "Temp_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv" 
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+final <- final %>% filter(sensor != "21390850")
+write.csv(final, paste0(exportpath, "temp", "_gap_filled_", "BEO", ".csv"))
+```
+
+### TNHA
+
+```{r}
+file <- "Temp_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "temp", "_gap_filled_", "TNHA", ".csv"))
+```
+
+### SSMH
+
+```{r}
+file <- "Temp_data_CLEAN_SSMH_from_2022_06_08_to_2024_08_28_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "temp", "_gap_filled_", "SSMH", ".csv"))
+```
+
+
+
+
+## Solar Radiation
+
+**List solar files**
+```{r}
+solar_files <- filenames[substr(filenames, 1, 5) == "Solar"]
+solar_files
+```
+
+
+### BEO
+
+```{r}
+file <- "Solar_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv" 
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "solar", "_gap_filled_", "BEO", ".csv"))
+```
+
+### TNHA
+
+```{r}
+file <- "Solar_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "solar", "_gap_filled_", "TNHA", ".csv"))
+```
+
+### SSMH
+
+```{r}
+file <- "Solar_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "solar", "_gap_filled_", "SSMH", ".csv"))
+```
+
+
+
+
+## Wind
+
+**List wind files**
+```{r}
+wind_files <- filenames[substr(filenames, 1, 4) == "Wind"]
+wind_files
+```
+
+
+### BEO
+
+```{r}
+file <- "Wind_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv" 
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "wind", "_gap_filled_", "BEO", ".csv"))
+```
+
+### TNHA
+
+```{r}
+file <- "Wind_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "wind", "_gap_filled_", "TNHA", ".csv"))
+```
+
+### SSMH
+
+```{r}
+file <- "Wind_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "wind", "_gap_filled_", "SSMH", ".csv"))
+```
+
