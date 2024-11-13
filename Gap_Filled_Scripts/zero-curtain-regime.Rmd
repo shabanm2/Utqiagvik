@@ -1,0 +1,62 @@
+---
+title: "zero-curtain-regime"
+author: "Mirella Shaban"
+date: "2024-11-11"
+output: html_document
+---
+This script requires either LOAD AND CLEAN or gap filled differences .RMD to be run in order to work (needs those scripts for the daily averaging and loading in the data)
+
+This script will bind temperatures between -0.5 °C and +0.5 °C to observe the start, end, and duration of the zero curtain regime across seasons
+
+
+```{r}
+#Constrain by season
+
+
+zero_curtain<- Daily_grndtmp_avgs %>% filter( groundtemp < 0.5 & groundtemp > -0.5 & day >= "2022-09-01" & day <= "2022-12-01", na.rm = TRUE) %>% subset(grounddepth == "10cm" | grounddepth == "30cm"| grounddepth == "55cm" | grounddepth == "65cm" | grounddepth == "90cm")
+
+list(zero_curtain)
+
+zero_curtain$grounddepth <- zero_curtain$grounddepth %>% factor(levels = c("10cm", "30cm", "55cm", "65cm", "90cm"))
+```
+
+```{r fig1, fig.height = 20, fig.width = 18}
+zero_curtain %>% 
+  ggplot(aes(x=day, y=groundtemp, color = fullname), size = 0.9) +
+  geom_point(na.rm = TRUE) +
+  geom_line(na.rm = TRUE) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  facet_wrap(grounddepth~. , nrow=6) +
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "Zero Curtain Regime Durations, Fall 2022",y="Temperature (°C)",x="Day",color="Fullname") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-0.5,0,0.5), limits=c(-0.5, 0.5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E", "BEO"= "#084594","SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6", "SSMH-SD"="#7A0177")) 
+
+#TNHA-SB (add)
+# BEO (add)
+
+```
+
+```{r}
+#Checking duration of regime by start & end dates
+#Note, you need to ensure there is not thaw occurring between the start and end date --> look at the dataframe to confirm continuous >=0.5 °C measurements
+
+x<- zero_curtain %>% filter(grounddepth == "10cm" & fullname == "BEO")
+
+maxi<- max(x$day)
+mini<- min(x$day)
+
+w<- list(mini,maxi)
+
+print(w)
+```
+

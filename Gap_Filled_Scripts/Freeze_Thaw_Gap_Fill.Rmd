@@ -1,0 +1,163 @@
+---
+title: "Freeze_Thaw_Gap_Fill"
+author: "Mirella Shaban"
+date: "2024-11-08"
+output: html_document
+---
+
+based off of the original freeze_thaw_dates.rmd that used raw data
+
+This script gives dates of above or below 0.5°C for stations to determine dates of freeze or thaw
+
+
+
+Load in data and aggregate by station
+------
+Load packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+Load gap filled daily average data from GIT
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/"
+
+gapfilldata = "all_sites_daily_gap_filled.csv"
+
+allvargapfill =read.csv(paste0(filepath, gapfilldata))
+```
+If no wifi, load through downloads folder:
+```{r}
+allvargapfill <- all_sites_daily_gap_filled
+```
+
+
+Separate each variable into its own dataframe
+```{r}
+grndtmp = allvargapfill %>% subset() %>% select(day, fullname, site, station, grounddepth, groundtemp) %>% filter( !grounddepth == "-888.8") 
+
+grndtmp$grounddepth <- as.factor(as.character(grndtmp$grounddepth))
+grndtmp$grounddepth <- revalue(grndtmp$grounddepth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+vwc = allvargapfill %>% subset() %>% select(day, fullname, site, station, grounddepth, vwc) %>% filter( !vwc == "-888.8")
+
+```
+
+
+AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+```{r}
+averaged_by_station <- grndtmp %>% filter(fullname == "TNHA-BASE") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station$fullname <- c("TNHA-BASE")
+
+averaged_by_station1 <- grndtmp %>% filter(fullname == "TNHA-SA") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station1$fullname <- c("TNHA-SA")
+
+averaged_by_station2 <- grndtmp %>% filter(fullname == "TNHA-SB") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station2$fullname <- c("TNHA-SB")
+
+averaged_by_station3 <- grndtmp %>% filter(fullname == "TNHA-SC") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station3$fullname <- c("TNHA-SC")
+
+
+averaged_by_station4 <- grndtmp %>% filter(fullname == "TNHA-SD") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station4$fullname <- c("TNHA-SD")
+
+averaged_by_station5 <- grndtmp %>% filter(fullname == "SSMH-BASE") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station5$fullname <- c("SSMH-BASE")
+
+averaged_by_station6 <- grndtmp %>% filter(fullname == "SSMH-SA") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station6$fullname <- c("SSMH-SA")
+
+averaged_by_station7 <- grndtmp %>% filter(fullname == "SSMH-SB") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station7$fullname <- c("SSMH-SB")
+
+
+averaged_by_station8 <- grndtmp %>% filter(fullname == "SSMH-SD") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station8$fullname <- c("SSMH-SD")
+
+
+averaged_by_station9 <- grndtmp %>% filter(fullname == "SSMH-SE") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station9$fullname <- c("SSMH-SE")
+
+averaged_by_station10 <- grndtmp %>% filter(fullname == "SSMH-SF") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station10$fullname <- c("SSMH-SF")
+
+averaged_by_station11 <- grndtmp %>% filter(fullname == "SSMH-SG") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station11$fullname <- c("SSMH-SG")
+
+averaged_by_station12 <- grndtmp %>% filter(fullname == "SSMH-SH") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station12$fullname <- c("SSMH-SH")
+
+averaged_by_station13 <- grndtmp %>% filter(fullname == "SSMH-SI") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station13$fullname <- c("SSMH-SI")
+
+averaged_by_station14 <- grndtmp %>% filter(fullname == "BEO-B05" | fullname == "BEO-B06" | fullname == "BEO-B07" | fullname == "BEO-B08") %>% aggregate(groundtemp~day+grounddepth, mean)
+ averaged_by_station14$fullname <- c("BEO")
+
+
+
+
+Daily_grndtmp_avgs<- rbind(averaged_by_station, averaged_by_station1, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5,averaged_by_station6,averaged_by_station7,averaged_by_station9,averaged_by_station8,averaged_by_station11,averaged_by_station13,averaged_by_station14)
+
+Daily_grndtmp_avgs$day <- as.Date(Daily_grndtmp_avgs$day, format= "%Y-%m-%d",tz="UTC")
+```
+
+------
+
+
+Freeze  dates
+```{r}
+
+#Constrain by season
+
+freeze_dates <- Daily_grndtmp_avgs %>% filter(fullname == "TNHA-BASE" & groundtemp < 0.5 & grounddepth =="65cm" & day >= "2023-06-01" & day <= "2022-12-01")
+list(freeze_dates)
+
+#next, compare to thawed dates for summer to see. the table generated from this may end up being too many inputs in the cells
+```
+
+Thaw dates
+```{r}
+DF_1 <- data.frame(list(freeze_dates$day))
+list(DF_1)
+
+thaw_dates <- Daily_grndtmp_avgs %>% filter( fullname == "BEO" & groundtemp > -0.5 & grounddepth == "10cm" & day >= "2023-03-01" & day <= "2023-09-01") 
+
+list(thaw_dates)
+
+```
+
+
+
+FIGURES OF ALL STATIONS DURING YEAR = X *VARIATION*
+```{r fig1, fig.height = 30, fig.width = 26}
+VARIATION <- SUMM24_ALLDEPTHS %>% filter( value > -1 & value < 1)
+
+ggplot(VARIATION, aes(x= date, y=value)) +
+  geom_point() +
+  theme_bw() +
+  labs(title= "SUMMER 2024 THAW VARIATION", x = "Date", y="Ground Temperature (°C)")  +
+  facet_wrap(depth~fullname,ncol=5,drop=FALSE)
+  
+```
+
+```{r fig2, fig.height = 30, fig.width = 20}
+VARIATION <- SUMM24_ALLDEPTHS %>% filter(fullname == "TNHA-BASE", value > -1 & value < 1)
+
+ggplot(VARIATION, aes(x= date, y=value)) +
+  geom_point() +
+  theme_bw() +
+  labs(title= "SUMMER 2024 THAW VARIATION - TNHA-BASE", x = "Date", y="Ground Temperature (°C)")  +
+  facet_wrap(depth~fullname,nrow=5,drop=FALSE)
+  
+```
