@@ -1,0 +1,165 @@
+---
+title: "Gap Fill Plotting All Variables"
+author: "Mirella Shaban"
+date: "2024-11-07"
+output: html_document
+---
+
+
+Load packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+Load gap filled daily average data from GIT
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/"
+
+gapfilldata = "all_sites_daily_gap_filled.csv"
+
+allvargapfill =read.csv(paste0(filepath, gapfilldata))
+```
+
+
+
+Separate each variable into its own dataframe
+```{r}
+grndtmp = allvargapfill %>% subset() %>% select(day, fullname, site, station, grounddepth, groundtemp) %>% filter( !grounddepth == "-888.8") 
+
+grndtmp$grounddepth <- as.factor(as.character(grndtmp$grounddepth))
+grndtmp$grounddepth <- revalue(grndtmp$grounddepth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+vwc = allvargapfill %>% subset() %>% select(day, fullname, site, station, grounddepth, vwc) %>% filter( !vwc == "-888.8")
+
+solar = allvargapfill %>% subset() %>% select(day, fullname, site, station, solar) %>% filter( !solar == "-888.8")
+
+air = allvargapfill %>% subset() %>% select(day, fullname, site, station, airtemp) %>% filter( !airtemp == "-888.8")
+
+wind = allvargapfill %>% subset() %>% select(day, fullname, site, station, windspeed, winddir) %>% filter( !winddir == "-888.8", !windspeed == "-888.8")
+```
+
+
+
+AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+```{r}
+averaged_by_station <- grndtmp %>% filter(fullname == "TNHA-BASE") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station$fullname <- c("TNHA-BASE")
+
+averaged_by_station1 <- grndtmp %>% filter(fullname == "TNHA-SA") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station1$fullname <- c("TNHA-SA")
+
+averaged_by_station2 <- grndtmp %>% filter(fullname == "TNHA-SB") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station2$fullname <- c("TNHA-SB")
+
+averaged_by_station3 <- grndtmp %>% filter(fullname == "TNHA-SC") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station3$fullname <- c("TNHA-SC")
+
+
+averaged_by_station4 <- grndtmp %>% filter(fullname == "TNHA-SD") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station4$fullname <- c("TNHA-SD")
+
+averaged_by_station5 <- grndtmp %>% filter(fullname == "SSMH-BASE") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station5$fullname <- c("SSMH-BASE")
+
+averaged_by_station6 <- grndtmp %>% filter(fullname == "SSMH-SA") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station6$fullname <- c("SSMH-SA")
+
+averaged_by_station7 <- grndtmp %>% filter(fullname == "SSMH-SB") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station7$fullname <- c("SSMH-SB")
+
+
+averaged_by_station8 <- grndtmp %>% filter(fullname == "SSMH-SD") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station8$fullname <- c("SSMH-SD")
+
+
+averaged_by_station9 <- grndtmp %>% filter(fullname == "SSMH-SE") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station9$fullname <- c("SSMH-SE")
+
+averaged_by_station10 <- grndtmp %>% filter(fullname == "SSMH-SF") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station10$fullname <- c("SSMH-SF")
+
+averaged_by_station11 <- grndtmp %>% filter(fullname == "SSMH-SG") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station11$fullname <- c("SSMH-SG")
+
+averaged_by_station12 <- grndtmp %>% filter(fullname == "SSMH-SH") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station12$fullname <- c("SSMH-SH")
+
+averaged_by_station13 <- grndtmp %>% filter(fullname == "SSMH-SI") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station13$fullname <- c("SSMH-SI")
+
+averaged_by_station14 <- grndtmp %>% filter(fullname == "BEO-B05" | fullname == "BEO-B06" | fullname == "BEO-B07" | fullname == "BEO-B08") %>% aggregate(groundtemp~day+grounddepth, mean)
+ averaged_by_station14$fullname <- c("BEO")
+
+
+
+
+Daily_grndtmp_avgs<- rbind(averaged_by_station, averaged_by_station1, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5,averaged_by_station6,averaged_by_station7,averaged_by_station9,averaged_by_station8,averaged_by_station11,averaged_by_station13,averaged_by_station14)
+
+Daily_grndtmp_avgs$day <- as.Date(Daily_grndtmp_avgs$day, format= "%Y-%m-%d",tz="UTC")
+```
+
+
+
+ACTUAL PLOTS AND CONSTRAINTS
+
+
+Set constraints
+```{r}
+#date range
+
+#depth
+
+#stations
+
+Daily_grndtmp_avgs <- Daily_grndtmp_avgs  %>% filter(grounddepth == "10cm" & day >= "2022-06-01" & day <= "2022-09-01") %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SB" | fullname == "SSMH-SA" | fullname == "SSMH-SB") 
+```
+
+
+```{r fig1, fig.height = 14, fig.width = 18}
+Daily_grndtmp_avgs %>% 
+  ggplot(aes(x=day, y=groundtemp, color = fullname), size = 0.9) +
+  geom_line() +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "Daily average ground temperatures at TNHA, SSMH, & BEO (10cm)", y = "Temperature (°C)", x= "Week", color = "Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-2.5,0,2.5,5,7.5,10,12.5,15), limits=c(-5, 15)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25))
+#+
+  scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E","BEO-B05"="#6BAED6", "BEO-B06"= "#084594","SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6", "SSMH-SD"="#7A0177")) 
+
+
+#scale_y_continuous(breaks=c(-10,-7.5,-5,-2.5,0,2.5,5), limits=c(-10, 5)) + ---> this is the scale for 90cm and 65cm....
+
+```
+
+
+```{r}
+
+blah blah proper noun simple sentence blah blah! 
+  uh
+
+  
+)
+
+
+
+```
+
