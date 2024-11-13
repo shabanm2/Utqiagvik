@@ -150,16 +150,3 @@ Daily_grndtmp_avgs %>%
 
 ```
 
-
-```{r}
-
-blah blah proper noun simple sentence blah blah! 
-  uh
-
-  
-)
-
-
-
-```
-
