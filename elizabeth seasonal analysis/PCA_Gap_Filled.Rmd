@@ -18,6 +18,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ========
 
+**IMPORTANT: CURRENTLY ONLY TNHA USES WIND SPEED IN PCA. WHEN WE HAVE THE REST OF THE WIND DATA, UPDATE THIS SCRIPT AT LINE 188!!**
+
 ## FILEPATH:
 
 ```{r}
@@ -183,7 +185,12 @@ pick_site <- function(cursite){
 #    select(Date, site, station, fullname, groundtemp, airtemp, windspeed, solar, avg)  %>% rename("vwc" = avg)
 
   big_df <<- df %>% filter(site == cursite) %>% filter(grounddepth == "30cm") %>% filter(vwcdepth == "30:45cm")
-  big_df <- big_df %>% select(Date, fullname, site, station, groundtemp, airtemp, windspeed, solar, vwc)
+  if (cursite == "TNHA"){
+    big_df <- big_df %>% select(Date, fullname, site, station, groundtemp, airtemp, windspeed, solar, vwc)
+  }
+  else {
+    big_df <- big_df %>% select(Date, fullname, site, station, groundtemp, airtemp, solar, vwc)
+  }
   if(szn == "Winter"){
     big_df <<- big_df %>% select(-solar)
   }
