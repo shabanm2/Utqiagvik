@@ -134,6 +134,8 @@ get rid of bad values
 ```{r}
 gt <- gt %>% filter(value != 128.83000)
 sol <- sol %>% filter(value > 0)
+wd <- wd %>% filter(value != -888.88)
+ws <- ws %>% filter(value != -888.88)
 ```
 
 
