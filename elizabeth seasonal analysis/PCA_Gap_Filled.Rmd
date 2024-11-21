@@ -295,7 +295,7 @@ make_pca <- function(pca_df, szn, yr, site){
   axis(side = 1, at=xlimit)
   axis(side = 2, at=ylimit)
   
-  title(paste0(szn, " ", yr," Principal Component Analysis: ",site," North v. South\n",format(as.Date(min(pca_df$Date)), format="%B %d %Y")," - ",format(as.Date(max(pca_df$Date)), format="%B %d %Y")), adj=0.5)
+  title(paste0(szn, " ", yr," Principal Component Analysis:\n",site," North v. South (",format(as.Date(min(pca_df$Date)), format="%m/%d/%Y")," - ",format(as.Date(max(pca_df$Date)), format="%m/%d/%Y"), ")"), adj=0.5)
   
  
    
