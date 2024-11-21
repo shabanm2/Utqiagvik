@@ -27,14 +27,14 @@ filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorolog
 ## PICK DATE RANGES:
 
 ```{r}
-years = c("2022", "2023")
+years = c("2022", "2023", "2024")
 seasons = c("Spring", "Summer","Fall")
 sites = c("TNHA", "BEO", "SSMH")
 
 # put season values for the season that has the start of the data
 date_start = "2022-06-01" # data starts in June 2022 (YEAR-MO-DY) where day is always 01
 # put season values for the season that has the last of the data
-date_end = "2023-11-01" # data ends after November of 2023 (will get data up UNTIL date_end not after)
+date_end = "2024-10-01" # data ends after November of 2023 (will get data up UNTIL date_end not after)
 ```
 
 ## PICK OUTPUT:
@@ -382,8 +382,8 @@ If you want to just make one plot (for testing):
 ```{r, fig.show='hide'}
   # look at all_dates and pick a row to use (set to i)
 
-i <- 8
-site <- "TNHA"
+i <- 13
+cursite <- "TNHA"
 
 month <- all_dates$months[i]
 startdate <- all_dates$start[i]
@@ -391,9 +391,28 @@ enddate <- all_dates$end[i]
 szn <<- all_dates$szn[i]
 yr <<- substr(all_dates$start[i], 1, 4)
 
-big_df <- pick_site(site)
-pca_df <- pick_dates(startdate, enddate, big_df)
+# big_df <- pick_site(site)
 
+north_sensor <- "TNHA-SC"
+  south_sensor <- "TNHA-SA"
+  
+north_and_south <- df %>% filter(fullname == north_sensor | fullname == south_sensor)
+
+big_df <<- df %>% filter(fullname == north_sensor | fullname == south_sensor) %>% filter(grounddepth == "30cm") %>% filter(vwcdepth == "30:45cm")
+  big_df <- big_df %>% select(Date, fullname, site, station, groundtemp, airtemp, windspeed, solar, vwc)
+  if(szn == "Winter"){
+    big_df <<- big_df %>% select(-solar)
+  }
+
+# pca_df <- pick_dates(startdate, enddate, big_df)
+
+  pca_df <<- big_df %>% filter(Date >= startdate) %>% filter(Date < enddate)
+  
+  
+  
+  # get rid of NAs
+  pca_df <<- na.omit(pca_df)
+  pca_df <<- unique(pca_df)
 
 if(nrow(pca_df > 0)){
     p <- calc_pca(pca_df)
