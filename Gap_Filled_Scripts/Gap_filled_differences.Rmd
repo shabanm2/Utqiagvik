@@ -1,0 +1,317 @@
+---
+title: "Gap_filled_differences"
+author: "Mirella Shaban"
+date: "2024-10-29"
+output: html_document
+---
+
+Load packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+Load gap filled daily average data from GIT
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/"
+
+gapfilldata = "all_sites_daily_gap_filled.csv"
+
+allvargapfill =read.csv(paste0(filepath, gapfilldata))
+```
+If no wifi, load through downloads folder:
+```{r}
+allvargapfill <- all_sites_daily_gap_filled
+```
+
+
+Separate each variable into its own dataframe
+```{r}
+grndtmp = allvargapfill %>% subset() %>% select(day, fullname, site, station, grounddepth, groundtemp) %>% filter( !grounddepth == "-888.8") 
+
+grndtmp$grounddepth <- as.factor(as.character(grndtmp$grounddepth))
+grndtmp$grounddepth <- revalue(grndtmp$grounddepth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+vwc = allvargapfill %>% subset() %>% select(day, fullname, site, station, grounddepth, vwc) %>% filter( !vwc == "-888.8")
+
+solar = allvargapfill %>% subset() %>% select(day, fullname, site, station, solar) %>% filter( !solar == "-888.8")
+
+air = allvargapfill %>% subset() %>% select(day, fullname, site, station, airtemp) %>% filter( !airtemp == "-888.8")
+
+wind = allvargapfill %>% subset() %>% select(day, fullname, site, station, windspeed, winddir) %>% filter( !winddir == "-888.8", !windspeed == "-888.8")
+```
+
+
+Wide dataframes for SITES ###will come back to this later
+```{r}
+wide <- grndtmp %>%
+    pivot_wider(names_from = fullname, values_from = groundtemp)
+
+wide$TBDIFF <- wide$TNHA - wide$BEO
+wide$SBDIFF <- wide$SSMH - wide$BEO
+wide$TBSBDIFF <- wide$SSMH - wide$TNHA
+
+x<- wide %>% filter(depth == "10cm") 
+mean(x$TBDIFF,na.rm = TRUE)
+mean(x$SBDIFF, na.rm = TRUE)
+mean(x$TBSBDIFF, na.rm = TRUE)
+```
+
+
+
+AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
+```{r}
+averaged_by_station <- grndtmp %>% filter(fullname == "TNHA-BASE") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station$fullname <- c("TNHA-BASE")
+
+averaged_by_station1 <- grndtmp %>% filter(fullname == "TNHA-SA") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station1$fullname <- c("TNHA-SA")
+
+averaged_by_station2 <- grndtmp %>% filter(fullname == "TNHA-SB") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station2$fullname <- c("TNHA-SB")
+
+averaged_by_station3 <- grndtmp %>% filter(fullname == "TNHA-SC") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station3$fullname <- c("TNHA-SC")
+
+
+averaged_by_station4 <- grndtmp %>% filter(fullname == "TNHA-SD") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station4$fullname <- c("TNHA-SD")
+
+averaged_by_station5 <- grndtmp %>% filter(fullname == "SSMH-BASE") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station5$fullname <- c("SSMH-BASE")
+
+averaged_by_station6 <- grndtmp %>% filter(fullname == "SSMH-SA") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station6$fullname <- c("SSMH-SA")
+
+averaged_by_station7 <- grndtmp %>% filter(fullname == "SSMH-SB") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station7$fullname <- c("SSMH-SB")
+
+
+averaged_by_station8 <- grndtmp %>% filter(fullname == "SSMH-SD") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station8$fullname <- c("SSMH-SD")
+
+
+averaged_by_station9 <- grndtmp %>% filter(fullname == "SSMH-SE") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station9$fullname <- c("SSMH-SE")
+
+averaged_by_station10 <- grndtmp %>% filter(fullname == "SSMH-SF") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station10$fullname <- c("SSMH-SF")
+
+averaged_by_station11 <- grndtmp %>% filter(fullname == "SSMH-SG") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station11$fullname <- c("SSMH-SG")
+
+averaged_by_station12 <- grndtmp %>% filter(fullname == "SSMH-SH") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station12$fullname <- c("SSMH-SH")
+
+averaged_by_station13 <- grndtmp %>% filter(fullname == "SSMH-SI") %>% aggregate(groundtemp~day+grounddepth, mean)
+averaged_by_station13$fullname <- c("SSMH-SI")
+
+averaged_by_station14 <- grndtmp %>% filter(fullname == "BEO-B05" | fullname == "BEO-B06" | fullname == "BEO-B07" | fullname == "BEO-B08") %>% aggregate(groundtemp~day+grounddepth, mean)
+ averaged_by_station14$fullname <- c("BEO")
+
+
+
+
+Daily_grndtmp_avgs<- rbind(averaged_by_station, averaged_by_station1, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station5,averaged_by_station6,averaged_by_station7,averaged_by_station9,averaged_by_station8,averaged_by_station11,averaged_by_station13,averaged_by_station14)
+
+Daily_grndtmp_avgs$day <- as.Date(Daily_grndtmp_avgs$day, format= "%Y-%m-%d",tz="UTC")
+```
+
+STATS: Compute seasonal average of daily value over for one location/station
+```{r}
+wide <- Daily_grndtmp_avgs %>%
+    pivot_wider(names_from = fullname, values_from = groundtemp)
+
+x<- wide %>% filter(grounddepth == "90cm" & day >= "2024-06-01" & day <= "2024-09-01") 
+
+round(mean(x$`SSMH-SI`, na.rm=TRUE),3)
+```
+
+
+STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
+```{r}
+#SUMMER -- columns are set up to match the order of the mean_daily_sifferences_table_clean document / table (word document)
+
+wide <- Daily_grndtmp_avgs %>%
+    pivot_wider(names_from = fullname, values_from = groundtemp)
+
+wide$TNHA_S_BASE <- wide$`TNHA-SA` - wide$`TNHA-BASE`
+wide$THNA_S_SSMH_S <- wide$`TNHA-SA` - wide$`SSMH-SA`
+wide$TNHA_S_SSMH_BASE <- wide$`TNHA-SA` - wide$`SSMH-BASE`
+wide$TNHA_S_TNHA_N <- wide$`TNHA-SA` - wide$`TNHA-SC`
+wide$TNHA_S_SSMH_N <- wide$`TNHA-SA` - wide$`SSMH-SB`
+wide$TNHA_S_BEO <- wide$`TNHA-SA` - wide$`BEO`
+wide$TNHA_BASE_SSMH_S <- wide$`TNHA-BASE` - wide$`SSMH-SA`
+wide$TNHA_BASE_SSMH_BASE <- wide$`TNHA-BASE`-wide$`SSMH-BASE`
+wide$TNHA_BASE_TNHA_N <- wide$`TNHA-BASE` - wide$`TNHA-SB`
+wide$TNHA_BASE_SSMH_N <- wide$`TNHA-BASE` - wide$`SSMH-SB`
+wide$TNHA_BASE_BEO <- wide$`TNHA-BASE` - wide$`BEO`
+
+wide$SSMH_S_SSMH_BASE <- wide$`SSMH-SA` - wide$`SSMH-BASE`
+wide$SSMH_S_TNHA_N <- wide$`SSMH-SA` - wide$`TNHA-SB`
+wide$SSMH_S_SSMH_N <- wide$`SSMH-SA` - wide$`SSMH-SB`
+wide$SSMH_S_BEO <- wide$`SSMH-SA` - wide$`BEO`
+wide$SSMH_BASE_TNHA_N <- wide$`SSMH-BASE` - wide$`TNHA-SB`
+wide$SSMH_BASE_SSMH_N <- wide$`SSMH-BASE` - wide$`SSMH-SB`
+wide$SSMH_BASE_BEO <- wide$`SSMH-BASE` - wide$`BEO`
+
+wide$TNHA_N_SSMH_N <- wide$`TNHA-SB` - wide$`SSMH-SB`
+wide$TNHA_N_BEO <- wide$`TNHA-SB` - wide$`BEO`
+wide$SSMH_N_BEO <- wide$`SSMH-SB` - wide$`BEO`
+
+
+#change based on year
+x<- wide %>% filter(grounddepth == "90cm" & day >= "2024-06-01" & day <= "2024-09-01") 
+
+TNHA_S_BASE <- mean(x$TNHA_S_BASE,na.rm = TRUE)
+THNA_S_SSMH_S <- mean(x$THNA_S_SSMH_S,na.rm = TRUE)
+TNHA_S_SSMH_BASE <- mean(x$TNHA_S_SSMH_BASE,na.rm = TRUE)
+TNHA_S_TNHA_N <- mean(x$TNHA_S_TNHA_N,na.rm = TRUE)
+TNHA_S_SSMH_N <- mean(x$TNHA_S_SSMH_N,na.rm = TRUE)
+TNHA_S_BEO <- mean(x$TNHA_S_BEO,na.rm = TRUE)
+TNHA_BASE_SSMH_S <- mean(x$TNHA_BASE_SSMH_S,na.rm = TRUE) 
+TNHA_BASE_SSMH_BASE <- mean(x$TNHA_BASE_SSMH_BASE,na.rm = TRUE)
+TNHA_BASE_TNHA_N <- mean(x$TNHA_BASE_TNHA_N,na.rm = TRUE)
+TNHA_BASE_SSMH_N <- mean(x$TNHA_BASE_SSMH_N,na.rm = TRUE)
+TNHA_BASE_BEO <- mean(x$TNHA_BASE_BEO,na.rm = TRUE)
+SSMH_S_SSMH_BASE <- mean(x$SSMH_S_SSMH_BASE,na.rm = TRUE)
+SSMH_S_TNHA_N <- mean(x$SSMH_S_TNHA_N,na.rm = TRUE)
+SSMH_S_SSMH_N <- mean(x$SSMH_S_SSMH_N,na.rm = TRUE)
+SSMH_S_BEO <- mean(x$SSMH_S_BEO,na.rm = TRUE)
+SSMH_BASE_TNHA_N <- mean(x$SSMH_BASE_TNHA_N,na.rm = TRUE)
+SSMH_BASE_SSMH_N <- mean(x$SSMH_BASE_SSMH_N,na.rm = TRUE)
+SSMH_BASE_BEO <- mean(x$SSMH_BASE_BEO,na.rm = TRUE)
+TNHA_N_SSMH_N <- mean(x$TNHA_N_SSMH_N,na.rm = TRUE)
+TNHA_N_BEO <- mean(x$TNHA_N_BEO,na.rm = TRUE)
+SSMH_N_BEO <- mean(x$SSMH_N_BEO,na.rm = TRUE)
+
+summer_2022_avgs <- round(data.frame(TNHA_S_BASE,
+                                     THNA_S_SSMH_S,
+                                     TNHA_S_SSMH_BASE,
+                                     TNHA_S_TNHA_N,
+                                     TNHA_S_SSMH_N,
+                                     TNHA_S_BEO ,
+                                     TNHA_BASE_SSMH_S ,
+                                     TNHA_BASE_SSMH_BASE ,
+                                     TNHA_BASE_TNHA_N ,
+                                     TNHA_BASE_SSMH_N ,
+                                     TNHA_BASE_BEO , 
+                                     SSMH_S_SSMH_BASE,
+                                     SSMH_S_TNHA_N,
+                                     SSMH_S_SSMH_N ,
+                                     SSMH_S_BEO ,
+                                     SSMH_BASE_TNHA_N,
+                                     SSMH_BASE_SSMH_N ,
+                                     SSMH_BASE_BEO ,
+                                     TNHA_N_SSMH_N ,
+                                     TNHA_N_BEO, 
+                                     SSMH_N_BEO),
+                          2)
+
+
+
+
+
+#write.csv(wide, "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_daily_average_difference_N_vs_S.csv")
+
+```
+STATS: average daily difference between SPECIFIC STATIONS for Xcm depth (define in x <- )
+```{r}
+#FALL -- columns are set up to match the order of the mean_daily_sifferences_table_clean document / table (word document)
+
+#need to adjust these to be in the order of the FALL part of the list
+
+wide <- Daily_grndtmp_avgs %>%
+    pivot_wider(names_from = fullname, values_from = groundtemp)
+
+wide$TNHA_S_BASE <- wide$`TNHA-SA` - wide$`TNHA-BASE`
+wide$THNA_S_SSMH_S <- wide$`TNHA-SA` - wide$`SSMH-SA`
+wide$TNHA_S_SSMH_BASE <- wide$`TNHA-SA` - wide$`SSMH-BASE`
+wide$TNHA_S_TNHA_N <- wide$`TNHA-SA` - wide$`TNHA-SC`
+wide$TNHA_S_SSMH_N <- wide$`TNHA-SA` - wide$`SSMH-SB`
+wide$TNHA_S_BEO <- wide$`TNHA-SA` - wide$`BEO`
+wide$TNHA_BASE_SSMH_S <- wide$`TNHA-BASE` - wide$`SSMH-SA`
+wide$TNHA_BASE_SSMH_BASE <- wide$`TNHA-BASE`-wide$`SSMH-BASE`
+wide$TNHA_BASE_TNHA_N <- wide$`TNHA-BASE` - wide$`TNHA-SB`
+wide$TNHA_BASE_SSMH_N <- wide$`TNHA-BASE` - wide$`SSMH-SB`
+wide$TNHA_BASE_BEO <- wide$`TNHA-BASE` - wide$`BEO`
+
+wide$SSMH_S_SSMH_BASE <- wide$`SSMH-SA` - wide$`SSMH-BASE`
+wide$SSMH_S_TNHA_N <- wide$`SSMH-SA` - wide$`TNHA-SB`
+wide$SSMH_S_SSMH_N <- wide$`SSMH-SA` - wide$`SSMH-SB`
+wide$SSMH_S_BEO <- wide$`SSMH-SA` - wide$`BEO`
+wide$SSMH_BASE_TNHA_N <- wide$`SSMH-BASE` - wide$`TNHA-SB`
+wide$SSMH_BASE_SSMH_N <- wide$`SSMH-BASE` - wide$`SSMH-SB`
+wide$SSMH_BASE_BEO <- wide$`SSMH-BASE` - wide$`BEO`
+
+wide$TNHA_N_SSMH_N <- wide$`TNHA-SB` - wide$`SSMH-SB`
+wide$TNHA_N_BEO <- wide$`TNHA-SB` - wide$`BEO`
+wide$SSMH_N_BEO <- wide$`SSMH-SB` - wide$`BEO`
+
+
+#change based on year
+x<- wide %>% filter(grounddepth == "90cm" & day >= "2024-09-01" & day <= "2024-12-01") 
+
+# GOD DANGIT
+#change this for the order to be correct because you DIDNT SAVE IT PROPERLY!!!!!
+TNHA_S_BASE <- mean(x$TNHA_S_BASE,na.rm = TRUE)
+THNA_S_SSMH_S <- mean(x$THNA_S_SSMH_S,na.rm = TRUE)
+TNHA_S_SSMH_BASE <- mean(x$TNHA_S_SSMH_BASE,na.rm = TRUE)
+TNHA_S_TNHA_N <- mean(x$TNHA_S_TNHA_N,na.rm = TRUE)
+TNHA_S_SSMH_N <- mean(x$TNHA_S_SSMH_N,na.rm = TRUE)
+TNHA_S_BEO <- mean(x$TNHA_S_BEO,na.rm = TRUE)
+TNHA_BASE_SSMH_S <- mean(x$TNHA_BASE_SSMH_S,na.rm = TRUE) 
+TNHA_BASE_SSMH_BASE <- mean(x$TNHA_BASE_SSMH_BASE,na.rm = TRUE)
+TNHA_BASE_TNHA_N <- mean(x$TNHA_BASE_TNHA_N,na.rm = TRUE)
+TNHA_BASE_SSMH_N <- mean(x$TNHA_BASE_SSMH_N,na.rm = TRUE)
+TNHA_BASE_BEO <- mean(x$TNHA_BASE_BEO,na.rm = TRUE)
+SSMH_S_SSMH_BASE <- mean(x$SSMH_S_SSMH_BASE,na.rm = TRUE)
+SSMH_S_TNHA_N <- mean(x$SSMH_S_TNHA_N,na.rm = TRUE)
+SSMH_S_SSMH_N <- mean(x$SSMH_S_SSMH_N,na.rm = TRUE)
+SSMH_S_BEO <- mean(x$SSMH_S_BEO,na.rm = TRUE)
+SSMH_BASE_TNHA_N <- mean(x$SSMH_BASE_TNHA_N,na.rm = TRUE)
+SSMH_BASE_SSMH_N <- mean(x$SSMH_BASE_SSMH_N,na.rm = TRUE)
+SSMH_BASE_BEO <- mean(x$SSMH_BASE_BEO,na.rm = TRUE)
+TNHA_N_SSMH_N <- mean(x$TNHA_N_SSMH_N,na.rm = TRUE)
+TNHA_N_BEO <- mean(x$TNHA_N_BEO,na.rm = TRUE)
+SSMH_N_BEO <- mean(x$SSMH_N_BEO,na.rm = TRUE)
+
+fall_2022_avgs <- round(data.frame(TNHA_S_BASE,
+                                     THNA_S_SSMH_S,
+                                     TNHA_S_SSMH_BASE,
+                                     TNHA_S_TNHA_N,
+                                     TNHA_S_SSMH_N,
+                                     TNHA_S_BEO ,
+                                     TNHA_BASE_SSMH_S ,
+                                     TNHA_BASE_SSMH_BASE ,
+                                     TNHA_BASE_TNHA_N ,
+                                     TNHA_BASE_SSMH_N ,
+                                     TNHA_BASE_BEO , 
+                                     SSMH_S_SSMH_BASE,
+                                     SSMH_S_TNHA_N,
+                                     SSMH_S_SSMH_N ,
+                                     SSMH_S_BEO ,
+                                     SSMH_BASE_TNHA_N,
+                                     SSMH_BASE_SSMH_N ,
+                                     SSMH_BASE_BEO ,
+                                     TNHA_N_SSMH_N ,
+                                     TNHA_N_BEO, 
+                                     SSMH_N_BEO),
+                          2)
+
+
+
+
+
+#write.csv(wide, "~/Desktop/UVA/RESEARCH/Barrow/Meteorological_Seasons_Data/Summer_daily_average_difference_N_vs_S.csv")
+
+```
