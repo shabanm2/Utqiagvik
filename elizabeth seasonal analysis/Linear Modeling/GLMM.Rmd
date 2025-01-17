@@ -35,8 +35,8 @@ library(lme4)
 
 ```{r}
 # File from github
-filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/"
-df <- read.csv(paste0(filepath, "all_sites_daily_gap_filled.csv"))
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/"
+df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
 df <- df %>% select(-X)
 #df$Date <- as.POSIXct(df$day, format="%Y-%m-%d")
 ```
