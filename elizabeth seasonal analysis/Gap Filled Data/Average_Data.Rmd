@@ -33,41 +33,49 @@ ws <- ws %>% filter(value != -888.88)
 ```
 
 ```{r}
-ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
+# It looks like when it's averaging together for XX/XX/XXXX 00:00:00 it's labeling it as just XX/XX/XX with no time stamp, so it's keeping this separate in hourly
+
+ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) 
 ground_hourly$hour[ground_hourly$hour == ""] = "00"
+ground_hourly = ground_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 ground_hourly$Date <- as.POSIXct(paste0(ground_hourly$date, " ", ground_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(ground_hourly)[7] = "groundtemp"
-ground_hourly <- ground_hourly[,c(3:8)]
+#ground_hourly <- ground_hourly[,c(3:8)]
 
-vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
+vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 vwc_hourly$hour[vwc_hourly$hour == ""] = "00"
+vwc_hourly = vwc_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 vwc_hourly$Date <- as.POSIXct(paste0(vwc_hourly$date, " ", vwc_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(vwc_hourly)[7] = "vwc"
-vwc_hourly <- vwc_hourly[,c(3:8)]
+#vwc_hourly <- vwc_hourly[,c(3:8)]
 
-air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 air_hourly$hour[air_hourly$hour == ""] = "00"
+air_hourly = air_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 air_hourly$Date <- as.POSIXct(paste0(air_hourly$date, " ", air_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(air_hourly)[6] = "airtemp"
-air_hourly <- air_hourly[,c(3:7)]
+colnames(air_hourly)[7] = "airtemp"
+#air_hourly <- air_hourly[,c(3:7)]
 
-solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 solar_hourly$hour[solar_hourly$hour == ""] = "00"
+solar_hourly = solar_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 solar_hourly$Date <- as.POSIXct(paste0(solar_hourly$date, " ", solar_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(solar_hourly)[6] = "solar"
-solar_hourly <- solar_hourly[,c(3:7)]
+colnames(solar_hourly)[7] = "solar"
+#solar_hourly <- solar_hourly[,c(3:7)]
 
-wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 wspeed_hourly$hour[wspeed_hourly$hour == ""] = "00"
+wspeed_hourly = wspeed_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 wspeed_hourly$Date <- as.POSIXct(paste0(wspeed_hourly$date, " ", wspeed_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(wspeed_hourly)[6] = "windspeed"
-wspeed_hourly <- wspeed_hourly[,c(3:7)]
+colnames(wspeed_hourly)[7] = "windspeed"
+#wspeed_hourly <- wspeed_hourly[,c(3:7)]
 
-wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 wdir_hourly$hour[wdir_hourly$hour == ""] = "00"
+wdir_hourly = wdir_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 wdir_hourly$Date <- as.POSIXct(paste0(wdir_hourly$date, " ", wdir_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(wdir_hourly)[6] = "winddir"
-wdir_hourly <- wdir_hourly[,c(3:7)]
+colnames(wdir_hourly)[7] = "winddir"
+#wdir_hourly <- wdir_hourly[,c(3:7)]
 ```
 **subject to change**
 Ground Depth
@@ -92,7 +100,15 @@ VWC Depths
 6 = "75:90cm"
 
 Join variables
+
+At least for BEO, there are two different hourly values for hour 00 on each date, for some reason which is affecting how the dataframes are joined together
+
+
+
 ```{r}
+
+# air and everything looks fine here but there is something with the joining that isn't working
+# maybe keep hour and day separate for now
 ground_hourly <- ground_hourly %>% mutate(vwcdepth = case_when(depth == 7 ~ 1,
           depth == 8 ~ 1,
           depth == 9 ~ 2,
@@ -104,13 +120,22 @@ ground_hourly <- ground_hourly %>% mutate(vwcdepth = case_when(depth == 7 ~ 1,
           depth == 15 ~ 6,
           depth == 16 ~ 6,
           depth == 17 ~ 6)) %>% filter(depth != 1)
-colnames(vwc_hourly)[4] = "vwcdepth"
-beo <- full_join(ground_hourly, vwc_hourly, by=c("Date", "fullname", "site", "station", "vwcdepth")) 
-colnames(beo)[4] = "grounddepth"
-beo <- full_join(beo, air_hourly %>% ungroup() %>% select(-c(fullname, station)), by=c("Date", "site"))
-beo <- full_join(beo, solar_hourly %>% ungroup() %>% select(-c(fullname, station)), by=c("Date", "site"))
-beo <- full_join(beo, wspeed_hourly %>% ungroup() %>% select(-c(fullname, station)), by=c("Date", "site"))
-beo <- full_join(beo, wdir_hourly %>% ungroup() %>% select(-c(fullname, station)), by=c("Date", "site"))
+colnames(vwc_hourly)[6] = "vwcdepth"
+
+ground_hourly <- ground_hourly %>% select(-Date)
+vwc_hourly <- vwc_hourly %>% select(-Date)
+air_hourly <- air_hourly %>% ungroup() %>% select(-c(Date, fullname, station, depth))
+solar_hourly <- solar_hourly %>% ungroup() %>% select(-c(Date, fullname, station, depth))
+wspeed_hourly <- wspeed_hourly %>% ungroup() %>% select(-c(Date, fullname, station, depth))
+wdir_hourly <- wdir_hourly %>% ungroup() %>% select(-c(Date, fullname, station, depth))
+
+beo <- full_join(ground_hourly, vwc_hourly, by=c("date", "hour", "fullname", "site", "station", "vwcdepth")) 
+colnames(beo)[6] = "grounddepth"
+
+beo <- full_join(beo, air_hourly, by=c("date", "hour", "site"))
+beo <- full_join(beo, solar_hourly, by=c("date", "hour", "site"))
+beo <- full_join(beo, wspeed_hourly, by=c("date", "hour", "site"))
+beo <- full_join(beo, wdir_hourly, by=c("date", "hour", "site"))
 ```
 
 ```{r}
@@ -140,41 +165,43 @@ ws <- ws %>% filter(value != -888.88)
 
 
 ```{r}
-ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
+# It looks like when it's averaging together for XX/XX/XXXX 00:00:00 it's labeling it as just XX/XX/XX with no time stamp, so it's keeping this separate in hourly
+
+ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) 
 ground_hourly$hour[ground_hourly$hour == ""] = "00"
+ground_hourly = ground_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 ground_hourly$Date <- as.POSIXct(paste0(ground_hourly$date, " ", ground_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(ground_hourly)[7] = "groundtemp"
-ground_hourly <- ground_hourly[,c(3:8)]
 
-vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
+vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 vwc_hourly$hour[vwc_hourly$hour == ""] = "00"
+vwc_hourly = vwc_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 vwc_hourly$Date <- as.POSIXct(paste0(vwc_hourly$date, " ", vwc_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(vwc_hourly)[7] = "vwc"
-vwc_hourly <- vwc_hourly[,c(3:8)]
 
-air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 air_hourly$hour[air_hourly$hour == ""] = "00"
+air_hourly = air_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 air_hourly$Date <- as.POSIXct(paste0(air_hourly$date, " ", air_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(air_hourly)[6] = "airtemp"
-air_hourly <- air_hourly[,c(3:7)]
+colnames(air_hourly)[7] = "airtemp"
 
-solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 solar_hourly$hour[solar_hourly$hour == ""] = "00"
+solar_hourly = solar_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 solar_hourly$Date <- as.POSIXct(paste0(solar_hourly$date, " ", solar_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(solar_hourly)[6] = "solar"
-solar_hourly <- solar_hourly[,c(3:7)]
+colnames(solar_hourly)[7] = "solar"
 
-wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 wspeed_hourly$hour[wspeed_hourly$hour == ""] = "00"
+wspeed_hourly = wspeed_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 wspeed_hourly$Date <- as.POSIXct(paste0(wspeed_hourly$date, " ", wspeed_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(wspeed_hourly)[6] = "windspeed"
-wspeed_hourly <- wspeed_hourly[,c(3:7)]
+colnames(wspeed_hourly)[7] = "windspeed"
 
-wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 wdir_hourly$hour[wdir_hourly$hour == ""] = "00"
+wdir_hourly = wdir_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 wdir_hourly$Date <- as.POSIXct(paste0(wdir_hourly$date, " ", wdir_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(wdir_hourly)[6] = "winddir"
-wdir_hourly <- wdir_hourly[,c(3:7)]
+colnames(wdir_hourly)[7] = "winddir"
 ```
 
 **subject to change**
@@ -204,13 +231,21 @@ ground_hourly <- ground_hourly %>% mutate(vwcdepth = case_when(depth == 7 ~ 1,
           depth == 15 ~ 6,
           depth == 16 ~ 6,
           depth == 17 ~ 6)) %>% filter(depth != 1)
-colnames(vwc_hourly)[4] = "vwcdepth"
-tnha <- full_join(ground_hourly, vwc_hourly, by=c("Date", "fullname", "site", "station", "vwcdepth")) 
-colnames(tnha)[4] = "grounddepth"
-tnha <- full_join(tnha, air_hourly %>% ungroup(), by=c("Date", "fullname", "site", "station"))
-tnha <- full_join(tnha, solar_hourly %>% ungroup(), by=c("Date", "fullname", "site", "station"))
-tnha <- full_join(tnha, wspeed_hourly %>% ungroup(), by=c("Date", "fullname", "site", "station"))
-tnha <- full_join(tnha, wdir_hourly, by=c("Date", "fullname", "site", "station"))
+colnames(vwc_hourly)[6] = "vwcdepth"
+
+ground_hourly <- ground_hourly %>% select(-Date)
+vwc_hourly <- vwc_hourly %>% select(-Date)
+air_hourly <- air_hourly %>% ungroup() %>% select(-c(Date, depth))
+solar_hourly <- solar_hourly %>% ungroup() %>% select(-c(Date, depth))
+wspeed_hourly <- wspeed_hourly %>% ungroup() %>% select(-c(Date, depth))
+wdir_hourly <- wdir_hourly %>% ungroup() %>% select(-c(Date, depth))
+
+tnha <- full_join(ground_hourly, vwc_hourly, by=c("date", "hour", "fullname", "site", "station", "vwcdepth")) 
+colnames(tnha)[6] = "grounddepth"
+tnha <- full_join(tnha, air_hourly, by=c("date", "hour", "fullname", "site", "station")) 
+tnha <- full_join(tnha, solar_hourly, by=c("date", "hour", "fullname", "site", "station")) 
+tnha <- full_join(tnha, wspeed_hourly, by=c("date", "hour", "fullname", "site", "station")) 
+tnha <- full_join(tnha, wdir_hourly, by=c("date", "hour", "fullname", "site", "station")) 
 ```
 
 ```{r}
@@ -239,41 +274,43 @@ ws <- ws %>% filter(value != -888.88)
 ```
 
 ```{r}
-ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
+# It looks like when it's averaging together for XX/XX/XXXX 00:00:00 it's labeling it as just XX/XX/XX with no time stamp, so it's keeping this separate in hourly
+
+ground_hourly <- gt %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) 
 ground_hourly$hour[ground_hourly$hour == ""] = "00"
+ground_hourly = ground_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 ground_hourly$Date <- as.POSIXct(paste0(ground_hourly$date, " ", ground_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(ground_hourly)[7] = "groundtemp"
-ground_hourly <- ground_hourly[,c(3:8)]
 
-vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station,  depth) %>% summarize(mean = mean(value, na.rm = T))
+vwc_hourly <- vwc %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 vwc_hourly$hour[vwc_hourly$hour == ""] = "00"
+vwc_hourly = vwc_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 vwc_hourly$Date <- as.POSIXct(paste0(vwc_hourly$date, " ", vwc_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
 colnames(vwc_hourly)[7] = "vwc"
-vwc_hourly <- vwc_hourly[,c(3:8)]
 
-air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+air_hourly <- at %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 air_hourly$hour[air_hourly$hour == ""] = "00"
+air_hourly = air_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 air_hourly$Date <- as.POSIXct(paste0(air_hourly$date, " ", air_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(air_hourly)[6] = "airtemp"
-air_hourly <- air_hourly[,c(3:7)]
+colnames(air_hourly)[7] = "airtemp"
 
-solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+solar_hourly <- sol %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 solar_hourly$hour[solar_hourly$hour == ""] = "00"
+solar_hourly = solar_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 solar_hourly$Date <- as.POSIXct(paste0(solar_hourly$date, " ", solar_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(solar_hourly)[6] = "solar"
-solar_hourly <- solar_hourly[,c(3:7)]
+colnames(solar_hourly)[7] = "solar"
 
-wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+wspeed_hourly <- ws %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 wspeed_hourly$hour[wspeed_hourly$hour == ""] = "00"
+wspeed_hourly = wspeed_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 wspeed_hourly$Date <- as.POSIXct(paste0(wspeed_hourly$date, " ", wspeed_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(wspeed_hourly)[6] = "windspeed"
-wspeed_hourly <- wspeed_hourly[,c(3:7)]
+colnames(wspeed_hourly)[7] = "windspeed"
 
-wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10)) %>% group_by(date, hour, fullname, site, station) %>% summarize(mean = mean(value, na.rm = T))
+wdir_hourly <- wd %>% mutate(hour = substr(Date, 12, 13), date = substr(Date, 1, 10))
 wdir_hourly$hour[wdir_hourly$hour == ""] = "00"
+wdir_hourly = wdir_hourly %>% group_by(date, hour, fullname, site, station, depth) %>% summarize(mean = mean(value, na.rm = T))
 wdir_hourly$Date <- as.POSIXct(paste0(wdir_hourly$date, " ", wdir_hourly$hour, ":00:00"), format="%Y-%m-%d %H:%M:%S",tz="UTC")
-colnames(wdir_hourly)[6] = "winddir"
-wdir_hourly <- wdir_hourly[,c(3:7)]
+colnames(wdir_hourly)[7] = "winddir"
 ```
 
 **subject to change**
@@ -303,13 +340,21 @@ ground_hourly <- ground_hourly %>% mutate(vwcdepth = case_when(depth == 7 ~ 1,
           depth == 15 ~ 6,
           depth == 16 ~ 6,
           depth == 17 ~ 6)) %>% filter(depth != 1)
-colnames(vwc_hourly)[4] = "vwcdepth"
-ssmh <- full_join(ground_hourly, vwc_hourly, by=c("Date", "fullname", "site", "station", "vwcdepth")) 
-colnames(ssmh)[4] = "grounddepth"
-ssmh <- full_join(ssmh, air_hourly %>% ungroup(), by=c("Date", "fullname", "site", "station"))
-ssmh <- full_join(ssmh, solar_hourly %>% ungroup(), by=c("Date", "fullname", "site", "station"))
-ssmh <- full_join(ssmh, wspeed_hourly %>% ungroup(), by=c("Date", "fullname", "site", "station"))
-ssmh <- full_join(ssmh, wdir_hourly %>% ungroup(), by=c("Date", "fullname", "site", "station"))
+colnames(vwc_hourly)[6] = "vwcdepth"
+
+ground_hourly <- ground_hourly %>% select(-Date)
+vwc_hourly <- vwc_hourly %>% select(-Date)
+air_hourly <- air_hourly %>% ungroup() %>% select(-c(Date, depth))
+solar_hourly <- solar_hourly %>% ungroup() %>% select(-c(Date, depth))
+wspeed_hourly <- wspeed_hourly %>% ungroup() %>% select(-c(Date, depth))
+wdir_hourly <- wdir_hourly %>% ungroup() %>% select(-c(Date, depth))
+
+ssmh <- full_join(ground_hourly, vwc_hourly, by=c("date", "hour", "fullname", "site", "station", "vwcdepth"))
+colnames(ssmh)[6] = "grounddepth"
+ssmh <- full_join(ssmh, air_hourly, by=c("date", "hour", "fullname", "site", "station"))
+ssmh <- full_join(ssmh, solar_hourly, by=c("date", "hour", "fullname", "site", "station"))
+ssmh <- full_join(ssmh, wspeed_hourly, by=c("date", "hour", "fullname", "site", "station"))
+ssmh <- full_join(ssmh, wdir_hourly, by=c("date", "hour", "fullname", "site", "station"))
 ```
 
 ```{r}
@@ -333,7 +378,9 @@ write.csv(all_sites, paste0(filepath, "all_sites", "_hourly_gap_filled", ".csv")
 # Daily Averages
 
 ```{r}
-daily_avg <- all_sites %>% mutate(day = substr(Date, 1, 10)) %>% group_by(day, fullname, site, station, grounddepth, vwcdepth) %>% summarize(groundtemp = mean(groundtemp, na.rm = TRUE), vwc = mean(vwc, na.rm = TRUE), airtemp = mean(airtemp, na.rm = TRUE), solar = mean(solar, na.rm = TRUE), windspeed = mean(windspeed, na.rm = TRUE), winddir = mean(winddir, na.rm = TRUE))
+# daily_avg <- all_sites %>% mutate(day = substr(Date, 1, 10)) %>% group_by(day, fullname, site, station, grounddepth, vwcdepth) %>% summarize(groundtemp = mean(groundtemp, na.rm = TRUE), vwc = mean(vwc, na.rm = TRUE), airtemp = mean(airtemp, na.rm = TRUE), solar = mean(solar, na.rm = TRUE), windspeed = mean(windspeed, na.rm = TRUE), winddir = mean(winddir, na.rm = TRUE))
+
+daily_avg <- all_sites %>% select(-hour) %>% group_by(date, fullname, site, station, grounddepth, vwcdepth) %>% summarize(groundtemp = mean(groundtemp, na.rm = TRUE), vwc = mean(vwc, na.rm = TRUE), airtemp = mean(airtemp, na.rm = TRUE), solar = mean(solar, na.rm = TRUE), windspeed = mean(windspeed, na.rm = TRUE), winddir = mean(winddir, na.rm = TRUE))
 
 daily_avg$groundtemp[is.nan(daily_avg$groundtemp)] = NA
 daily_avg$vwc[is.nan(daily_avg$vwc)] = NA
@@ -346,3 +393,4 @@ daily_avg$winddir[is.nan(daily_avg$winddir)] = NA
 ```{r}
 write.csv(daily_avg, paste0(filepath, "all_sites", "_daily_gap_filled", ".csv"))
 ```
+
