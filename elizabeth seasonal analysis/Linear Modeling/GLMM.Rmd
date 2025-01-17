@@ -37,8 +37,8 @@ library(lme4)
 # File from github
 filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/"
 df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
-df <- df %>% select(-X)
-#df$Date <- as.POSIXct(df$day, format="%Y-%m-%d")
+df <- df %>% select(-X) %>% select(-X.1)
+df$Date <- as.POSIXct(df$date, format="%Y-%m-%d")
 ```
 
 We need to look at the distribution of our data.
@@ -46,7 +46,8 @@ We need to look at the distribution of our data.
 First we fit a linear mixed model.
 
 ```{r}
-mixed.lmer <- lmer(groundtemp ~ airtemp + (1|site), data = df)
+df_10cm <- df %>% filter(grounddepth == 8)
+mixed.lmer <- lmer(groundtemp ~ airtemp + (1|site), data = df_10cm)
 summary(mixed.lmer)
 ```
 
@@ -69,7 +70,7 @@ We need to make sure that our response variable is normally distributed.
 If it is not, then we will have to standardize groundtemp.
 
 ```{r}
-groundtemp <- df$groundtemp
+groundtemp <- df_10cm$groundtemp
 hist(groundtemp)
 ```
 
@@ -79,7 +80,7 @@ variable the same shape but it makes the mean value zero and the
 standard deviation 1.
 
 ```{r}
-df_scaled <- df
+df_scaled <- df_10cm
 df_scaled$vwc <- scale(df_scaled$vwc, center = TRUE, scale = TRUE)[,1]
 df_scaled$airtemp <- scale(df_scaled$airtemp, center = TRUE, scale = TRUE)[,1]
 df_scaled$solar <- scale(df_scaled$solar, center = TRUE, scale = TRUE)[,1]
@@ -128,11 +129,14 @@ South: SSMH-SA
 BEO CONTROL: BEO-BASE \| BEO-B05 \| BEO-B06 \| BEO-B07 \| BEO-BO8
 
 ```{r}
-beo <- df_scaled %>% filter(site == "BEO") %>% group_by(day, grounddepth, vwcdepth) %>% summarize(groundtemp = mean(groundtemp), vwc = mean(vwc), airtemp = mean(airtemp), solar = mean(solar), windspeed = mean(windspeed), winddir = mean(winddir)) %>% ungroup() %>% mutate(fullname = "BEO-BASE", site = "BEO", station = "BASE") %>% select(colnames(df))
+beo <- df_scaled %>% filter(site == "BEO") %>% group_by(date, Date, grounddepth, vwcdepth, fullname, site, station) %>% summarize(groundtemp = mean(groundtemp), vwc = mean(vwc), airtemp = mean(airtemp), solar = mean(solar), windspeed = mean(windspeed), winddir = mean(winddir)) %>% ungroup() %>% mutate(fullname = "BEO-BASE", site = "BEO", station = "BASE") %>% select(colnames(df))
 
 nvs <- df_scaled %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" |
                        fullname == "SSMH-SA" | fullname == "SSMH-SB") %>% rbind(beo)
 ```
+
+Note: we cannot compare different aspects at BEO because the control sensors
+are located in the tundra in close proximity.
 
 ### TNHA
 
@@ -142,8 +146,8 @@ mixed.lmer <- lmer(groundtemp ~ airtemp + (1|station), data = tnha_nvs)
 summary(mixed.lmer)
 ```
 
-The variance for station is very low (0.04664) especially compared to
-the residual (15.27). This means that the aspect of our sensor does not
+The variance for station is low (0.2252) especially compared to the variance of
+the residual (7.9030). This means that the aspect of our sensor does not
 account for much variation in ground temp and instead airtemp accounts
 for the majority of the variation.
 
@@ -151,11 +155,18 @@ We can calculate the percentage of the random effect's contribution to
 variance:
 
 ```{r}
-0.04664/(0.04664+15.26984)
+0.2252/(0.2252+7.9030)
 ```
-
+Therefore the random effects (station, or rather aspect) contribute to approximately 2.77% of
+the variance in ground temperature at TNHA.
 
 ### SSMH
+
+```{r}
+ssmh_nvs <- nvs %>% filter(site == "SSMH")
+mixed.lmer <- lmer(groundtemp ~ airtemp + (1|station), data = ssmh_nvs)
+summary(mixed.lmer)
+```
 
 ## South vs South
 
