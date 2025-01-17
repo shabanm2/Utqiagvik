@@ -1,0 +1,108 @@
+# Split Averaged Data
+
+Data loaded after averaged and exported by Average_Data.Rmd
+
+Load files from your local drive:
+```{r}
+filepath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/Transposed/"
+```
+
+Export files to the GitHub Repo:
+```{r}
+repo_path <- "/Users/emvanmetre/Desktop/Arctic/Utqiagvik/"
+exportpath <- paste0(repo_path, "Analysis_Ready_Data/")
+```
+
+## Libraries
+```{r}
+library(dplyr)
+```
+
+
+# Hourly Average Data
+filename: all_sites_hourly_gap_filled.csv
+
+```{r}
+hourly <- read.csv(paste0(filepath, "all_sites_hourly_gap_filled.csv"))
+```
+
+As of January 2025, the hourly dataset is approximately 700 MB, so we need to split this up a lot (into at least 15 sections)
+
+We will split it by meteorological season and year. Note that the meteorological seasons start on the first of a month!
+
+Meteorological Seasons:
+Spring - March, April, May 
+Summer - June, July, August
+Fall (Autumn) - September, October, November
+Winter - December, January, February
+
+```{r}
+min(hourly$date)
+max(hourly$date)
+```
+The data start on May 17, 2022 and end on September 26, 2024.
+
+Set the variables for the for-loops.
+```{r}
+seasons <- c("Spring", "Summer", "Fall", "Winter")
+years <- seq(2022,2024)
+```
+
+
+For-loop:
+For each year...
+1) Split hourly df to just the year to make parsing faster
+2) Do spring, summer, fall, and winter based on dates and paste in the current year
+3) If the df is not empty, export the csv
+```{r}
+for (yr in years) {
+  
+  this_year <- hourly %>% filter(date >= paste0(yr,"-03-01") & date < paste0(yr+1,"-03-01"))
+  
+  spring <- this_year %>% filter(date >= paste0(yr,"-03-01") & date < paste0(yr,"-06-01")) %>% select(-X) %>% unique()
+  if (nrow(spring) > 0){
+    write.csv(spring, paste0(exportpath, "hourly_spring_", yr, ".csv"))
+  }
+  
+  summer <- this_year %>% filter(date >= paste0(yr,"-06-01") & date < paste0(yr,"-09-01")) %>% select(-X) %>% unique()
+  if (nrow(summer) > 0){
+    write.csv(summer, paste0(exportpath, "hourly_summer_", yr, ".csv"))
+  }
+  
+  fall <- this_year %>% filter(date >= paste0(yr,"-09-01") & date < paste0(yr,"-12-01")) %>% select(-X) %>% unique()
+  if (nrow(fall) > 0){
+    write.csv(fall, paste0(exportpath, "hourly_fall_", yr, ".csv"))
+  }
+  
+  winter <- this_year %>% filter(date >= paste0(yr,"-12-01") & date < paste0(yr+1,"-03-01")) %>% select(-X) %>% unique()
+  if (nrow(winter) > 0){
+    write.csv(winter, paste0(exportpath, "hourly_winter_", yr, "_", yr+1, ".csv"))
+  }
+
+}
+
+```
+
+```{r}
+summer <- hourly %>% filter(Date >= as.Date(paste0(2022,"-06-01")) & Date < as.Date(paste0(2022,"-09-01")))
+summer2 <- summer %>% select(-X) %>% unique()
+  if (nrow(summer2) > 0){
+    write.csv(summer2, paste0(exportpath, "hourly_summer_", 2022, ".csv"))
+  }
+```
+
+
+# Daily Average Data
+filename: all_sites_daily_gap_filled.csv
+
+```{r}
+daily <- read.csv(paste0(filepath, "all_sites_daily_gap_filled.csv"))
+```
+
+Daily averages are already under 50 MB so we don't have to split it!
+
+```{r}
+write.csv(daily, paste0(exportpath, "daily_", min(years), "_", max(years), ".csv"))
+```
+
+
