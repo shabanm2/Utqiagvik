@@ -10,13 +10,18 @@ editor_options:
 
 # Generalized Linear Mixed Models
 
-Created: October 1, 2024
+**Created: October 1, 2024**
+
+[Changes]{.underline}
+
+-   10/1/24: added lme4 package and began analysis of LMM
+-   10/30/24: updated with new averages from gap-filled data
 
 **Fixed Effects**: variables that we expect to have an effect on the
 response variable (i.e. independent or explanatory variables)
 
-**Random Effects**: [grouping factors]{.underline} that may cause variation
-that we want to control; ALWAYS CATEGORICAL
+**Random Effects**: [grouping factors]{.underline} that may cause
+variation that we want to control; ALWAYS CATEGORICAL
 
 The data for our random effects are just a sample of all the
 possibilities - our data are limited by time and resources, and
@@ -29,13 +34,12 @@ library(lme4)
 ## Load Data
 
 ```{r}
-filepath <- "/Users/emvanmetre/Desktop/Arctic/Gap_Filled_Data/Transposed/"
-df <- read.csv(paste0(filepath, "all_sites_hourly_gap_filled.csv"))
-df$copy <- df$fullname
-df <- cSplit(df, 'copy', sep="-", direction = "wide")
-colnames(df)[12:13] <- c("site", "station")
+# File from github
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/"
+df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
+df <- df %>% select(-X)
+#df$Date <- as.POSIXct(df$day, format="%Y-%m-%d")
 ```
-
 
 We need to look at the distribution of our data.
 
@@ -46,32 +50,121 @@ mixed.lmer <- lmer(groundtemp ~ airtemp + (1|site), data = df)
 summary(mixed.lmer)
 ```
 
-Check Assumptions
+**Random effects** tells you how much variance you find among levels of
+your grouping factor(s) as well as the residual variance. The residual
+variance is the variation explained by the fixed effects.
+
+**Fixed effects** are similar to a linear model output with slope and
+intercept as well as their respective errors.
+
+## Check Assumptions
+
 ```{r}
 plot(mixed.lmer)
 ```
 
+Response Variable (outcome): groundtemp
 
-Sources:
-https://ourcodingclub.github.io/tutorials/mixed-models/#what
+We need to make sure that our response variable is normally distributed.
+If it is not, then we will have to standardize groundtemp.
+
+```{r}
+groundtemp <- df$groundtemp
+hist(groundtemp)
+```
+
+It is good practice to scale our explanatory variables so that we can
+effectively compare the effects. Scaling keeps the distribution of the
+variable the same shape but it makes the mean value zero and the
+standard deviation 1.
+
+```{r}
+df_scaled <- df
+df_scaled$vwc <- scale(df_scaled$vwc, center = TRUE, scale = TRUE)[,1]
+df_scaled$airtemp <- scale(df_scaled$airtemp, center = TRUE, scale = TRUE)[,1]
+df_scaled$solar <- scale(df_scaled$solar, center = TRUE, scale = TRUE)[,1]
+df_scaled$windspeed <- scale(df_scaled$windspeed, center = TRUE, scale = TRUE)[,1]
+df_scaled$winddir <- scale(df_scaled$winddir, center = TRUE, scale = TRUE)[,1]
+```
+
+Sources: <https://ourcodingclub.github.io/tutorials/mixed-models/#what>
+
+START 1. North vs South at one site - try to figure out that there is a
+difference 2. South vs South at two different sites Eventually... do we
+see a difference between years in our North vs South GLMMs
+
+# GLMM
+
+By season (separate season and year)
+Then maybe look at one month or one day within that season
+Eventually annual comparison
+
+Summer: 6/1-9/1
+Fall: 9/1-12/1
+Winter: 12/1-3/1
+Spring: 3/1-6/1
+
+For now, ignore winter because it was mostly gap filled data.
+
+Run analyses on depth separately within each season.
+
+Depths:
+10cm
+30cm
+55cm
+65cm
+90cm
+
+## North vs South
+
+TNHA
+North: TNHA-SC
+South: TNHA-SA
+
+SSMH
+North: SSMH-SB
+South: SSMH-SA
+
+BEO CONTROL: BEO-BASE \| BEO-B05 \| BEO-B06 \| BEO-B07 \| BEO-BO8
+
+```{r}
+beo <- df_scaled %>% filter(site == "BEO") %>% group_by(day, grounddepth, vwcdepth) %>% summarize(groundtemp = mean(groundtemp), vwc = mean(vwc), airtemp = mean(airtemp), solar = mean(solar), windspeed = mean(windspeed), winddir = mean(winddir)) %>% ungroup() %>% mutate(fullname = "BEO-BASE", site = "BEO", station = "BASE") %>% select(colnames(df))
+
+nvs <- df_scaled %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" |
+                       fullname == "SSMH-SA" | fullname == "SSMH-SB") %>% rbind(beo)
+```
+
+### TNHA
+
+```{r}
+tnha_nvs <- nvs %>% filter(site == "TNHA")
+mixed.lmer <- lmer(groundtemp ~ airtemp + (1|station), data = tnha_nvs)
+summary(mixed.lmer)
+```
+
+The variance for station is very low (0.04664) especially compared to
+the residual (15.27). This means that the aspect of our sensor does not
+account for much variation in ground temp and instead airtemp accounts
+for the majority of the variation.
+
+We can calculate the percentage of the random effect's contribution to
+variance:
+
+```{r}
+0.04664/(0.04664+15.26984)
+```
 
 
+### SSMH
 
+## South vs South
 
-START
-1. North vs South at one site - try to figure out that there is a difference
-2. South vs South at two different sites
-Eventually... do we see a difference between years in our North vs South GLMMs
+### BEO vs TNHA
 
+### BEO vs SSMH
 
-Seasonal
-Summer 2022, Fall 2022, Spring 2023 - separate GLMMs
-Site by Site
-Also aspect by aspect (n vs s)
-Depth: start with 10cm; 30cm; 55cm; 65cm; 90cm
+Seasonal Summer 2022, Fall 2022, Spring 2023 - separate GLMMs Site by
+Site Also aspect by aspect (n vs s) Depth: start with 10cm; 30cm; 55cm;
+65cm; 90cm
 
-change this order:
-- aspects
-- locations
-- depth
-- season
+change this order: - aspects - locations - depth - season

@@ -220,141 +220,48 @@ wind_files
 ### BEO
 
 ```{r}
-file <- "Wind_data_CLEAN_BEO_from_2022_06_13_to_2024_08_31_no_gps.csv" 
-# need to separate wind direction and wind speed
-df <- read.csv(paste0(filepath, file))
-  names(df) <- sub("...W.m.2..RX3000_BRW6", "", names(df))
-  names(df) <- sub("..S.WDA.21401803.", "", names(df))
-  names(df) <- sub("..S.WSB.", "", names(df))
-  names(df) <- sub("......RX3000_BRW6", "", names(df))
-  names(df) <- sub("_BEO", "", names(df))
-  df <- df[, names(df) !="21401803.21390415.1.1"]
-  names(df) <- sub("21401803.", "", names(df))
-  
-  df_ws <- data.frame(df$Date, df[,grepl("Wind.Speed", colnames(df))])
-  names(df_ws) <- sub("Wind.Speed", "", names(df_ws))
-  names(df_ws) <- sub("df.", "", names(df_ws))
-  names(df_ws)[2:ncol(df_ws)] <- substring(names(df_ws)[2:ncol(df_ws)], 1, 8)
-  df_ws <- df_ws[, !duplicated(colnames(df_ws))]
-  
-  df_wd <- data.frame(df$Date, df[,grepl("Wind.Direction", colnames(df))])
-  names(df_wd) <- sub("Wind.Direction", "", names(df_wd))
-  names(df_wd) <- sub("df.", "", names(df_wd))
-  names(df_wd)[2:ncol(df_wd)] <- substring(names(df_wd)[2:ncol(df_wd)], 1, 8)
-  df_wd <- df_wd[, !duplicated(colnames(df_wd))]
-  
-  # Transpose data
-  df_ws_long <- gather(df_ws, sensor, value, 2:ncol(df_ws))
-  df_ws_long <- cSplit(df_ws_long, 'sensor', sep=".", direction = "wide")
-  df_ws_long$sensor_1 <- gsub('X', '', df_ws_long$sensor_1)
-  df_ws_long <- select(df_ws_long, Date, sensor_1, value)
-  colnames(df_ws_long)[2] <- "sensor"
-  df_ws_long$Date <- as.POSIXct(df_ws_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
-  
-  df_wd_long <- gather(df_wd, sensor, value, 2:ncol(df_wd))
-  df_wd_long <- cSplit(df_wd_long, 'sensor', sep=".", direction = "wide")
-  df_wd_long$sensor_1 <- gsub('X', '', df_wd_long$sensor_1)
-  df_wd_long <- select(df_wd_long, Date, sensor_1, value)
-  colnames(df_wd_long)[2] <- "sensor"
-  df_wd_long$Date <- as.POSIXct(df_wd_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+file <- "Wind_speed_data_CLEAN_BEO_from_2022_06_13_to_2024-11-15_no_gps.csv"   
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "wind_speed", "_gap_filled_", "BEO", ".csv"))
 
-write.csv(df_ws_long, paste0(exportpath, "wind_speed", "_gap_filled_", "BEO", ".csv"))
-write.csv(df_wd_long, paste0(exportpath, "wind_direction", "_gap_filled_", "BEO", ".csv"))
+
+file <- "Wind_direction_data_BEO_from_2022_06_13_to_2024-11-15_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "wind_direction", "_gap_filled_", "BEO", ".csv"))
 ```
 
 ### TNHA
 
 ```{r}
-file <- "Wind_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
-# need to separate wind direction and wind speed
-df <- read.csv(paste0(filepath, file))
-  names(df) <- sub("...W.m.2..RX3000_BRW6", "", names(df))
-  names(df) <- sub("..S.WDA.21401803.", "", names(df))
-  names(df) <- sub("..S.WSB.", "", names(df))
-  names(df) <- sub("......RX3000_BRW6", "", names(df))
-  names(df) <- sub("_BEO", "", names(df))
-  df <- df[, names(df) !="21401803.21390415.1.1"]
-  names(df) <- sub("21401803.", "", names(df))
-  names(df) <- sub("X", "", names(df))
-  
-  df_ws <- data.frame(df$Date, df[,substring(colnames(df), 10, 10) == "1"])
-  names(df_ws) <- sub("Wind.Speed", "", names(df_ws))
-  names(df_ws) <- sub("df.", "", names(df_ws))
-  names(df_ws) <- sub("X", "", names(df_ws))
-  names(df_ws)[2:ncol(df_ws)] <- substring(names(df_ws)[2:ncol(df_ws)], 1, 8)
-  df_ws <- df_ws[, !duplicated(colnames(df_ws))]
-  
-  df_wd <- data.frame(df$Date, df[,substring(colnames(df), 10, 10) == "3"])
-  names(df_wd) <- sub("Wind.Direction", "", names(df_wd))
-  names(df_wd) <- sub("df.", "", names(df_wd))
-  names(df_wd) <- sub("X", "", names(df_wd))
-  names(df_wd)[2:ncol(df_wd)] <- substring(names(df_wd)[2:ncol(df_wd)], 1, 8)
-  df_wd <- df_wd[, !duplicated(colnames(df_wd))]
-  
-  # Transpose data
-  df_ws_long <- gather(df_ws, sensor, value, 2:ncol(df_ws))
-  df_ws_long <- cSplit(df_ws_long, 'sensor', sep=".", direction = "wide")
-  df_ws_long$sensor_1 <- gsub('X', '', df_ws_long$sensor_1)
-  df_ws_long <- select(df_ws_long, Date, sensor_1, value)
-  colnames(df_ws_long)[2] <- "sensor"
-  df_ws_long$Date <- as.POSIXct(df_ws_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
-  
-  df_wd_long <- gather(df_wd, sensor, value, 2:ncol(df_wd))
-  df_wd_long <- cSplit(df_wd_long, 'sensor', sep=".", direction = "wide")
-  df_wd_long$sensor_1 <- gsub('X', '', df_wd_long$sensor_1)
-  df_wd_long <- select(df_wd_long, Date, sensor_1, value)
-  colnames(df_wd_long)[2] <- "sensor"
-  df_wd_long$Date <- as.POSIXct(df_wd_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+file <- "Wind_speed_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv" 
 
-write.csv(df_ws_long, paste0(exportpath, "wind_speed", "_gap_filled_", "TNHA", ".csv"))
-write.csv(df_wd_long, paste0(exportpath, "wind_direction", "_gap_filled_", "TNHA", ".csv"))
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "wind_speed", "_gap_filled_", "TNHA", ".csv"))
+
+file <- "Wind_direction_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "wind_direction", "_gap_filled_", "TNHA", ".csv"))
 ```
 
 ### SSMH
 
 ```{r}
-file <- "Wind_data_CLEAN_SSMH_from_2022_06_08_to_2024_09_20_no_gps.csv"
-# need to separate wind direction and wind speed
-df <- read.csv(paste0(filepath, file))
-  names(df) <- sub("...W.m.2..RX3000_BRW6", "", names(df))
-  names(df) <- sub("..S.WDA.21401803.", "", names(df))
-  names(df) <- sub("..S.WSB.", "", names(df))
-  names(df) <- sub("......RX3000_BRW6", "", names(df))
-  names(df) <- sub("_BEO", "", names(df))
-  df <- df[, names(df) !="21401803.21390415.1.1"]
-  names(df) <- sub("21401803.", "", names(df))
-  names(df) <- sub("X", "", names(df))
-  
-  df_ws <- data.frame(df$Date, df[,substring(colnames(df), 10, 10) == "1"])
-  names(df_ws) <- sub("Wind.Speed", "", names(df_ws))
-  names(df_ws) <- sub("df.", "", names(df_ws))
-  names(df_ws) <- sub("X", "", names(df_ws))
-  names(df_ws)[2:ncol(df_ws)] <- substring(names(df_ws)[2:ncol(df_ws)], 1, 8)
-  df_ws <- df_ws[, !duplicated(colnames(df_ws))]
-  
-  df_wd <- data.frame(df$Date, df[,substring(colnames(df), 10, 10) == "3"])
-  names(df_wd) <- sub("Wind.Direction", "", names(df_wd))
-  names(df_wd) <- sub("df.", "", names(df_wd))
-  names(df_wd) <- sub("X", "", names(df_wd))
-  names(df_wd)[2:ncol(df_wd)] <- substring(names(df_wd)[2:ncol(df_wd)], 1, 8)
-  df_wd <- df_wd[, !duplicated(colnames(df_wd))]
-  
-  # Transpose data
-  df_ws_long <- gather(df_ws, sensor, value, 2:ncol(df_ws))
-  df_ws_long <- cSplit(df_ws_long, 'sensor', sep=".", direction = "wide")
-  df_ws_long$sensor_1 <- gsub('X', '', df_ws_long$sensor_1)
-  df_ws_long <- select(df_ws_long, Date, sensor_1, value)
-  colnames(df_ws_long)[2] <- "sensor"
-  df_ws_long$Date <- as.POSIXct(df_ws_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
-  
-  df_wd_long <- gather(df_wd, sensor, value, 2:ncol(df_wd))
-  df_wd_long <- cSplit(df_wd_long, 'sensor', sep=".", direction = "wide")
-  df_wd_long$sensor_1 <- gsub('X', '', df_wd_long$sensor_1)
-  df_wd_long <- select(df_wd_long, Date, sensor_1, value)
-  colnames(df_wd_long)[2] <- "sensor"
-  df_wd_long$Date <- as.POSIXct(df_wd_long$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+file <- "Wind_speed_data_CLEAN_SSMH_from_2022_05_17_to_2024-11-15_no_gps.csv" 
 
-write.csv(df_ws_long, paste0(exportpath, "wind_speed", "_gap_filled_", "SSMH", ".csv"))
-write.csv(df_wd_long, paste0(exportpath, "wind_direction", "_gap_filled_", "SSMH", ".csv"))
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "wind_speed", "_gap_filled_", "SSMH", ".csv"))
+
+file <- "Wind_direction_data_CLEAN_SSMH_from_2022_05_17_to_2024-11-15_no_gps.csv"
+
+# Call Transpose Function
+final <- transpose(filepath, file)
+write.csv(final, paste0(exportpath, "wind_direction", "_gap_filled_", "SSMH", ".csv"))
 ```
 
