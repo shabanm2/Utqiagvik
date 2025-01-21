@@ -1,0 +1,44 @@
+---
+title: "Visualize Data"
+output: html_document
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+Load Data
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/"
+df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
+df$fullname = as.factor(df$fullname)
+df$date <- as.Date(df$date)
+```
+
+
+Load Library
+```{r}
+library(ggplot2)
+library(dplyr)
+```
+
+
+```{r}
+tnha_2022 <- df %>% filter(date < "2023-01-01") %>% filter(site == "TNHA") %>% filter(grounddepth == 8)
+ggplot(tnha_2022) + geom_line(aes(date, groundtemp, color=fullname)) + scale_x_date(date_breaks = "1 month",
+             date_labels = "%B")
+```
+Based on the appearance of the data, we cannot use values that were added from the gap filling algorithm prior to the first date of collection. I believe the data started on June 19, 2022 or 2022-06-19.
+
+```{r}
+beo_2022 <- df %>% filter(date < "2023-01-01") %>% filter(site == "BEO") %>% filter(grounddepth == 8)
+ggplot(beo_2022) + geom_line(aes(date, groundtemp, color=fullname))
+```
+I would say this holds for BEO because we are not really getting an accurate representation of how the data should be acting.
+
+```{r}
+ssmh_2022 <- df %>% filter(date < "2023-01-01") %>% filter(site == "SSMH") %>% filter(grounddepth == 8)
+ggplot(ssmh_2022) + geom_line(aes(date, groundtemp, color=fullname))
+```
+
+Some of the data for SSMH look inaccurate, so we should be careful when proceeding for these stations. However, it also looks okay prior to the initial collection date.
