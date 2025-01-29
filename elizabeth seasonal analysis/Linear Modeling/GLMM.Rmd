@@ -48,15 +48,68 @@ GLMMs are a broader category of LMMs that account for data whose
 includes binary responses. We need to add a **link function** (example:
 a log link)
 
+I believe that using lmer with an argument for family is equivalent to
+running a GLMM. The [docs
+site](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/family)
+lists these as the possible args:
+
+[family(object, …)]{.underline}
+
+binomial(link = "logit")
+
+gaussian(link = "identity") Gamma(link = "inverse")
+
+inverse.gaussian(link = "1/mu\^2")
+
+poisson(link = "log")
+
+quasi(link = "identity", variance = "constant")
+
+quasibinomial(link = "logit")
+
+quasipoisson(link = "log")
+
 For different distributions, we use different link functions and
 families:
 
--   Binary outcome: logistic link function + probability density function for the logistic
--   Count outcome: log link function + probability mass function for the poisson
+-   Binary outcome: logistic link function + probability density
+    function for the logistic
+-   Count outcome: log link function + probability mass function for the
+    poisson
 -   Continuous outcome w/ normal distribution: identity link function
+
+[Link Functions]{.underline}
+
+identity -\> f(x) = x
+
+inverse -\> f(x) = 1/x
+
+[Family (Default Link Function)]{.underline}
+
+gaussian (link = "identity")
+
+Gamma (link = "inverse") - right skew inverse.gaussian (link =
+"1/mu\^2")
+
+quasi (link = "identity", variance = "constant") - assumes constant
+variance
+
+Binary binomial (link = "logit") - log
+
+quasibinomial (link = "logit") - log with higher variance
+
+Count poisson (link = "log")
+
+quasipoisson (link = "log")
+
+Source: <https://www.datacamp.com/doc/r/glm>
+
+
 
 ```{r}
 library(lme4)
+library(dplyr)
+library(ggplot2)
 ```
 
 ## Load Data
@@ -74,32 +127,95 @@ We need to look at the distribution of our data.
 First we fit a linear mixed model.
 
 ```{r}
-df_10cm <- df %>% filter(grounddepth == 8)
-mixed.lmer <- lmer(groundtemp ~ airtemp + (1|site), data = df_10cm)
-summary(mixed.lmer)
+# filter out values from before data collection
+df_10cm <- df %>% filter(grounddepth == 8) %>% filter(date >= "2022-06-19") %>% filter(date < "2022-09-01")
+#df_10cm$groundtemp <- sqrt(df_10cm$groundtemp)
+lmm1 <- lmer(groundtemp ~ airtemp + vwc + (1|site), data = df_10cm)
+summary(lmm1)
+coef(lmm1)
 ```
+t value is the ratio between estimate and standard error
+we don't have p value for significance
+larger absolute value of t-value is better, but look at estimate and standard error as opposed to using an arbitrary cutoff
+standard error tells us how certain we are of our estimate
+
+median should be close to zero
+1Q and 3Q should match up abs value
+min max ideally should also match
+
+site vs residual - variance between sites vs variance within sites
+it's fine that they are different and shows that we should probably be doing lmm here (because there is a difference) - if variance/standard deviation is close to zero then there isn't much variability between the sites
+look at standard deviation because that's actually in our units (so don't scale it to make interpretation easier)
 
 **Random effects** tells you how much variance you find among levels of
 your grouping factor(s) as well as the residual variance. The residual
 variance is the variation explained by the fixed effects.
+
+Site grouping may have different climate qualities
+Mixed effects maybe not to see if there is actual difference between the sites
+ANOVA could be good for checking different sites or aspects (check out repeated measures ANOVA?)
+NVS - random effect for site but use dummy variables for north vs south (make the variable a factor)
 
 **Fixed effects** are similar to a linear model output with slope and
 intercept as well as their respective errors.
 
 ## Check Assumptions
 
+
+## Transform our Variable
+
 ```{r}
-plot(mixed.lmer)
+# Transform data
+df_transformed <- df_10cm
+df_transformed$groundtemp <- sqrt(df_transformed$groundtemp)
+lmm2 <- lmer(groundtemp ~ airtemp + (1|site), data = df_transformed)
+
+# Scale (normalize) data
+df_scaled <- df_transformed
+df_scaled$groundtemp <- scale(df_scaled$groundtemp)
+lmm3 <- lmer(groundtemp ~ airtemp + (1|site), data = df_scaled)
 ```
 
-Response Variable (outcome): groundtemp
-
-We need to make sure that our response variable is normally distributed.
-If it is not, then we will have to standardize groundtemp.
 
 ```{r}
 groundtemp <- df_10cm$groundtemp
-hist(groundtemp)
+groundtemp_sqrt <- df_transformed$groundtemp
+groundtemp_scaled <- df_transformed$groundtemp
+```
+
+
+```{r}
+plot(lmm1)
+hist(groundtemp, freq=FALSE)
+ggplot(data = data.frame(sample = groundtemp), aes(sample = sample)) +
+  stat_qq() +
+  stat_qq_line(col = "blue") +
+  theme_minimal() +
+  ggtitle("Q-Q Plot of Untransformed Data")
+```
+
+identify some of the points that the model isn't working as well for
+this is good enough
+
+
+```{r}
+plot(lmm2)
+hist(groundtemp_sqrt, freq=FALSE)
+ggplot(data = data.frame(sample = groundtemp_sqrt), aes(sample = sample)) +
+  stat_qq() +
+  stat_qq_line(col = "blue") +
+  theme_minimal() +
+  ggtitle("Q-Q Plot of Transformed Data - sqrt(groundtemp)")
+```
+
+```{r}
+plot(lmm3)
+hist(groundtemp_scaled, freq=FALSE)
+ggplot(data = data.frame(sample = groundtemp_scaled), aes(sample = sample)) +
+  stat_qq() +
+  stat_qq_line(col = "blue") +
+  theme_minimal() +
+  ggtitle("Q-Q Plot of Scaled Data - scale(sqrt(groundtemp))")
 ```
 
 It is good practice to scale our explanatory variables so that we can
@@ -107,13 +223,15 @@ effectively compare the effects. Scaling keeps the distribution of the
 variable the same shape but it makes the mean value zero and the
 standard deviation 1.
 
+**NO because it uses an estimated standard deviation**
+
 ```{r}
-df_scaled <- df_10cm
-df_scaled$vwc <- scale(df_scaled$vwc, center = TRUE, scale = TRUE)[,1]
-df_scaled$airtemp <- scale(df_scaled$airtemp, center = TRUE, scale = TRUE)[,1]
-df_scaled$solar <- scale(df_scaled$solar, center = TRUE, scale = TRUE)[,1]
-df_scaled$windspeed <- scale(df_scaled$windspeed, center = TRUE, scale = TRUE)[,1]
-df_scaled$winddir <- scale(df_scaled$winddir, center = TRUE, scale = TRUE)[,1]
+# df_scaled <- df_10cm
+# df_scaled$vwc <- scale(df_scaled$vwc, center = TRUE, scale = TRUE)[,1]
+# df_scaled$airtemp <- scale(df_scaled$airtemp, center = TRUE, scale = TRUE)[,1]
+# df_scaled$solar <- scale(df_scaled$solar, center = TRUE, scale = TRUE)[,1]
+# df_scaled$windspeed <- scale(df_scaled$windspeed, center = TRUE, scale = TRUE)[,1]
+# df_scaled$winddir <- scale(df_scaled$winddir, center = TRUE, scale = TRUE)[,1]
 ```
 
 Sources: <https://ourcodingclub.github.io/tutorials/mixed-models/#what>
@@ -157,7 +275,7 @@ sensors are located in the tundra in close proximity.
 
 ```{r}
 tnha_nvs <- nvs %>% filter(site == "TNHA")
-mixed.glmer <- lme4::glmer(groundtemp ~ airtemp + (1|station), family=gaussian(), data = tnha_nvs)
+mixed.glmer <- lme4::glmer(groundtemp ~ airtemp + (1|station), family=inverse.gaussian(link="1/mu^2"), data = tnha_nvs)
 summary(mixed.glmer)
 ```
 
