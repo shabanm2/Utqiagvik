@@ -1,6 +1,8 @@
 ---
 title: "LMM_NvS"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 **Created January 28, 2025**
