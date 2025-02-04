@@ -1,0 +1,72 @@
+---
+title: "LMM_NvS"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+**Created January 28, 2025**
+
+[Changes]{.underline}
+
+-   1/28/25: loading data
+
+
+```{r}
+library(lme4)
+library(dplyr)
+library(ggplot2)
+```
+
+## Load Data
+
+```{r}
+# File from github
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/"
+df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
+df <- df %>% select(-X) %>% select(-X.1)
+df$Date <- as.POSIXct(df$date, format="%Y-%m-%d")
+```
+
+## Select and Transform Data
+
+North vs South
+
+TNHA:
+
+North = TNHA-SC
+
+South = TNHA-SA
+
+SSMH:
+
+North = SSMH-SB
+
+South = SSMH-SA
+
+BEO (Control): does not have different aspects
+
+```{r}
+nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA") %>% select(-c(windspeed, winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", .default = "South"))
+# ignore wind speed and wind direction for now
+```
+
+
+```{r}
+# filter out data from before data collection
+# filter to get only depth of 10cm for now
+df_10cm <- nvs %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19")
+```
+
+
+# Fit LMM
+
+```{r}
+lmm1 <- lmer(groundtemp ~ airtemp + vwc + solar + aspect + (1|site), data = df_10cm)
+summary(lmm1)
+```
+
+```{r}
+coef(lmm1)
+```
+It seems like there is not too much of a difference between the two sites, but there is still presence of a difference as shown by the two different intercepts for SSMH vs TNHA.
