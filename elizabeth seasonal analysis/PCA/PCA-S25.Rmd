@@ -1,0 +1,375 @@
+---
+title: "PCA - Spring 2025"
+author: "Elizabeth Van Metre"
+date: "2025-02-04"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+========
+
+# SETUP
+
+========
+
+## FILEPATH:
+
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/"
+```
+
+## PICK DATE RANGES:
+
+```{r}
+years = c("2022", "2023")
+seasons = c("Spring", "Summer","Fall")
+sites = c("TNHA", "BEO", "SSMH")
+
+# put season values for the season that has the start of the data
+date_start = "2022-06-01" # data starts in June 2022 (YEAR-MO-DY) where day is always 01
+# put season values for the season that has the last of the data
+date_end = "2023-11-01" # data ends after November of 2023 (will get data up UNTIL date_end not after)
+```
+
+## PICK OUTPUT:
+
+```{r}
+scree = F # scree plot
+eigen = T # eigenvectors and eigenvalues
+```
+
+### Dates (for selecting date ranges; no need to edit)
+
+```{r}
+spring_months = c("March", "April", "May")
+summer_months = c("June","July","August")
+fall_months = c("September", "October", "November")
+winter_months = c("December", "January", "February")
+```
+
+```{r}
+spring_dates = data.frame(months=spring_months, start=c("-03-01","-04-01","-05-01"), end=c("-04-01","-05-01","-06-01"))
+
+summer_dates = data.frame(months=summer_months, start=c("-06-01","-07-01","-08-01"), end=c("-07-01","-08-01","-09-01"))
+
+fall_dates = data.frame(months=fall_months, start=c("-09-01","-10-01","-11-01"), end=c("-10-01","-11-01","-12-01"))
+
+winter_dates = data.frame(months=winter_months, start=c("-12-01","-01-01","-02-01"), end=c("-01-01","-02-01","-03-01"))
+```
+
+```{r}
+all_dates = data.frame(matrix(nrow = 0, ncol = 4))
+for(yur in years){
+  # spring
+  if("Spring" %in% seasons){
+    for(i in c(1:3)){
+      curdate = as.Date(paste0(yur, spring_dates[i, 2]))
+      if(curdate >= date_start && curdate < date_end){
+        all_dates <- rbind(all_dates, c(spring_dates[i,1], paste0(yur, spring_dates[i, 2]), paste0(yur, spring_dates[i, 3]),"Spring"))
+      }
+    }
+  }
+  if("Summer" %in% seasons){
+    for(i in c(1:3)){
+      curdate = as.Date(paste0(yur, summer_dates[i, 2]))
+      if(curdate >= date_start && curdate < date_end){
+        all_dates <- rbind(all_dates, c(summer_dates[i,1], paste0(yur, summer_dates[i, 2]), paste0(yur, summer_dates[i, 3]),"Summer"))
+      }
+    }
+  }
+  if("Fall" %in% seasons){
+    for(i in c(1:3)){
+      curdate = as.Date(paste0(yur, fall_dates[i, 2]))
+      if(curdate >= date_start && curdate < date_end){
+        all_dates <- rbind(all_dates, c(fall_dates[i,1], paste0(yur, fall_dates[i, 2]), paste0(yur, fall_dates[i, 3]),"Fall"))
+      }
+    }
+  }
+  if("Winter" %in% seasons){
+    for(i in c(1:3)){
+      curdate = as.Date(paste0(yur, winter_dates[i, 2]))
+      if(curdate >= date_start && curdate < date_end){
+        all_dates <- rbind(all_dates, c(winter_dates[i,1], paste0(yur, winter_dates[i, 2]), paste0(yur, winter_dates[i, 3]),"Winter"))
+      }
+    }
+  }
+  
+}
+colnames(all_dates) = c("months","start","end","szn")
+```
+
+
+## Packages
+
+```{r message=FALSE}
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+```
+
+=========================
+
+# DEFINE FUNCTIONS 
+
+=========================
+
+Temporal Range: Season Vertical Spatial Range: 30-45 cm Horizontal
+Spatial Range: stations across site (TNHA, SSMH, BEO) --\> Average Total
+Site --\> North vs South (except for BEO)
+
+### Filter by Site and Join Tables
+
+```{r}
+pick_site <- function(cursite){
+
+  big_df <<- daily %>% filter(site == cursite)
+  
+  if(szn == "Winter"){
+    big_df <<- big_df %>% select(-solar)
+  }
+  return(big_df)
+}
+```
+
+### Filter by Date Range
+
+```{r}
+pick_dates <- function(datemin, datemax, big_df){
+  pca_df <<- big_df %>% filter(Date >= datemin) %>% filter(Date < datemax)
+  
+  # get rid of NAs
+  pca_df <<- na.omit(pca_df)
+  pca_df <<- unique(pca_df)
+  return(pca_df)
+}
+
+```
+
+## Calculate PCA
+
+```{r}
+calc_pca <- function(pca_df){
+  pca <<- prcomp(pca_df[,6:(ncol(pca_df)-2)], center=TRUE, scale.=TRUE)
+
+  #take out variables
+  sd <- pca$sdev
+  loads <<- pca$rotation
+  rownames(loads) <<- colnames(pca_df[6:(ncol(pca_df)-2)])
+  scores <<- pca$x
+  
+  var <- sd^2
+  varPercent <- var/sum(var) * 100
+  
+  return(list("pca"=pca, "loads"=loads))
+}
+```
+
+### Make Scree Plot
+
+```{r}
+make_scree <- function(pca){
+  sd <- pca$sdev
+  
+  var <- sd^2
+  varPercent <- var/sum(var) * 100
+  
+  barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), 
+          las=1, ylim=c(0, max(varPercent)), col="gray")
+  abline(h=1/ncol(pca_df[5:ncol(pca_df)])*100, col="red")
+}
+```
+
+### Display Eigenvectors and Eigenvalues
+
+```{r}
+make_eigen <- function(pca){
+  eigenvectors <- pca$rotation
+  print("Eigenvectors (Loadings):")
+  print(eigenvectors)
+  
+  print("Loadings Cutoff:")
+  sqrt(1/ncol(pca_df[5:ncol(pca_df)])) # cutoff for "important" loadings
+  
+  # Access the eigenvalues (variances of the principal components)
+  eigenvalues <- (pca$sdev)^2
+  print("Eigenvalues:")
+  print(eigenvalues)
+}
+```
+
+===============
+
+# PCA PLOTS 
+
+===============
+
+Load all data
+```{r}
+daily <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
+daily <- daily %>% select(-X) %>% select(-X.1) # get rid of index columns
+daily$Date <- as.POSIXct(daily$date, format="%Y-%m-%d") # format dates
+daily$fullname[daily$site == "BEO"] <- "BEO-BASE"
+daily <- daily %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA" | fullname == "BEO-BASE") %>% select(-c(windspeed, winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", fullname == "TNHA-SA" | fullname == "SSMH-SA" ~ "South", .default = "N/A")) %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19") # create "aspect" column and filter for top depth of soil and start date of when we started collecting data
+# note: the data before June 19, 2022 was estimated by our gap-filling script and should be disregarded due to extrapolation
+```
+
+
+```{r, fig.width=8, fig.height=8}
+cursite = "BEO"
+make_pca <- function(pca_df, szn, yr, cursite){
+  if (cursite == "BEO")
+  {
+    SOUTH <<- pca_df$site == cursite
+    # n <- "BEO"
+  } else {
+    SOUTH <<- pca_df$site == cursite & pca_df$aspect == "South"
+    NORTH <<- pca_df$site == cursite & pca_df$aspect == "North"
+    s <- pca_df$fullname[SOUTH][1]
+    n <- pca_df$fullname[NORTH][1]
+  }
+
+    scaling <- 2
+  textNudge <- 1.1
+  limNudge <- 1.3
+  
+  xlimit <- seq(floor(min(scores[,1])*limNudge),ceiling(max(scores[,1])*limNudge), 1)
+  ylimit <- seq(floor(min(scores[,2])*limNudge),ceiling(max(scores[,2])*limNudge), 1)
+  
+  plot(scores[, 1], scores[, 2], xlab="PCA 1", ylab="PCA 2", type="n", asp=1, 
+       las=1, xaxt='n', yaxt='n')
+  
+  axis(side = 1, at=xlimit)
+  axis(side = 2, at=ylimit)
+
+  if (cursite == "BEO")
+  {
+    nvstext <- " "
+  } else {
+    nvstext <- " North v. South "
+  }
+  
+  mindate = format(as.Date(min(pca_df$Date)), format="%B %d %Y")
+  maxdate = format(as.Date(max(pca_df$Date)), format="%B %d %Y")
+  
+  title(paste0(szn, " ", yr," Principal Component Analysis:\n", site, nvstext, "\n(", mindate," - ", maxdate, ")"), adj=0.5)
+  
+
+  points(scores[SOUTH, 1], scores[SOUTH, 2], pch=16, cex=1, col="mediumturquoise")
+   
+  if(cursite != "BEO"){
+    points(scores[NORTH, 1], scores[NORTH, 2], pch=16, cex=1, col="salmon")
+     legend(x = "topright",          # Position
+       legend = c(paste0(s, " (south)"), paste0(n, " (north)")),  # Legend texts
+       col = c("mediumturquoise","salmon"),
+       pch = 19)  #colors
+  
+  } else{
+    legend(x = "topright",          # Position
+       legend = "BEO",  # Legend texts
+       col = "mediumturquoise",
+       pch = 19) 
+    
+  }
+  
+   
+  
+  arrows(0, 0, loads[, 1]* scaling, loads[, 2]* scaling, length=0.1, angle=20, col="darkred", lwd=1.4)
+   
+  text(loads[1, 1]*scaling*(textNudge+0.4), loads[1, 2]*scaling*textNudge, rownames(loads)[1],   col="darkred", cex=1) # ground label
+  
+  text(loads[2, 1]*scaling*textNudge, loads[2, 2]*scaling*textNudge, rownames(loads)[2],   col="darkred", cex=1) # vwc label
+  
+  if(nrow(loads) > 2){
+    text(loads[3, 1]*scaling*(textNudge+0.2), loads[3, 2]*scaling*textNudge, rownames(loads)[3],   col="darkred", cex=1) # airtemp label
+  
+    if(nrow(loads)>3){
+      text(loads[4, 1]*scaling*textNudge-0.2, loads[4, 2]*scaling*textNudge, rownames(loads)[4],   col="darkred", cex=1) # solar or wind label
+      
+      if(nrow(loads)>4){
+  
+  text(loads[5, 1]*scaling*textNudge, loads[5, 2]*scaling*textNudge, rownames(loads)[5],   col="darkred", cex=1) # solar or wind label
+    }
+
+    }
+  
+  
+  }
+  
+  
+ 
+  #text(-3, 1]*scaling*textNudge, 1, "TNHA-SA \n(south)", col="mediumturquoise")
+  #text(1, 1, "TNHA-SC \n(north)", col="salmon")
+}
+```
+
+```{r, fig.width=6, fig.height=6}
+for(i in c(1:nrow(all_dates))){
+  
+  month <- all_dates$months[i]
+  startdate <- all_dates$start[i]
+  enddate <- all_dates$end[i]
+  szn <<- all_dates$szn[i]
+  yr <<- substr(all_dates$start[i], 1, 4)
+  
+  for(site in sites){
+    big_df <- pick_site(site)
+    pca_df <- pick_dates(startdate, enddate, big_df)
+    
+    if(nrow(pca_df) > 4){
+      p <- calc_pca(pca_df)
+      pca <- p$pca
+      loads <- p$loads
+      if(scree == T){
+        make_scree(pca)
+      }
+      if(eigen == T){
+        make_eigen(pca)
+      }
+      make_pca(pca_df, szn, yr, site)
+              
+    }
+  }
+  
+}
+```
+
+If you want to just make one plot (for testing):
+```{r, fig.show='hide'}
+  # look at all_dates and pick a row to use (set to i)
+
+i <- 8
+site <- "BEO"
+
+month <- all_dates$months[i]
+startdate <- all_dates$start[i]
+enddate <- all_dates$end[i]
+szn <<- all_dates$szn[i]
+yr <<- substr(all_dates$start[i], 1, 4)
+
+big_df <- pick_site(site)
+pca_df <- pick_dates(startdate, enddate, big_df)
+
+
+if(nrow(pca_df > 0)){
+    p <- calc_pca(pca_df)
+    pca <- p$pca
+    loads <- p$loads # not used at the moment
+    if(scree == T){
+      make_scree(pca)
+    }
+    if(eigen == T){
+      make_eigen(pca)
+    }
+    make_pca(pca_df, szn, yr, site)
+            
+  }
+
+
+```
+
