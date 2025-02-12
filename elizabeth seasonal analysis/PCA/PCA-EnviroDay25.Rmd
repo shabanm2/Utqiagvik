@@ -1,0 +1,441 @@
+---
+title: "PCA-EnviroDay25"
+output: html_document
+---
+
+---
+title: "PCA - Spring 2025"
+author: "Elizabeth Van Metre"
+date: "2025-02-04"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+========
+
+# SETUP
+
+========
+
+## FILEPATH:
+
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/" # where daily avg data are located
+exportpath = "/Users/emvanmetre/Desktop/Arctic/Utqiagvik/elizabeth seasonal analysis/PCA/" # where to export pdf files (if pdf is true)
+```
+
+## PICK DATE RANGES:
+
+```{r}
+years = c("2022")
+seasons = c("Summer")
+sites = c("TNHA", "BEO", "SSMH")
+
+# put season values for the season that has the start of the data
+date_start = "2022-06-01" # data starts in June 2022 (YEAR-MO-DY) where day is always 01
+# put season values for the season that has the last of the data
+date_end = "2023-11-01" # data ends after November of 2023 (will get data up UNTIL date_end not after)
+```
+
+## PICK OUTPUT:
+
+```{r}
+scree = F # scree plot
+eigen = T # eigenvectors and eigenvalues
+pdf = F # export plots to pdf (in the same folder as this file)
+```
+
+### Dates (for selecting date ranges; no need to edit)
+
+```{r}
+spring_months = c("March", "April", "May")
+summer_months = c("June","July","August")
+fall_months = c("September", "October", "November")
+winter_months = c("December", "January", "February")
+```
+
+```{r}
+spring_dates = data.frame(months=spring_months, start=c("-03-01","-04-01","-05-01"), end=c("-04-01","-05-01","-06-01"))
+
+summer_dates = data.frame(months=summer_months, start=c("-06-01","-07-01","-08-01"), end=c("-07-01","-08-01","-09-01"))
+
+fall_dates = data.frame(months=fall_months, start=c("-09-01","-10-01","-11-01"), end=c("-10-01","-11-01","-12-01"))
+
+winter_dates = data.frame(months=winter_months, start=c("-12-01","-01-01","-02-01"), end=c("-01-01","-02-01","-03-01"))
+```
+
+```{r}
+all_dates = data.frame(matrix(nrow = 0, ncol = 3))
+for(yur in years){
+  # spring
+  if("Spring" %in% seasons){
+    curdate = as.Date(paste0(yur, spring_dates[1, 2]))
+      if(curdate >= date_start && curdate < date_end){
+        all_dates <- rbind(all_dates, c("Spring", paste0(yur, spring_dates[1, 2]), paste0(yur, spring_dates[3, 3])))
+      }
+  }
+  
+  if("Summer" %in% seasons){
+    curdate = as.Date(paste0(yur, summer_dates[1, 2]))
+      if(curdate >= date_start && curdate < date_end){
+        all_dates <- rbind(all_dates, c("Summer", paste0(yur, summer_dates[1, 2]), paste0(yur, summer_dates[3, 3])))
+      }
+  }
+  
+  if("Fall" %in% seasons){
+    curdate = as.Date(paste0(yur, fall_dates[1, 2]))
+      if(curdate >= date_start && curdate < date_end){
+        all_dates <- rbind(all_dates, c("Fall", paste0(yur, fall_dates[1, 2]), paste0(yur, fall_dates[3, 3])))
+      }
+  }
+  
+  if("Winter" %in% seasons){
+    curdate = as.Date(paste0(yur, winter_dates[1, 2]))
+      if(curdate >= date_start && curdate < date_end){
+        all_dates <- rbind(all_dates, c("Winter", paste0(yur, winter_dates[1, 2]), paste0(yur, winter_dates[3, 3])))
+      }
+  }
+  
+}
+colnames(all_dates) = c("szn","start","end")
+```
+
+
+## Packages
+
+```{r message=FALSE}
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+```
+
+## Load all data
+```{r}
+daily <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
+daily <- daily %>% select(-X) %>% select(-X.1) # get rid of index columns
+daily$Date <- as.POSIXct(daily$date, format="%Y-%m-%d") # format dates
+daily$fullname[daily$site == "BEO"] <- "BEO-BASE"
+daily <- daily %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA" | fullname == "BEO-BASE") %>% select(-c(winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", fullname == "TNHA-SA" | fullname == "SSMH-SA" ~ "South", .default = "N/A")) %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19") %>% na.omit() %>% filter(windspeed >= 0) # create "aspect" column and filter for top depth of soil and start date of when we started collecting data
+# note: the data before June 19, 2022 was estimated by our gap-filling script and should be disregarded due to extrapolation
+```
+
+=========================
+
+# DEFINE FUNCTIONS 
+
+=========================
+
+Temporal Range: Season Vertical Spatial Range: 30-45 cm Horizontal
+Spatial Range: stations across site (TNHA, SSMH, BEO) --\> Average Total
+Site --\> North vs South (except for BEO)
+
+### Filter by Site and Join Tables
+
+```{r}
+pick_site <- function(cursite){
+
+  big_df <<- daily %>% filter(site == cursite)
+  
+  if(szn == "Winter"){
+    big_df <<- big_df %>% select(-solar)
+  }
+  return(big_df)
+}
+```
+
+### Filter by Date Range
+
+```{r}
+pick_dates <- function(datemin, datemax, big_df){
+  pca_df <<- big_df %>% filter(Date >= datemin) %>% filter(Date < datemax)
+  
+  # get rid of NAs
+  pca_df <<- na.omit(pca_df)
+  pca_df <<- unique(pca_df)
+  return(pca_df)
+}
+
+```
+
+## Calculate PCA
+
+```{r}
+calc_pca <- function(pca_df){
+  pca <<- prcomp(pca_df[,6:(ncol(pca_df)-2)], center=TRUE, scale.=TRUE)
+
+  #take out variables
+  sd <- pca$sdev
+  loads <<- pca$rotation
+  rownames(loads) <<- colnames(pca_df[6:(ncol(pca_df)-2)])
+  scores <<- pca$x
+  
+  var <- sd^2
+  varPercent <- var/sum(var) * 100
+  
+  return(list("pca"=pca, "loads"=loads))
+}
+```
+
+### Make Scree Plot
+
+```{r}
+make_scree <- function(pca){
+  sd <- pca$sdev
+  
+  var <- sd^2
+  varPercent <- var/sum(var) * 100
+  
+  barplot(varPercent, xlab="PC", ylab="Percent Variance", names.arg=1:length(varPercent), 
+          las=1, ylim=c(0, max(varPercent)), col="gray")
+  abline(h=1/ncol(pca_df[5:ncol(pca_df)])*100, col="red")
+}
+```
+
+### Display Eigenvectors and Eigenvalues
+
+```{r}
+make_eigen <- function(pca){
+  eigenvectors <- pca$rotation
+  print("Eigenvectors (Loadings):")
+  print(eigenvectors)
+  
+  print("Loadings Cutoff:")
+  sqrt(1/ncol(pca_df[5:ncol(pca_df)])) # cutoff for "important" loadings
+  
+  # Access the eigenvalues (variances of the principal components)
+  eigenvalues <- (pca$sdev)^2
+  print("Eigenvalues:")
+  print(eigenvalues)
+}
+```
+
+===============
+
+# PCA PLOTS 
+
+===============
+
+```{r, fig.width=8, fig.height=8}
+plotcounter <<- 0
+make_pca <- function(pca_df, szn, yr, cursite){
+  
+  if (pdf | exp_pdf) {
+    pdf(file = paste0(exportpath, "pca_", plotcounter, ".pdf"), # The directory you want to save the file in
+     width = 8, # The width of the plot in inches
+     height = 8) # The height of the plot in inches
+    plotcounter <<- plotcounter + 1
+  }
+   
+  if (cursite == "BEO")
+  {
+    SOUTH <<- pca_df$site == cursite
+    # n <- "BEO"
+  } else {
+    SOUTH <<- pca_df$site == cursite & pca_df$aspect == "South"
+    NORTH <<- pca_df$site == cursite & pca_df$aspect == "North"
+    s <- pca_df$fullname[SOUTH][1]
+    n <- pca_df$fullname[NORTH][1]
+  }
+  
+  xmin = floor(min(scores[,1])*limNudge)
+  xmax = ceiling(max(scores[,1])*limNudge)
+  
+  ymin = floor(min(scores[,2])*limNudge)
+  ymax = ceiling(max(scores[,2])*limNudge)
+
+  xlimit <- seq(xmin, xmax, 1)
+  ylimit <- seq(ymin, ymax, 1)
+  
+  plot(scores[, 1], scores[, 2], xlab="PCA 1", ylab="PCA 2", type="n", asp=1, 
+       las=1, xaxt='n', yaxt='n')
+  
+  axis(side = 1, at=xlimit)
+  axis(side = 2, at=ylimit)
+
+  if (cursite == "BEO")
+  {
+    nvstext <- " "
+  } else {
+    nvstext <- " North v. South "
+  }
+  
+  mindate = format(as.Date(min(pca_df$Date)), format="%B %d %Y")
+  maxdate = format(as.Date(max(pca_df$Date)), format="%B %d %Y")
+  
+  title(paste0(szn, " ", yr," Principal Component Analysis:\n", site, nvstext, "\n(", mindate," - ", maxdate, ")"), adj=0.5)
+  
+
+  points(scores[SOUTH, 1], scores[SOUTH, 2], pch=16, cex=1, col="mediumturquoise")
+   
+  if(cursite != "BEO"){
+    points(scores[NORTH, 1], scores[NORTH, 2], pch=16, cex=1, col="salmon")
+     legend(x = "topright",          # Position
+       legend = c(paste0(s, " (south)"), paste0(n, " (north)")),  # Legend texts
+       col = c("mediumturquoise","salmon"),
+       pch = 19)  #colors
+  
+  } else{
+    legend(x = "topright",          # Position
+       legend = "BEO",  # Legend texts
+       col = "mediumturquoise",
+       pch = 19) 
+    
+  }
+  
+   
+  
+  arrows(0, 0, loads[, 1]* scaling, loads[, 2]* scaling, length=0.1, angle=30, col="darkred", lwd=2)
+   
+  arr1x = loads[1, 1]*scaling*textNudge
+  arr1y = loads[1, 2]*scaling*textNudge
+  
+  if(arr1y < ymax / 2 & arr1y > ymin / 2)
+  {
+    arr1x = loads[1, 1]*scaling*(textNudge+(textAdj * length(rownames(loads)[1]))+0.3)
+  }
+  
+  arr2x = loads[2, 1]*scaling*textNudge
+  arr2y = loads[2, 2]*scaling*textNudge
+  
+  if(arr2y < ymax / 2 & arr2y > ymin / 2)
+  {
+    arr2x = loads[2, 1]*scaling*(textNudge+(textAdj * length(rownames(loads)[2])))
+  }
+  
+  # check if any text is overlapping groundtemp text (arr1y)
+  arr_overlap = data.frame(arrow=1, x=arr1x, y=arr1y)
+  if(abs(arr1x-arr2x) < 1 & abs(arr1y-arr2y) < 0.8) {
+    arr_overlap = rbind(arr_overlap, data.frame(arrow=2, x=arr2x, y=arr2y))
+  }
+  
+  if(nrow(loads) > 2){
+    
+    arr3x = loads[3, 1]*scaling*(textNudge+0.2)
+    arr3y = loads[3, 2]*scaling*textNudge
+    
+    if(arr3y < ymax / 2 & arr3y > ymin / 2)
+    {
+      arr3x = loads[3, 1]*scaling*(textNudge+(textAdj * length(rownames(loads)[3])))
+    }
+    
+    if(abs(arr1x-arr3x) < 1 & abs(arr1y-arr3y) < 0.8) {
+      arr_overlap = rbind(arr_overlap, data.frame(arrow=3, x=arr3x, y=arr3y))
+    }
+    
+    if(nrow(loads) > 3){
+      
+        arr4x = loads[4, 1]*scaling*textNudge-0.2
+        arr4y = loads[4, 2]*scaling*textNudge
+        
+        if(arr4y < ymax / 2 & arr4y > ymin / 2)
+        {
+          arr4x = loads[4, 1]*scaling*(textNudge+(textAdj * length(rownames(loads)[4])))
+        }
+        
+        if(abs(arr1x-arr4x) < 1 & abs(arr1y-arr4y) < 0.8) {
+          arr_overlap = rbind(arr_overlap, data.frame(arrow=4, x=arr4x, y=arr4y))
+        }
+    
+      if(nrow(loads) > 4){
+          arr5x = loads[5, 1]*scaling*textNudge
+          arr5y = loads[5, 2]*scaling*textNudge
+          
+          if(arr5y < ymax / 2 & arr5y > ymin / 2)
+          {
+            arr5x = loads[5, 1]*scaling*(textNudge+(textAdj * length(rownames(loads)[5])))
+          }
+          
+          if(abs(arr1x-arr5x) < 1 & abs(arr1y-arr5y) < 0.8) {
+            arr_overlap = rbind(arr_overlap, data.frame(arrow=5, x=arr5x, y=arr5y))
+          }
+
+      }
+    }
+    
+  }
+  
+  arr_overlap = arr_overlap[order(arr_overlap$y, decreasing=F),]
+  arr1y = arr_overlap$y[floor(length(arr_overlap$arrow)/2)] + ((which(arr_overlap$arrow == 1) - floor(length(arr_overlap$arrow)/2))*0.3)
+  if(2 %in% arr_overlap$arrow) {
+    arr2y = arr_overlap$y[floor(length(arr_overlap$arrow)/2)] + ((which(arr_overlap$arrow == 2) - floor(length(arr_overlap$arrow)/2))*0.3)
+  }
+  if(3 %in% arr_overlap$arrow) {
+    arr3y = arr_overlap$y[floor(length(arr_overlap$arrow)/2)] + ((which(arr_overlap$arrow == 3) - floor(length(arr_overlap$arrow)/2))*0.3)
+  }
+  if(4 %in% arr_overlap$arrow) {
+    arr4y = arr_overlap$y[floor(length(arr_overlap$arrow)/2)] +((which(arr_overlap$arrow == 4) - floor(length(arr_overlap$arrow)/2))*0.3)
+  }
+  if(5 %in% arr_overlap$arrow) {
+    arr5y = arr_overlap$y[floor(length(arr_overlap$arrow)/2)] + ((which(arr_overlap$arrow == 5) - floor(length(arr_overlap$arrow)/2))*0.3)
+  }
+  
+  text(arr1x, arr1y, rownames(loads)[1], col="darkred", cex=1) # ground label
+  
+  text(arr2x, arr2y, rownames(loads)[2],   col="darkred", cex=1) # vwc label
+  
+  if(nrow(loads) > 2){
+    text(arr3x, arr3y, rownames(loads)[3],   col="darkred", cex=1) # airtemp label
+  
+    if(nrow(loads)>3){
+      text(arr4x, arr4y, rownames(loads)[4],   col="darkred", cex=1) # solar or wind label
+      
+      if(nrow(loads)>4){
+        text(arr5x, arr5y, rownames(loads)[5],   col="darkred", cex=1) # solar or wind label
+      }
+
+    }
+  }
+  if(pdf | exp_pdf) {
+    dev.off()
+  }
+  
+}
+```
+
+
+Adjust Settings for PCA Plots
+```{r}
+# settings for pca plots
+scaling <<- 2 # scaling the arrows
+textNudge <<- 1.2 # nudge the arrow labels (added)
+textAdj <<- 0.3 # adjust the text position based on the length of the label (multiplied)
+limNudge <<- 1.3 # nudge the plot limits
+exp_pdf <<- F
+```
+
+
+```{r, fig.width=6, fig.height=6}
+site = "TNHA"
+for(i in c(1:nrow(all_dates))){
+  # month <- all_dates$months[i]
+  startdate <- all_dates$start[i]
+  enddate <- all_dates$end[i]
+  szn <<- all_dates$szn[i]
+  yr <<- substr(all_dates$start[i], 1, 4)
+  
+  for(site in sites){
+    big_df <- pick_site(site)
+    pca_df <- pick_dates(startdate, enddate, big_df)
+    
+    if(nrow(pca_df) > 4){
+      p <- calc_pca(pca_df)
+      pca <- p$pca
+      loads <- p$loads
+      if(scree == T){
+        make_scree(pca)
+      }
+      if(eigen == T){
+        make_eigen(pca)
+      }
+      make_pca(pca_df, szn, yr, site)
+    }
+  }
+  
+}
+```

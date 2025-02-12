@@ -1,0 +1,189 @@
+---
+title: "EnviroDay25_Plots"
+output: html_document
+---
+
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/" # where daily avg data are located
+exportpath = "/Users/emvanmetre/Desktop/Arctic/Utqiagvik/elizabeth seasonal analysis/"
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+daily = read.csv(paste0(filepath, "daily_2022_2024.csv"))
+daily = daily %>% select(-c(X.1, X))
+daily$fullname[daily$site == "BEO"] = "BEO"
+```
+
+
+# Heat Map
+
+
+```{r}
+heat_df = daily %>% filter(date >= "2022-06-19") %>% filter(date < "2022-09-01") %>% filter(! station %in% c("SE", "SF", "SG", "SH", "SI")) %>% filter(fullname != "SSMH-SC") %>% mutate(depth = case_when(grounddepth == 7 ~ "3.5 cm",
+                                                                            grounddepth == 8 ~ "10 cm",
+                                                                            grounddepth == 9 ~ "20 cm",
+                                                                            grounddepth == 10 ~ "30 cm",
+                                                                            grounddepth == 11 ~ "40 cm",
+                                                                            grounddepth == 12 ~ "50 cm",
+                                                                            grounddepth == 13 ~ "55 cm",
+                                                                            grounddepth == 14 ~ "65 cm",
+                                                                            grounddepth == 15 ~ "75 cm",
+                                                                            grounddepth == 16 ~ "85 cm",
+                                                                            grounddepth == 17 ~ "90 cm")) %>% 
+  filter(! depth %in% c("55", "85")) %>% group_by(fullname, depth) %>% summarize(groundtemp = round(mean(groundtemp), digits=2))
+heat_df$fullname = as.factor(heat_df$fullname)
+heat_df$depth = as.factor(heat_df$depth)
+```
+
+```{r, fig.width=12, fig.height=12}
+heatmap = ggplot(heat_df, aes(x = fullname, y = depth, fill = groundtemp)) +
+  geom_tile(color = "black") +
+  theme_bw() +
+  geom_text(aes(label = groundtemp), color = "black", size = 5) +
+  scale_fill_gradient2(low = "#6938f7",
+                       mid = "#FFFFFF",
+                       high = "#FF0000") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(fill = "Ground Temp (°C)", x = "Sensor", y = "Depth (cm)", title="Summer 2022 Average Ground Temperatures") +
+  theme(plot.title = element_text(hjust=0.5, size=20, face="bold"),
+        axis.title.x = element_text(size=20, face="bold", colour = "black", margin = margin(t = 10, r = 0, b = 0, l = 0)), 
+        axis.title.y = element_text(size=20, face="bold", colour = "black", margin = margin(t = 0, r = 10, b = 0, l = 0)), 
+        legend.title=element_text(size=14, face="bold", colour="black"),
+        axis.text.x = element_text(size=14, face="bold", colour = "black"),
+        axis.text.y = element_text(size=14, face="bold", colour = "black"),
+        legend.text=element_text(size=14, colour="black"),
+        legend.key.size = unit(1, 'cm')) +
+  coord_fixed()
+  
+heatmap
+```
+```{r}
+ggsave(paste0(exportpath, "heatmap.pdf"), heatmap, width=12, height=12)
+```
+
+
+
+# Air Temp vs Ground Temp by Site
+
+Variable vs Ground Temp (y-axis)
+Group by north vs south and by site?
+
+```{r}
+df = daily
+df$Date <- as.POSIXct(df$date, format="%Y-%m-%d")
+df <- df %>% filter(windspeed != -888.88) %>% filter(winddir != -888.88)
+```
+
+```{r}
+nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA") %>% select(-c(winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", .default = "South")) %>% na.omit() %>% filter(windspeed >= 0) %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19") %>% filter(Date < "2022-09-01")
+```
+
+```{r, fig.height=6, fig.width=12}
+at = ggplot(nvs, aes(x=airtemp, y=groundtemp, color=aspect)) +
+  geom_point() +
+  geom_smooth(method="lm")+
+  facet_wrap(vars(site)) +
+  theme_bw() +
+  labs(color="Aspect", title="Summer 2022 Air Temperature vs Ground Temperature (10 cm)", x = "Air Temperature (°C)", y = "Ground Temperature (°C)") +
+    theme(plot.title = element_text(hjust=0.5, size=20, face="bold", margin = margin(t = 0, r = 0, b = 10, l = 0)),
+        axis.title.x = element_text(size=20, face="bold", colour = "black", margin = margin(t = 10, r = 0, b = 0, l = 0)), 
+        axis.title.y = element_text(size=20, face="bold", colour = "black", margin = margin(t = 0, r = 10, b = 0, l = 0)), 
+        legend.title=element_text(size=14, face="bold", colour="black"),
+        axis.text.x = element_text(size=14, face="bold", colour = "black"),
+        axis.text.y = element_text(size=14, face="bold", colour = "black"),
+        legend.text=element_text(size=14, colour="black"),
+        legend.key.size = unit(1, 'cm'),
+        strip.background =element_rect(fill="#c7e7ed"),
+        strip.text = element_text(size=14, face="bold", colour = "black"))
+
+at
+```
+```{r}
+ggsave(paste0(exportpath, "airtemp_vs_groundtemp.pdf"), at, width=12, height=6)
+```
+
+
+
+```{r, fig.height=6, fig.width=12}
+vwc = ggplot(nvs, aes(x=vwc, y=groundtemp, color=aspect)) +
+  geom_point() +
+  geom_smooth(method="lm")+
+  facet_wrap(vars(site)) +
+  theme_bw() +
+  labs(color="Aspect", title="Summer 2022 Volumetric Water Content vs Ground Temperature (10 cm)", x = "Volumetric Water Content", y = "Ground Temperature (°C)") +
+    theme(plot.title = element_text(hjust=0.5, size=20, face="bold", margin = margin(t = 0, r = 0, b = 10, l = 0)),
+        axis.title.x = element_text(size=20, face="bold", colour = "black", margin = margin(t = 10, r = 0, b = 0, l = 0)), 
+        axis.title.y = element_text(size=20, face="bold", colour = "black", margin = margin(t = 0, r = 10, b = 0, l = 0)), 
+        legend.title=element_text(size=14, face="bold", colour="black"),
+        axis.text.x = element_text(size=14, face="bold", colour = "black"),
+        axis.text.y = element_text(size=14, face="bold", colour = "black"),
+        legend.text=element_text(size=14, colour="black"),
+        legend.key.size = unit(1, 'cm'),
+        strip.background =element_rect(fill="#c7e7ed"),
+        strip.text = element_text(size=14, face="bold", colour = "black"))
+
+vwc
+```
+
+```{r}
+ggsave(paste0(exportpath, "vwc_vs_groundtemp.pdf"), vwc, width=12, height=6)
+```
+
+
+
+```{r, fig.height=6, fig.width=12}
+solar = ggplot(nvs, aes(x=solar, y=groundtemp, color=aspect)) +
+  geom_point() +
+  geom_smooth(method="lm")+
+  facet_wrap(vars(site)) +
+  theme_bw() +
+  labs(color="Aspect", title="Summer 2022 Solar Radiation vs Ground Temperature (10 cm)", x = expression(bold("Solar Radiation ("~W/m^{"2"}~")")), y = "Ground Temperature (°C)") +
+    theme(plot.title = element_text(hjust=0.5, size=20, face="bold", margin = margin(t = 0, r = 0, b = 10, l = 0)),
+        axis.title.x = element_text(size=20, face="bold", colour = "black", margin = margin(t = 10, r = 0, b = 0, l = 0)), 
+        axis.title.y = element_text(size=20, face="bold", colour = "black", margin = margin(t = 0, r = 10, b = 0, l = 0)), 
+        legend.title=element_text(size=14, face="bold", colour="black"),
+        axis.text.x = element_text(size=14, face="bold", colour = "black"),
+        axis.text.y = element_text(size=14, face="bold", colour = "black"),
+        legend.text=element_text(size=14, colour="black"),
+        legend.key.size = unit(1, 'cm'),
+        strip.background =element_rect(fill="#c7e7ed"),
+        strip.text = element_text(size=14, face="bold", colour = "black"))
+
+solar
+```
+
+```{r}
+ggsave(paste0(exportpath, "solar_vs_groundtemp.pdf"), solar, width=12, height=6)
+```
+
+
+```{r, fig.height=6, fig.width=12}
+wind = ggplot(nvs, aes(x=windspeed, y=groundtemp, color=aspect)) +
+  geom_point() +
+  geom_smooth(method="lm")+
+  facet_wrap(vars(site)) +
+  theme_bw() +
+  labs(color="Aspect", title="Summer 2022 Wind Speed vs Ground Temperature (10 cm)", x = "Wind Speed (m/s)", y = "Ground Temperature (°C)") +
+    theme(plot.title = element_text(hjust=0.5, size=20, face="bold", margin = margin(t = 0, r = 0, b = 10, l = 0)),
+        axis.title.x = element_text(size=20, face="bold", colour = "black", margin = margin(t = 10, r = 0, b = 0, l = 0)), 
+        axis.title.y = element_text(size=20, face="bold", colour = "black", margin = margin(t = 0, r = 10, b = 0, l = 0)), 
+        legend.title=element_text(size=14, face="bold", colour="black"),
+        axis.text.x = element_text(size=14, face="bold", colour = "black"),
+        axis.text.y = element_text(size=14, face="bold", colour = "black"),
+        legend.text=element_text(size=14, colour="black"),
+        legend.key.size = unit(1, 'cm'),
+        strip.background =element_rect(fill="#c7e7ed"),
+        strip.text = element_text(size=14, face="bold", colour = "black"))
+
+wind
+```
+
+```{r}
+ggsave(paste0(exportpath, "windspeed_vs_groundtemp.pdf"), wind, width=12, height=6)
+```
+

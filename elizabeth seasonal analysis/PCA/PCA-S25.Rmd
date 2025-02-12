@@ -113,6 +113,17 @@ library(lubridate)
 library(tidyverse)
 ```
 
+## Load all data
+```{r}
+daily <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
+daily <- daily %>% select(-X) %>% select(-X.1) # get rid of index columns
+daily$Date <- as.POSIXct(daily$date, format="%Y-%m-%d") # format dates
+daily$fullname[daily$site == "BEO"] <- "BEO-BASE"
+daily <- daily %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA" | fullname == "BEO-BASE") %>% select(-c(winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", fullname == "TNHA-SA" | fullname == "SSMH-SA" ~ "South", .default = "N/A")) %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19") # create "aspect" column and filter for top depth of soil and start date of when we started collecting data
+# note: the data before June 19, 2022 was estimated by our gap-filling script and should be disregarded due to extrapolation
+```
+
+
 =========================
 
 # DEFINE FUNCTIONS 
@@ -208,17 +219,6 @@ make_eigen <- function(pca){
 # PCA PLOTS 
 
 ===============
-
-Load all data
-```{r}
-daily <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
-daily <- daily %>% select(-X) %>% select(-X.1) # get rid of index columns
-daily$Date <- as.POSIXct(daily$date, format="%Y-%m-%d") # format dates
-daily$fullname[daily$site == "BEO"] <- "BEO-BASE"
-daily <- daily %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA" | fullname == "BEO-BASE") %>% select(-c(windspeed, winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", fullname == "TNHA-SA" | fullname == "SSMH-SA" ~ "South", .default = "N/A")) %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19") # create "aspect" column and filter for top depth of soil and start date of when we started collecting data
-# note: the data before June 19, 2022 was estimated by our gap-filling script and should be disregarded due to extrapolation
-```
-
 
 ```{r, fig.width=8, fig.height=8}
 cursite = "BEO"

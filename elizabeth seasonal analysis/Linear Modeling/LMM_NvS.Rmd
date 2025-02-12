@@ -26,6 +26,7 @@ filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_R
 df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
 df <- df %>% select(-X) %>% select(-X.1)
 df$Date <- as.POSIXct(df$date, format="%Y-%m-%d")
+df <- df %>% filter(windspeed != -888.88) %>% filter(winddir != -888.88)
 ```
 
 ## Select and Transform Data
@@ -47,8 +48,7 @@ South = SSMH-SA
 BEO (Control): does not have different aspects
 
 ```{r}
-nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA") %>% select(-c(windspeed, winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", .default = "South"))
-# ignore wind speed and wind direction for now
+nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA") %>% select(-c(winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", .default = "South")) %>% na.omit() %>% filter(windspeed >= 0)
 ```
 
 
@@ -62,6 +62,11 @@ df_10cm <- nvs %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19")
 # Fit LMM
 
 ```{r}
+lmm0 <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect + (1|site), data = df_10cm)
+summary(lmm0)
+```
+
+```{r}
 lmm1 <- lmer(groundtemp ~ airtemp + vwc + solar + aspect + (1|site), data = df_10cm)
 summary(lmm1)
 ```
@@ -70,3 +75,16 @@ summary(lmm1)
 coef(lmm1)
 ```
 It seems like there is not too much of a difference between the two sites, but there is still presence of a difference as shown by the two different intercepts for SSMH vs TNHA.
+
+Graphing linear models:
+Random effects have different intercepts, and the fixed effects have different slopes
+
+```{r}
+coeffs = coef(lmm1)$site
+```
+
+```{r}
+
+```
+
+
