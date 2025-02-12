@@ -16,4 +16,5 @@ rsconnect/
 .Rproj.user/
 # .DS_Store
 **/.DS_Store
+**/elizabeth seasonal analysis/.DS_Store
 .DS_Store
