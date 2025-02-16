@@ -22,7 +22,7 @@ library(ggplot2)
 
 ```{r}
 # File from github
-filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/"
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/pca-25/Analysis_Ready_Data/"
 df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
 df <- df %>% select(-X) %>% select(-X.1)
 df$Date <- as.POSIXct(df$date, format="%Y-%m-%d")
@@ -55,7 +55,7 @@ nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname ==
 ```{r}
 # filter out data from before data collection
 # filter to get only depth of 10cm for now
-df_10cm <- nvs %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19")
+df_10cm <- nvs %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19") %>% filter(Date < "2022-09-01")
 ```
 
 
@@ -67,12 +67,13 @@ summary(lmm0)
 ```
 
 ```{r}
-lmm1 <- lmer(groundtemp ~ airtemp + vwc + solar + aspect + (1|site), data = df_10cm)
-summary(lmm1)
+# no longer necessary to exclude windspeed
+#lmm1 <- lmer(groundtemp ~ airtemp + vwc + solar + aspect + (1|site), data = df_10cm)
+#summary(lmm1)
 ```
 
 ```{r}
-coef(lmm1)
+#coef(lmm1)
 ```
 It seems like there is not too much of a difference between the two sites, but there is still presence of a difference as shown by the two different intercepts for SSMH vs TNHA.
 
@@ -80,11 +81,52 @@ Graphing linear models:
 Random effects have different intercepts, and the fixed effects have different slopes
 
 ```{r}
-coeffs = coef(lmm1)$site
+coeffs = coef(lmm0)$site
+coeffs
 ```
 
 ```{r}
+library(ggeffects)  # install the package first if you haven't already, then load it
 
+# Extract the prediction data frame
+pred.mm <- ggpredict(lmm0, terms = c("airtemp"))  # this gives overall predictions for the model
+
+# Plot the predictions 
+
+(ggplot(pred.mm) + 
+    geom_point(data = df_10cm,                      # adding the raw data (scaled values)
+              aes(x = airtemp, y = groundtemp, colour = site)) + 
+   geom_line(aes(x = x, y = predicted, color = group)) +          # slope
+   #geom_ribbon(aes(x = x, ymin = predicted - std.error, ymax = predicted + std.error), 
+               #fill = "lightgrey", alpha = 0.5) +  # error band
+   labs(x = "Body Length (indexed)", y = "Test Score", 
+        title = "Body length does not affect intelligence in dragons") + 
+   theme_minimal()
+)
 ```
+
+
+
+```{r}
+# i don't like this one
+#library(ggeffects)
+#ggpredict(lmm1, terms = c("airtemp","aspect", "site"), type = "random") %>% 
+#   plot() +
+#   labs(x = "Body Length", y = "Test Score", title = "Effect of body size on intelligence in dragons") + 
+#   theme_minimal()
+```
+
+
+
+# Table Output
+```{r}
+library(stargazer)
+stargazer(lmm0, type = "text",
+          digits = 3,
+          star.cutoffs = c(0.05, 0.01, 0.001),
+          digit.separator = "")
+```
+
+
 
 

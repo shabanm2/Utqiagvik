@@ -4,7 +4,7 @@ output: html_document
 ---
 
 ```{r}
-filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/" # where daily avg data are located
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/pca-25/Analysis_Ready_Data/" # where daily avg data are located
 exportpath = "/Users/emvanmetre/Desktop/Arctic/Utqiagvik/elizabeth seasonal analysis/"
 ```
 
@@ -58,6 +58,8 @@ heatmap = ggplot(heat_df, aes(x = fullname, y = depth, fill = groundtemp)) +
         axis.text.y = element_text(size=14, face="bold", colour = "black"),
         legend.text=element_text(size=14, colour="black"),
         legend.key.size = unit(1, 'cm')) +
+  scale_y_discrete(limits=rev) +
+  scale_x_discrete(limits=c(as.character(unique(heat_df$fullname[heat_df$fullname != "BEO"])), "BEO")) +
   coord_fixed()
   
 heatmap
