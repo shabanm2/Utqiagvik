@@ -32,7 +32,7 @@ allvargapfill =read.csv(paste0(filepath, gapfilldata))
 ```
 If no wifi, load through downloads folder:
 ```{r}
-allvargapfill <- all_sites_daily_gap_filled
+#allvargapfill <- all_sites_daily_gap_filled
 ```
 
 
@@ -123,16 +123,16 @@ Daily_grndtmp_avgs$grounddepth <- Daily_grndtmp_avgs$grounddepth
 
 #depth and station(fullname) constraint
 plot1 <- Daily_grndtmp_avgs %>% 
-  filter(grounddepth=="10cm" | grounddepth=="30cm" | grounddepth=="55cm" | grounddepth=="65cm" |grounddepth=="90cm") %>% 
+  filter(grounddepth=="10cm" | grounddepth=="30cm" | grounddepth=="40cm"|grounddepth=="50cm"| grounddepth=="55cm" | grounddepth=="65cm" |grounddepth=="90cm") %>% 
   filter(fullname =="BEO" | fullname == "TNHA-BASE" | fullname == "TNHA-SA" |fullname =="TNHA-SB"|fullname =="TNHA-SC" |fullname == "TNHA-SD" |fullname == "SSMH-BASE" |fullname =="SSMH-SA"|fullname =="SSMH-SB" |fullname =="SSMH-SD")  %>% 
-  mutate(grounddepth = factor(grounddepth, levels = c("10cm", "30cm", "55cm","65cm", "90cm")))  %>% 
+  mutate(grounddepth = factor(grounddepth, levels = c("10cm", "30cm","40cm", "50cm","55cm","65cm", "90cm")))  %>% 
   mutate(fullname = factor(fullname, levels = c("BEO", "TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD", "SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SD")))
 ```
 
 
 ```{r}
 #date constraint
-season <- plot1 %>% filter(day >= "2022-06-01" & day <= "2022-09-01")
+season <- plot1 %>% filter(day > "2022-06-09" & day <= "2022-09-01")
 
 
 #rounding and getting seasonal average for each station
@@ -151,21 +151,23 @@ df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
 ```
 
 Summer 22 plot
-```{r fig1, fig.height = 5, fig.width = 8}
+```{r fig1, fig.height = 6, fig.width = 8}
 #data plotting 
-ggplot(df_new, aes(x= grounddepth, y = fullname, fill = groundtemp)) + 
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "90cm")))
+
+ggplot(df_new, aes(y= grounddepth, x = fullname, fill = groundtemp)) + 
   geom_tile() + 
   scale_fill_gradient2(low= "blue", high = "red") + 
   geom_text(aes(label=groundtemp)) +
 theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
-  labs(title = "Summer 2022 Average Ground Temperatures", y = "Station", x= "Depth") +
+  labs(title = "Summer 2022 Average Ground Temperatures", y = "Depth", x= "Station") +
+  theme_bw() +
   theme(axis.text.y =element_text(face="bold",size = 10) ,
         axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
         axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
   theme(plot.title = element_text(hjust = 0.5, size = 18),
-        axis.title.x = element_text(size = 15),
-        axis.title.y = element_text(size = 15)) +
-  theme_bw()
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
 
 ```
 
@@ -191,21 +193,24 @@ df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
 ```
 
 Fall 22 plot
-```{r fig2, fig.height = 5, fig.width = 8}
+```{r fig2, fig.height = 6, fig.width = 8}
+
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "55cm", "65cm", "90cm")))
+
 #data plotting 
-ggplot(df_new, aes(x= grounddepth, y = fullname, fill = groundtemp)) + 
+ggplot(df_new, aes(x= fullname, y = grounddepth, fill = groundtemp)) + 
   geom_tile() + 
   scale_fill_gradient2(low= "blue", high = "red") + 
   geom_text(aes(label=groundtemp)) +
 theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
-  labs(title = "Fall 2022 Average Ground Temperatures", y = "Station", x= "Depth") +
+  labs(title = "Fall 2022 Average Ground Temperatures", y = "Depth", x= "Station") +
+  theme_bw()+ 
   theme(axis.text.y =element_text(face="bold",size = 10) ,
         axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
         axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
   theme(plot.title = element_text(hjust = 0.5, size = 18),
-        axis.title.x = element_text(size = 15),
-        axis.title.y = element_text(size = 15)) +
-  theme_bw()
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
 ```
 
 SPRING
@@ -229,19 +234,24 @@ df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
 ```
 
 Spring 23 plot
-```{r fig3, fig.height = 5, fig.width = 8}
+```{r fig3, fig.height = 6, fig.width = 8}
+
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "55cm", "65cm", "90cm")))
+
+
 #data plotting 
-ggplot(df_new, aes(x= grounddepth, y = fullname, fill = groundtemp)) + 
+ggplot(df_new, aes(x= fullname, y = grounddepth, fill = groundtemp)) + 
   geom_tile() + 
   scale_fill_gradient2(low= "blue", high = "red") + 
   geom_text(aes(label=groundtemp)) +
 theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
-  labs(title = "Spring 2023 Average Ground Temperatures", y = "Station", x= "Depth") +
+  labs(title = "Spring 2023 Average Ground Temperatures", y = "Depth", x= "Station") +
+  theme_bw()+  
   theme(axis.text.y =element_text(face="bold",size = 10) ,
         axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
         axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
   theme(plot.title = element_text(hjust = 0.5, size = 18),
-        axis.title.x = element_text(size = 15),
-        axis.title.y = element_text(size = 15)) +
-  theme_bw()
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
+  
 ```
