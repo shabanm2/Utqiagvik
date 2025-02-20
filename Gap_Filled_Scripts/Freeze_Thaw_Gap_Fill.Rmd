@@ -38,7 +38,7 @@ allvargapfill =read.csv(paste0(filepath, gapfilldata))
 ```
 If no wifi, load through downloads folder:
 ```{r}
-allvargapfill <- all_sites_daily_gap_filled
+#allvargapfill <- all_sites_daily_gap_filled
 ```
 
 
@@ -56,6 +56,8 @@ vwc = allvargapfill %>% subset() %>% select(day, fullname, site, station, ground
 
 AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by day
 ```{r}
+grndtmp <- grndtmp %>% filter(!day <= "2022-06-19")
+
 averaged_by_station <- grndtmp %>% filter(fullname == "TNHA-BASE") %>% aggregate(groundtemp~day+grounddepth, mean)
 averaged_by_station$fullname <- c("TNHA-BASE")
 
@@ -112,7 +114,8 @@ Daily_grndtmp_avgs<- rbind(averaged_by_station, averaged_by_station1, averaged_b
 Daily_grndtmp_avgs$day <- as.Date(Daily_grndtmp_avgs$day, format= "%Y-%m-%d",tz="UTC")
 ```
 
-------
+
+
 
 
 Freeze  dates
@@ -120,7 +123,7 @@ Freeze  dates
 
 #Constrain by season
 
-freeze_dates <- Daily_grndtmp_avgs %>% filter(fullname == "TNHA-BASE" & groundtemp < 0.5 & grounddepth =="65cm" & day >= "2023-06-01" & day <= "2022-12-01")
+freeze_dates <- Daily_grndtmp_avgs %>% filter(fullname == "SSMH-BASE" & groundtemp < 1 & grounddepth =="90cm" & day >= "2022-06-01" & day <= "2022-10-01")
 list(freeze_dates)
 
 #next, compare to thawed dates for summer to see. the table generated from this may end up being too many inputs in the cells
@@ -131,7 +134,7 @@ Thaw dates
 DF_1 <- data.frame(list(freeze_dates$day))
 list(DF_1)
 
-thaw_dates <- Daily_grndtmp_avgs %>% filter( fullname == "BEO" & groundtemp > -0.5 & grounddepth == "10cm" & day >= "2023-03-01" & day <= "2023-09-01") 
+thaw_dates <- Daily_grndtmp_avgs %>% filter( fullname == "SSMH-SA" & groundtemp > -1 & grounddepth == "90cm" & day >= "2022-06-19" & day <= "2022-10-01") 
 
 list(thaw_dates)
 
@@ -141,13 +144,13 @@ list(thaw_dates)
 
 FIGURES OF ALL STATIONS DURING YEAR = X *VARIATION*
 ```{r fig1, fig.height = 30, fig.width = 26}
-VARIATION <- SUMM24_ALLDEPTHS %>% filter( value > -1 & value < 1)
+VARIATION <- thaw_dates %>% filter( groundtemp > -1 & groundtemp < 1)
 
-ggplot(VARIATION, aes(x= date, y=value)) +
+ggplot(VARIATION, aes(x= day, y=groundtemp)) +
   geom_point() +
   theme_bw() +
   labs(title= "SUMMER 2024 THAW VARIATION", x = "Date", y="Ground Temperature (°C)")  +
-  facet_wrap(depth~fullname,ncol=5,drop=FALSE)
+  facet_wrap(grounddepth~fullname,ncol=5,drop=FALSE)
   
 ```
 
