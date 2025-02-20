@@ -1,0 +1,185 @@
+---
+title: "zero-curtain-regime"
+author: "Mirella Shaban"
+date: "2024-11-11"
+output: html_document
+---
+This script requires either LOAD AND CLEAN or gap filled differences .RMD to be run in order to work (needs those scripts for the daily averaging and loading in the data)
+
+This script will bind temperatures between -0.5 °C and +0.5 °C to observe the start, end, and duration of the zero curtain regime across seasons
+
+
+```{r}
+#Constrain by season
+
+
+zero_curtain<- Daily_grndtmp_avgs %>% filter( groundtemp < 0.5 & groundtemp > -0.5 & day >= "2022-09-01" & day <= "2022-12-01", na.rm = TRUE) %>% subset(grounddepth == "10cm" | grounddepth == "30cm"| grounddepth == "55cm" | grounddepth == "65cm" | grounddepth == "90cm")
+
+list(zero_curtain)
+
+zero_curtain$grounddepth <- zero_curtain$grounddepth %>% factor(levels = c("10cm", "30cm", "55cm", "65cm", "90cm"))
+```
+
+```{r fig1, fig.height = 20, fig.width = 18}
+zero_curtain %>% 
+  ggplot(aes(x=day, y=groundtemp, color = fullname), size = 0.9) +
+  geom_point(na.rm = TRUE) +
+  geom_line(na.rm = TRUE) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  facet_wrap(grounddepth~. , nrow=6) +
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "Zero Curtain Regime Durations, Fall 2022",y="Temperature (°C)",x="Day",color="Fullname") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-0.5,0,0.5), limits=c(-0.5, 0.5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E", "BEO"= "#084594","SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6", "SSMH-SD"="#7A0177")) 
+
+#TNHA-SB (add)
+# BEO (add)
+
+```
+
+```{r}
+#Checking duration of regime by start & end dates
+#Note, you need to ensure there is not thaw occurring between the start and end date --> look at the dataframe to confirm continuous >=0.5 °C measurements
+
+x<- zero_curtain %>% filter(grounddepth == "10cm" & fullname == "BEO")
+
+maxi<- max(x$day)
+mini<- min(x$day)
+
+w<- list(mini,maxi)
+
+print(w)
+```
+```{r}
+#if within range of zero curtain, we will have a value of 1. if not, value of 0
+
+# Add a new column groundtemp_binary with transformed values
+
+grndtmp$day <- as.Date(grndtmp$day, format = "%Y-%m-%d", tz = "UTC")
+transformed_df <- grndtmp %>%
+  mutate(groundtemp_binary = if_else(groundtemp >= -0.5 & groundtemp <= 0.5, 1, 0))
+
+transformed_df$day <- as.Date(transformed_df$day, format = "%Y-%m-%d", tz = "UTC")
+transformed_df <- transformed_df %>% filter(day >= "2022-06-08")
+```
+
+```{r fig2, fig.height = 14, fig.width = 18}
+#plot this now with depth on the y and day on the x
+transformed_df$grounddepth <- transformed_df$grounddepth %>% factor(levels = rev(c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")))
+
+transformed_df %>% filter(fullname == "TNHA-BASE" & groundtemp_binary =="1" & day >= "2022-09-01" & day <= "2022-12-01") %>%
+  ggplot(aes(x=day, y=grounddepth, fill=groundtemp_binary)) +
+  geom_point() +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_classic() +
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "Zero-curtain regime duration, TNHA-BASE", y = "Temperature (°C)", x= "Week", color = "Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25))
+```
+
+```{r fig3, fig.height = 14, fig.width = 18}
+transformed_df$grounddepth <- transformed_df$grounddepth %>% 
+  factor(levels = rev(c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")))
+
+transformed_df %>% 
+  filter(fullname == "TNHA-BASE" & groundtemp_binary == "1" & day >= "2024-06-01" & day <= "2024-09-01") %>%
+  ggplot(aes(x = day, y = grounddepth, fill = groundtemp_binary)) +
+  geom_point() +
+ # geom_line(linewidth = 3, colour = "darkgrey") +
+  scale_y_discrete(limits = rev(c("3.5cm", "10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))) +
+  theme_classic() +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 30),
+    axis.title.x = element_text(size = 25),
+    axis.title.y = element_text(size = 25)
+  ) +
+  labs(
+    title = "Zero-curtain regime duration, TNHA-BASE",
+    y = "Depth",
+    x = "Week",
+    fill = "zero curtain present"
+  ) +
+  scale_x_date(date_breaks = "1 week")
+
+```
+
+```{r fig4, fig.height = 14, fig.width = 10}
+#we want to see where there is actual thaw (or freeze) verus where we are just approaching 0 but not crossing over or under (so, a real zero curtain)
+#to do this, constrain +/- 2.0°C
+
+#what is the best way to go about this? Should I 
+
+#maybe i print out the CSV's of the data grouped by depth, station, and increasing in date so i can see the progression of the zero curtain? But isnt this already what im doing in my code above with the constraint?
+
+
+library(ggalt)
+sample1 <- grndtmp %>% filter(grndtmp$groundtemp >=-5 & grndtmp$groundtemp <= 5 & fullname == "TNHA-BASE" & day >= "2022-06-08" & day <= "2022-09-01") 
+
+#sample1$grounddepth <- sample1$grounddepth %>% factor(levels = rev(c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")))
+
+sample_select <- sample1 %>% filter(sample1$groundtemp >= -0.5 & sample1$groundtemp <= 0.5 & fullname == "TNHA-BASE") 
+#sample_select$grounddepth <- sample_select$grounddepth %>% factor(levels = rev(c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")))
+
+# Plot
+ggplot(sample1, aes(x= day, y=groundtemp)) + 
+  geom_point() +   # draw points
+  facet_wrap(~factor(grounddepth, levels = c("3.5cm", "10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")), ncol=2) +
+  geom_smooth(method="loess", se=F) + 
+ # scale_y_discrete(limits = rev(c("3.5cm", "10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))) +
+  theme_bw() +
+  geom_encircle(aes(x=day, y=groundtemp), 
+                data=sample_select, 
+                color="red", 
+                size=1,
+                ) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 30),
+    axis.title.x = element_text(size = 25),
+    axis.title.y = element_text(size = 25)
+  ) +
+  labs(
+    title = "Zero-curtain regime duration, TNHA-BASE",
+    y = "Depth",
+    x = "Week",
+    fill = "Temperature"
+  ) +
+  scale_x_date(date_breaks = "1 week")
+  
+  
+  
+```
+
+
+
+
+
+
+```{r}
+#the above visual doesnt seem to be doing what i need from it because i cant group off just the small points where we fit the range (date range issue)
+
+# how do i want to fix this 
+
+#maybe as a visual pull out of it*
+```
+
