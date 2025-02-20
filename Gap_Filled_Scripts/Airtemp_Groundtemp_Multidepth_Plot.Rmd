@@ -1,0 +1,125 @@
+---
+title: "Airtemp_Groundtemp_Multidepth_Plot"
+author: "Mirella Shaban"
+date: "2025-02-05"
+output: html_document
+---
+##Loading packages
+```{r}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(patchwork) 
+```
+
+
+Load gap filled daily average data from GIT
+```{r}
+
+#the file below comes from github (https://raw.githubusercontent.com/shabanm2/Utqiagvik/Analysis_Ready_Data/)
+
+allvargapfill <- read.csv("/Users/shabangin/Downloads/daily_2022_2024.csv")
+
+allvargapfill <- allvargapfill %>% filter(!groundtemp == "-888.8", !vwc == "-888.8", !airtemp == "-888.8", !solar == "-888.8", !windspeed == "-888.8", !windspeed == "-888.88", !winddir == "-888.8", !winddir == "-888.88" ) 
+
+allvargapfill <- allvargapfill[,-1]
+allvargapfill <- allvargapfill[,-1]
+
+colnames(allvargapfill)[1] <- "day"  # For renaming by column index
+allvargapfill$day <- as.Date(allvargapfill$day, format= "%Y-%m-%d",tz="UTC")
+
+allvargapfill$grounddepth <- as.factor(as.character(allvargapfill$grounddepth))
+allvargapfill$grounddepth <- revalue(allvargapfill$grounddepth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+```
+
+
+------------------
+
+
+## Coloring
+
+### TNHA
+scale_color_manual(values =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SB"="#7570B3", "TNHA-SC" = "#E7298A", "TNHA-SD"="#66A61E"))
+
+Solar - Orange (#D95F02)
+Air - Pink (#E7298A)
+Ground - Lavender (#7570B3)
+VWC - teal (#1B9E77)
+Wind - Green (#66A61E)
+
+
+## Picking
+
+X-Axis: Date
+Y-Axis 1: Solar Radiation
+Y-Axis 2: Ground Temperature (+Air Temperature?)
+
+**TNHA missing data in winter?
+
+
+Filter dates per station
+```{r}
+#Change this for EACH FULLNAME / station so it represents the thaw period for each individual station in 2022
+
+df_filtered <- allvargapfill %>% filter (allvargapfill$day >= "2022-06-19" & allvargapfill$day <= "2022-10-03" & fullname == "BEO-B06")
+
+# Process the dataframe in one efficient pipeline
+df_final <- df_filtered %>%
+  filter(grounddepth %in% c("10cm", "30cm")) %>%  # Filter for 10cm and 30cm depths
+  select(day, fullname, grounddepth, groundtemp, airtemp) %>%  # Select required columns
+  pivot_wider(
+    names_from = grounddepth,  # Create separate columns for each depth
+    values_from = groundtemp,  # Values for the new columns are from 'groundtemp'
+    names_prefix = "groundtemp_"  # Add prefix to the new column names
+  ) %>%
+  filter(!is.na(groundtemp_10cm) & !is.na(groundtemp_30cm)) %>%  # Remove rows with NA in either of the groundtemp columns
+  select(day, fullname, airtemp, groundtemp_10cm, groundtemp_30cm)  # Select final columns
+
+```
+
+
+
+#BELOW uses ONE y-axis : it is CORRECT since we are comparing temperatures and can use just one y-axis. I have not figured out the above plot yet
+```{r fig1, fig.height = 6, fig.width = 8}
+ggplot(df_final, aes(x=day)) +
+  
+  geom_line( aes(y=(groundtemp_10cm), color="#7A0177"), linewidth=0.4) +
+  geom_line( aes(y=(airtemp), color="#6BAED6"), linewidth=0.4) +
+  geom_line( aes(y=(groundtemp_30cm), color = "#D95F02"), linewidth=0.4) +
+  
+  scale_x_date(date_breaks = "5 day", date_labels = "%m - %d") +
+  
+  scale_y_continuous(
+    name = "Ground temp (°C)", 
+    
+    # Apply scaling to the left axis
+    limits = c(min(df_final$airtemp), max(df_final$airtemp)),
+
+) +
+  
+  labs(x="Day") +
+  
+  theme_bw() +
+  
+  # Color definitions
+  scale_color_manual(name=" ", labels=c("#7A0177"="Ground Temp 10cm (°C)", "#6BAED6"="Air temp (°C)", "#D95F02"="Ground Temp 30cm (°C)"), values=c("#7A0177" = "#7A0177", "#6BAED6" = "#6BAED6", "#D95F02" = "#D95F02")) +
+  
+  theme(
+    axis.title.y = element_text(color ='black', size=10, hjust = 0.5, family="Times New Roman"),
+    axis.title.y.right = element_text(color = 'black', size=10, hjust = 0.5, family="Times New Roman"),
+    axis.text.x = element_text(angle = 90, size = 8, vjust = 1, hjust=1, family="Times New Roman"),
+    axis.title.x = element_text(color = 'black', size=10, hjust = 0.5, vjust = -1, family="Times New Roman"),
+    plot.title = element_text(hjust = 0.5, size=16, family="Times New Roman"),
+    text = element_text(family="Times New Roman")
+  ) +
+  
+  ggtitle("Daily Averaged Air and Surface Ground Temperatures, BEO-B06") +
+  
+  theme(axis.text.x = element_text(size=7)) +
+  theme(axis.text.x = element_text(angle = 45)) + 
+  theme(axis.text.y = element_text(size=7)) +  # Adjusting y-axis text size
+  theme(legend.position="bottom") +
+  
+  guides(color=guide_legend(nrow=2, byrow=TRUE))
+
+```
