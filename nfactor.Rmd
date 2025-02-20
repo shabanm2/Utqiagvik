@@ -1,0 +1,46 @@
+---
+title: "nfactor"
+author: "Mirella Shaban"
+date: "2024-11-18"
+output: html_document
+---
+
+Need to run the gap filled differences.rmd before running this
+
+```{r}
+
+#DDTs / DDTa
+#differences between degree day of thaw air temp vs degree day of thaw soil temp --> shows the relationship between the two and the forcing of the air temp
+
+air_daily <- air %>% filter(day>="2022-06-09") %>% aggregate(airtemp~day+fullname, mean)
+air_daily$day <- as.Date(air_daily$day, format = "%Y-%m-%d", tz = "UTC")
+grndtmp$day <- as.Date(grndtmp$day, format = "%Y-%m-%d", tz = "UTC")
+
+#change signs and date of the three lines below bassed on freezing or thawing n-factor
+n_ground <- grndtmp %>% subset(grounddepth == "10cm" & groundtemp > 0)
+n_air <- air_daily %>% subset(airtemp > 0)
+
+
+
+nfactor_thaw <- left_join(n_ground, n_air, by=c("day","fullname"))
+#days are omitted for air temps (~6/12-9/5) because the air temps are ABOVE FREEZING.
+
+#%>% filter(day>="2022-06-10" & day <="2022-09-01")
+
+#need to filter out for the specific stations and/or site that needs to be analyzed
+
+nfactor_thaw_filtered <- nfactor_thaw %>% filter(day > "2024-06-01" & day <= "2024-09-01" & fullname == "TNHA-SD")
+
+DDTa <- sum(nfactor_thaw_filtered$airtemp[!is.na(nfactor_thaw_filtered$airtemp) & !is.na(nfactor_thaw_filtered$groundtemp)], na.rm = TRUE)
+
+DDTs <- sum(nfactor_thaw_filtered$groundtemp[!is.na(nfactor_thaw_filtered$groundtemp) & !is.na(nfactor_thaw_filtered$airtemp)], na.rm = TRUE)
+
+
+nfactor <- DDTs/DDTa
+
+print(paste(nfactor, DDTa, DDTs))
+
+
+```
+
+
