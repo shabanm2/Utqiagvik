@@ -1,0 +1,237 @@
+---
+title: "PM_QUANT"
+author: "Mirella Shaban"
+date: "2024-10-15"
+output: html_document
+---
+
+LOAD AND CLEAN PM DATA
+-------
+load packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+```{r}
+#OG file paths for document
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/PM/"
+
+pmnode02 = "node02_630_7_9.csv"
+pmnode03 = "node03_626_726.csv"
+pmnode04 = "node04_626_726.csv"
+pmnode05 = "node05_626_726.csv"
+pmnode06 = "node06_626_726.csv"
+```
+
+```{r}
+#Summer 2024 combined files for document
+#This chunk replaces the df's above if not commented out
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/PM/"
+
+pmnode02 = "node02_630_7_9.csv"
+pmnode03 = "node03_626_726.csv"
+pmnode04 = "node04_626_831.csv"
+pmnode05 = "node05_626_831.csv"
+pmnode06 = "node06_626_726.csv"
+```
+
+```{r}
+node02_clean= read.csv(paste0(filepath, pmnode02))
+node02_clean$time <- as.POSIXct(node02_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node02_clean$date <- as.Date(node02_clean$time)
+
+# Convert the dataframe to long format for plotting
+node02 <- node02_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node02 <- node02 %>% drop_na()
+```
+
+```{r}
+node03_clean=read.csv(paste0(filepath, pmnode03))
+node03_clean$time <- as.POSIXct(node03_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node03_clean$date <- as.Date(node03_clean$time)
+
+# Convert the dataframe to long format for plotting
+node03 <- node03_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node03 <- node03 %>% drop_na()
+```
+
+```{r}
+node04_clean=read.csv(paste0(filepath, pmnode04))
+node04_clean$time <- as.POSIXct(node04_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node04_clean$date <- as.Date(node04_clean$time)
+
+# Convert the dataframe to long format for plotting
+node04 <- node04_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node04 <- node04 %>% drop_na()
+```
+
+```{r}
+node05_clean=read.csv(paste0(filepath, pmnode05))
+node05_clean$time <- as.POSIXct(node05_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node05_clean$date <- as.Date(node05_clean$time)
+
+# Convert the dataframe to long format for plotting
+node05 <- node05_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node05 <- node05 %>% drop_na()
+```
+
+```{r}
+node06_clean=read.csv(paste0(filepath, pmnode06))
+node06_clean$time <- as.POSIXct(node06_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node06_clean$date <- as.Date(node06_clean$time)
+
+# Convert the dataframe to long format for plotting
+node06 <- node06_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node06 <- node06 %>% drop_na()
+```
+
+```{r}
+# Add a 'source' column to each dataframe
+
+node02 <- node02 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+node03 <- node03 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+node04 <- node04 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+node05 <- node05 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+node06 <- node06 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+
+node02 <- node02 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+node03 <- node03 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+node04 <- node04 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+node05 <- node05 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+node06 <- node06 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+
+
+# Add a 'source' column to each dataframe
+node02$source <- "node02"
+node03$source <- "node03"
+node04$source <- "node04"
+node05$source <- "node05"
+node06$source <- "node06"
+
+
+
+# Combine all dataframes into one
+df_combined <- bind_rows(node02, node03, node04, node05, node06)
+```
+
+```{r}
+df_combined$source <- revalue(df_combined$source,
+                              c("node02" = "HOSPITAL", "node03" = "BUECI-PRV", "node04" = "NOAA", "node05" = "TNHA", "node06" = "CAKEEATER"))
+```
+
+--------
+######
+
+PULL OUT SENSOR NAME/LOCATION, VALUE, AND DATE WHEN VALUES EXCEED 35UG/M^3
+```{r}
+exceed_2.5 <- df_combined %>% filter(value > 15 & pollutant == "Pm2.5")
+exceed_10 <- df_combined %>% filter(value > 45 & pollutant == "Pm10.0")
+
+df_combined$date <- as.Date(df_combined$time)
+
+x <- exceed_2.5 %>% filter(source == "CAKEEATER")
+#whats this line above doing?
+
+#below: gives you the number of days of data collecion for the site specified above
+unique_dates_count <- exceed_10 %>%
+  summarise(unique_dates = n_distinct(date))
+
+print(unique_dates_count)
+
+#AIR QUALITY STANDARDS
+
+#NAAQS:
+#PM 10: >150 in 24 hr
+#PM 2.5: >35 in 24 hour
+
+#WHO:
+#PM 10: > 45 in 24 hr
+#PM 2.5: > 15 in 24 hour for 3-4 days or more (not consecutive)
+
+#EU
+#PM 10: > 45 in 24 hr
+#PM 2.5: > 25 in 24 hour
+```
+Contrain for dates where all sensors collecte data, (7/1-7/9), and observe the air qual for these dates @ each location 
+```{r}
+allpistons <- df_combined %>% filter(date >= "2024-07-01" & date <= "2024-07-09")
+
+# # of times over EPA and WHO 
+# # of times averaged over 24 hours that its abpve EPA or WHO
+
+
+```
+
+
+
+```{r}
+exceed_2.5 <- avg_24hr %>% filter(value > 15 & pollutant == "Pm2.5")
+exceed_10 <- avg_24hr %>% filter(value > 45 & pollutant == "Pm10.0")
+
+#above gives you rows of data where 2.5 or 10 is exceeded over X time period
+
+
+
+x <- exceed_10 %>% filter(source == "CAKEEATER")
+#exceeding standards at one specific location
+
+#below: gives you the number of days of data collecion for the site specified above
+unique_dates_count <- exceed_10 %>%
+  summarise(unique_dates = n_distinct(date))
+
+print(unique_dates_count)
+
+
+#AIR QUALITY STANDARDS
+
+#NAAQS:
+#PM 10: > 150 in 24 hr
+#PM 2.5: > 35 in 24 hour
+
+#WHO:
+#PM 10: > 45 in 24 hr
+#PM 2.5: > 15 in 24 hour for 3-4 days or more (not consecutive)
+
+#EU
+#PM 10: > 45 in 24 hr
+#PM 2.5: > 25 in 24 hour
+```
+
+
+```{r}
+# average over hour
+avg_1hr <- df_combined %>%
+  mutate(time = as.POSIXct(paste(format(time, "%Y-%m-%d %H"), ":00:00", sep = ""))) %>%  # Round time to the start of the hour
+  group_by(source, pollutant, time) %>%
+  summarise(value = mean(value, na.rm = TRUE)) %>%
+  ungroup()
+
+# Average values over 24-hour periods for each "source" and "pollutant"
+avg_24hr <- df_combined %>%
+  mutate(day = as.POSIXct(format(time, "%Y-%m-%d"))) %>%  # Convert to POSIXct, only year, month, and day
+  group_by(source, pollutant, day) %>%  # Group by source, pollutant, and date
+  summarise(value = mean(value, na.rm = TRUE)) %>%
+  ungroup()
+
+```
+

@@ -1,0 +1,257 @@
+---
+title: "PM_VIS"
+author: "Mirella Shaban"
+date: "2024-07-09"
+output: html_document
+---
+
+# This script imports the PM csv files that are downloaded monthly (manually) and cleans and visualizes the data
+# The data is averaged over 5 minute intervals 
+
+
+# 6/30/24 - 7/09/24
+# 
+
+
+*CSV NAMES*
+
+
+load packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+```{r}
+#OG file paths for document
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/PM/"
+
+pmnode02 = "node02_630_7_9.csv"
+pmnode03 = "node03_626_726.csv"
+pmnode04 = "node04_626_726.csv"
+pmnode05 = "node05_626_726.csv"
+pmnode06 = "node06_626_726.csv"
+```
+
+```{r}
+#Summer 2024 combined files for document
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/PM/"
+
+pmnode02 = "node02_630_7_9.csv"
+pmnode03 = "node03_626_726.csv"
+pmnode04 = "node04_626_831.csv"
+pmnode05 = "node05_626_831.csv"
+pmnode06 = "node06_626_726.csv"
+```
+
+```{r}
+node02_clean=read.csv(paste0(filepath, pmnode02))
+node02_clean$time <- as.POSIXct(node02_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node02_clean$date <- as.Date(node02_clean$time)
+
+# Convert the dataframe to long format for plotting
+node02 <- node02_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node02 <- node02 %>% drop_na()
+```
+
+```{r}
+node03_clean=read.csv(paste0(filepath, pmnode03))
+node03_clean$time <- as.POSIXct(node03_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node03_clean$date <- as.Date(node03_clean$time)
+
+# Convert the dataframe to long format for plotting
+node03 <- node03_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node03 <- node03 %>% drop_na()
+```
+
+```{r}
+node04_clean=read.csv(paste0(filepath, pmnode04))
+node04_clean$time <- as.POSIXct(node04_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node04_clean$date <- as.Date(node04_clean$time)
+
+# Convert the dataframe to long format for plotting
+node04 <- node04_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node04 <- node04 %>% drop_na()
+```
+
+```{r}
+node05_clean=read.csv(paste0(filepath, pmnode05))
+node05_clean$time <- as.POSIXct(node05_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node05_clean$date <- as.Date(node05_clean$time)
+
+# Convert the dataframe to long format for plotting
+node05 <- node05_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node05 <- node05 %>% drop_na()
+```
+
+```{r}
+node06_clean=read.csv(paste0(filepath, pmnode06))
+node06_clean$time <- as.POSIXct(node06_clean$time, format="%Y-%m-%dT%H:%M:%OSZ", tz="UTC")
+node06_clean$date <- as.Date(node06_clean$time)
+
+# Convert the dataframe to long format for plotting
+node06 <- node06_clean %>%
+  pivot_longer(cols = starts_with("Pm"), names_to = "pollutant", values_to = "value")
+
+node06 <- node06 %>% drop_na()
+```
+
+```{r}
+# Add a 'source' column to each dataframe
+
+node02 <- node02 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+node03 <- node03 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+node04 <- node04 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+node05 <- node05 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+node06 <- node06 %>% mutate(pollutant = if_else(pollutant == "PM10_0", "Pm10.0", pollutant))
+
+node02 <- node02 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+node03 <- node03 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+node04 <- node04 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+node05 <- node05 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+node06 <- node06 %>% mutate(pollutant = if_else(pollutant %in% c("PM2.5", "PM2_5"), "Pm2.5", pollutant))
+
+
+# Add a 'source' column to each dataframe
+node02$source <- "node02"
+node03$source <- "node03"
+node04$source <- "node04"
+node05$source <- "node05"
+node06$source <- "node06"
+
+
+
+# Combine all dataframes into one
+df_combined <- bind_rows(node02, node03, node04, node05, node06)
+```
+
+```{r}
+df_combined$source <- revalue(df_combined$source,
+                              c("node02" = "HOSPITAL", "node03" = "BUECI-PRV", "node04" = "NOAA", "node05" = "TNHA", "node06" = "CAKEEATER"))
+```
+
+
+```{r fig1, fig.height = 55, fig.width = 18}
+# Plot using ggplot2 with facets for each day
+
+ggplot(node02, aes(x = time, y = value, color = pollutant)) +
+  geom_line() +
+  facet_wrap(~ date, scales = "free_x", ncol = 1) +  # Ensure each day is on a separate row
+  labs(title = "Pollutant Levels Over Time",
+       x = "Time",
+       y = "Pollutant Level",
+       color = "Pollutant") +
+    scale_y_continuous(breaks = seq(0, max(df_combined$value, na.rm = TRUE), by = 10)) +  # Tick marks every 10 units
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r fig2, fig.height = 40, fig.width = 28}
+# Plot using ggplot2 with facets for each source
+ggplot(df_combined, aes(x = time, y = value, color = pollutant)) +
+  geom_line() +
+  guides(color = guide_legend(override.aes = list(size=0))) +
+  theme(legend.title = element_text(size = 40, face = "bold"),legend.text = element_text(size = 30)) +
+  facet_wrap(~ source, scales = "free", ncol = 1) +  # Facet by source, scales = "free" allows each part of the facet to have its own x and y axis based on that particular locations scale/range
+  labs(title = "Pollutant Levels Over Time",
+       x = "Time",
+       y = "Pollutant Level",
+       color = "Pollutant") +
+    scale_x_datetime(date_breaks = "6 hours", date_labels = "%m-%d") +  # Set breaks every 6 hours
+   # scale_y_continuous(breaks = seq(0, max(node03$value, na.rm = TRUE), by = 20)) +  # Tick marks every X units
+  theme_bw() +
+  theme(axis.text.y =element_text(size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, size = 18), 
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) 
+
+```
+```{r}
+# average over hour
+avg_1hr <- df_combined %>% filter(!source == "TNHA")%>%
+  mutate(time = as.POSIXct(paste(format(time, "%Y-%m-%d %H"), ":00:00", sep = ""))) %>%  # Round time to the start of the hour
+  group_by(source, pollutant, time) %>%
+  summarise(value = mean(value, na.rm = TRUE)) %>%
+  ungroup()
+
+# Average values over 24-hour periods for each "source" and "pollutant"
+avg_24hr <- df_combined %>% filter(!source == "TNHA") %>%
+  mutate(day = as.POSIXct(format(time, "%Y-%m-%d"))) %>%  # Convert to POSIXct, only year, month, and day
+  group_by(source, pollutant, day) %>%  # Group by source, pollutant, and date
+  summarise(value = mean(value, na.rm = TRUE)) %>%
+  ungroup()
+
+```
+
+
+```{r fig3, fig.height = 40, fig.width = 28}
+# Plot using ggplot2 with facets for each source
+ggplot(avg_1hr, aes(x = time, y = value, color = pollutant)) +
+  geom_line() +
+  guides(color = guide_legend(override.aes = list(size=20))) +
+  facet_wrap(~ source, scales = "free", ncol = 1) +  # Facet by source, scales = "free" allows each part of the facet to have its own x and y axis based on that particular locations scale/range
+  labs(title = "Pollutant Levels Over 1 Hour Increments, 7/1-7/9",
+       x = "Time",
+       y = "Pollutant Level",
+       color = "Pollutant") +
+    scale_x_datetime(date_breaks = "1 day", date_labels = "%m-%d") +  # Set breaks every 6 hours
+   # scale_y_continuous(breaks = seq(0, max(node03$value, na.rm = TRUE), by = 20)) +  # Tick marks every X units
+  theme_bw() +
+  theme(axis.text.y =element_text(size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, size = 18), 
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +  
+  theme(legend.title = element_text(size = 30, face = "bold"),
+        legend.text = element_text(size = 30))
+
+```
+
+```{r fig4, fig.height = 40, fig.width = 28}
+# Plot using ggplot2 with facets for each source
+ggplot(avg_24hr, aes(x = day, y = value, color = pollutant)) +
+  geom_line() +
+  guides(color = guide_legend(override.aes = list(size=20))) +
+  facet_wrap(~ source, scales = "free", ncol = 1) +  # Facet by source, scales = "free" allows each part of the facet to have its own x and y axis based on that particular locations scale/range
+  labs(title = "Pollutant Levels Averaged Over 24 Hour Increments, 7/1-7/9",
+       x = "Time",
+       y = "Pollutant Level",
+       color = "Pollutant") +
+    scale_x_datetime(date_breaks = "1 day", date_labels = "%m-%d") +  # Set breaks every 6 hours
+   # scale_y_continuous(breaks = seq(0, max(node03$value, na.rm = TRUE), by = 20)) +  # Tick marks every X units
+  theme_bw() +
+  theme(axis.text.y =element_text(size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, size = 18), 
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +  
+  theme(legend.title = element_text(size = 30, face = "bold"),
+        legend.text = element_text(size = 30))
+```
+
+
