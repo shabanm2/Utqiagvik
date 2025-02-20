@@ -182,6 +182,22 @@ allpistons <- df_combined %>% filter(date >= "2024-07-01" & date <= "2024-07-09"
 
 ```
 
+```{r}
+# average over hour
+avg_1hr <- df_combined %>% filter(!source == "TNHA")%>%
+  mutate(time = as.POSIXct(paste(format(time, "%Y-%m-%d %H"), ":00:00", sep = ""))) %>%  # Round time to the start of the hour
+  group_by(source, pollutant, time) %>%
+  summarise(value = mean(value, na.rm = TRUE)) %>%
+  ungroup()
+
+# Average values over 24-hour periods for each "source" and "pollutant"
+avg_24hr <- df_combined %>% filter(!source == "TNHA") %>%
+  mutate(day = as.POSIXct(format(time, "%Y-%m-%d"))) %>%  # Convert to POSIXct, only year, month, and day
+  group_by(source, pollutant, day) %>%  # Group by source, pollutant, and date
+  summarise(value = mean(value, na.rm = TRUE)) %>%
+  ungroup()
+
+```
 
 
 ```{r}
