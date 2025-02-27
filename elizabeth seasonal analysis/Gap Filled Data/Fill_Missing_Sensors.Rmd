@@ -1,0 +1,67 @@
+---
+title: "Fill_Missing_Sensors"
+output: html_document
+---
+
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/pca-25/Analysis_Ready_Data/"
+exportpath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/pca-25/Analysis_Ready_Data/"
+```
+
+```{r}
+daily <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
+```
+
+```{r}
+old_filepath = "/Users/emvanmetre/Desktop/Arctic/X-Y_Plots/data/processed/Daily_Averages/"
+old_gt <- read.csv(paste0(old_filepath, "grndtemp_daily.csv"))
+old_at <- read.csv(paste0(old_filepath, "airtemp_daily.csv"))
+old_solar <- read.csv(paste0(old_filepath, "solar_daily.csv"))
+old_vwc <- read.csv(paste0(old_filepath, "vwc_daily.csv"))
+old_wind <- read.csv(paste0(old_filepath, "windspeed_daily.csv"))
+```
+
+```{r}
+missing_daily <- daily %>% filter(is.na(groundtemp) | is.na(vwc) | is.na(airtemp) | is.na(solar) | is.na(windspeed))
+```
+
+Fill Ground Temp Values
+```{r}
+missing_ground = missing_daily %>% filter(is.na(groundtemp)) %>% select(date, fullname)
+```
+
+```{r}
+missing_ground_sensors = unique(missing_ground$fullname)
+ground_replacement <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(ground_replacement) = c("date", "fullname", "groundtemp")
+
+for (cursensor in missing_ground_sensors) {
+  curground = missing_ground %>% filter(fullname == cursensor)
+  curreplacement = old_gt %>% filter(sensor == cursensor) %>% filter(date %in% curground$date) %>% mutate(fullname = cursensor) %>% select(date, fullname, gtavg)
+  colnames(curreplacement) = c("date", "fullname", "groundtemp")
+  
+  ground_replacement = rbind(ground_replacement, curreplacement)
+}
+```
+
+```{r}
+cursensor = "SSMH-SC"
+curground = missing_ground %>% filter(fullname == cursensor)
+curreplacement = old_gt %>% filter(sensor == cursensor) %>% filter(date %in% curground$date) %>% mutate(fullname = cursensor) %>% select(date, fullname, gtavg)
+colnames(curreplacement) = c("date", "fullname", "groundtemp")
+#curreplacement$fullname = cursensor
+
+ground_replacement <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(ground_replacement) = c("date", "fullname", "groundtemp")
+
+ground_replacement = rbind(ground_replacement, curreplacement)
+
+
+test = missing_ground %>% mutate(groundtemp = NA)
+test = test %>% rows_patch(curreplacement, by=c("date", "fullname"))
+test[test$date %in% curreplacement$date & test$fullname == cursensor] = curreplacement$gtavg
+```
+
+
+
+

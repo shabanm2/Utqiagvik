@@ -22,10 +22,11 @@ library(ggplot2)
 
 ```{r}
 # File from github
-filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/"
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/pca-25/Analysis_Ready_Data/"
 df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
 df <- df %>% select(-X) %>% select(-X.1)
 df$Date <- as.POSIXct(df$date, format="%Y-%m-%d")
+df <- df %>% filter(windspeed != -888.88) %>% filter(winddir != -888.88)
 ```
 
 ## Select and Transform Data
@@ -47,26 +48,97 @@ South = SSMH-SA
 BEO (Control): does not have different aspects
 
 ```{r}
-nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA") %>% select(-c(windspeed, winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", .default = "South"))
-# ignore wind speed and wind direction for now
+nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA") %>% select(-c(winddir, date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", .default = "South")) %>% na.omit() %>% filter(windspeed >= 0)
 ```
 
 
 ```{r}
 # filter out data from before data collection
 # filter to get only depth of 10cm for now
-df_10cm <- nvs %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19")
+df_10cm <- nvs %>% filter(grounddepth == 8) %>% filter(Date >= "2022-06-19") %>% filter(Date < "2022-09-01")
 ```
 
 
 # Fit LMM
 
 ```{r}
-lmm1 <- lmer(groundtemp ~ airtemp + vwc + solar + aspect + (1|site), data = df_10cm)
-summary(lmm1)
+lmm0 <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect + (1|site), data = df_10cm)
+summary(lmm0)
+```
+
+It seems like there is not too much of a difference between the two sites, but there is still presence of a difference as shown by the two different intercepts for SSMH vs TNHA.
+
+Graphing linear models:
+Random effects have different intercepts, and the fixed effects have different slopes
+
+```{r}
+coeffs = coef(lmm0)$site
+coeffs
 ```
 
 ```{r}
-coef(lmm1)
+library(ggeffects)  # install the package first if you haven't already, then load it
+
+# Extract the prediction data frame
+pred.mm <- ggpredict(lmm0, terms = c("airtemp"))  # this gives overall predictions for the model
+
+# Plot the predictions 
+
+(ggplot(pred.mm) + 
+    geom_point(data = df_10cm,                      # adding the raw data (scaled values)
+              aes(x = airtemp, y = groundtemp, colour = site)) + 
+   geom_line(aes(x = x, y = predicted, color = group)) +          # slope
+   #geom_ribbon(aes(x = x, ymin = predicted - std.error, ymax = predicted + std.error), 
+               #fill = "lightgrey", alpha = 0.5) +  # error band
+   labs(x = "Air Temperature", y = "Ground Temperature", 
+        title = "Relationship between air temperature and ground temperature") + 
+   theme_minimal()
+)
 ```
-It seems like there is not too much of a difference between the two sites, but there is still presence of a difference as shown by the two different intercepts for SSMH vs TNHA.
+
+
+
+```{r}
+# i don't like this one
+#library(ggeffects)
+#ggpredict(lmm1, terms = c("airtemp","aspect", "site"), type = "random") %>% 
+#   plot() +
+#   labs(x = "Body Length", y = "Test Score", title = "Effect of body size on intelligence in dragons") + 
+#   theme_minimal()
+```
+
+
+
+# Table Output
+```{r}
+library(stargazer)
+stargazer(lmm0, type = "text",
+          digits = 3,
+          star.cutoffs = c(0.05, 0.01, 0.001),
+          digit.separator = "")
+```
+
+
+```{r}
+library(effects)
+est<-Effect("airtemp", partial.residuals=T, lmm0)
+plot(est)
+
+plot(lmm0)
+
+#library(remef)
+#y_partial <- remef(model, fix = "x2", ran = "all")
+```
+
+```{r}
+ggplot(df_10cm, aes(x=airtemp, y=solar)) + geom_point()
+```
+
+
+```{r}
+var_df = df_10cm %>% select(groundtemp, airtemp, vwc, solar, windspeed)
+round(cor(var_df),
+  digits = 2 # rounded to 2 decimals
+)
+```
+

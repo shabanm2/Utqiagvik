@@ -234,13 +234,13 @@ write.csv(final, paste0(exportpath, "wind_direction", "_gap_filled_", "BEO", ".c
 ### TNHA
 
 ```{r}
-file <- "Wind_speed_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv" 
+file <- "Wind_Speed_GAP_FILLED_TNHA_from_2022-05-17_to_2025-02-06_no_gps.csv" 
 
 # Call Transpose Function
 final <- transpose(filepath, file)
 write.csv(final, paste0(exportpath, "wind_speed", "_gap_filled_", "TNHA", ".csv"))
 
-file <- "Wind_direction_data_CLEAN_TNHA_from_2022_05_17_to_2024_09_26_no_gps.csv"
+file <- "Wind_Direction_GAP_FILLED_TNHA_from_2022-05-17_to_2025-02-06_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)
@@ -250,13 +250,13 @@ write.csv(final, paste0(exportpath, "wind_direction", "_gap_filled_", "TNHA", ".
 ### SSMH
 
 ```{r}
-file <- "Wind_speed_data_CLEAN_SSMH_from_2022_05_17_to_2024-11-15_no_gps.csv" 
+file <- "Wind_Speed_GAP_FILLED_SSMH_from_2022-06-08_to_2025-01-18_no_gps.csv" 
 
 # Call Transpose Function
 final <- transpose(filepath, file)
 write.csv(final, paste0(exportpath, "wind_speed", "_gap_filled_", "SSMH", ".csv"))
 
-file <- "Wind_direction_data_CLEAN_SSMH_from_2022_05_17_to_2024-11-15_no_gps.csv"
+file <- "Wind_Direction_GAP_FILLED_SSMH_from_2022-06-08_to_2025-01-18_no_gps.csv"
 
 # Call Transpose Function
 final <- transpose(filepath, file)

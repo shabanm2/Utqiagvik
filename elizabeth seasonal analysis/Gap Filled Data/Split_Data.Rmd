@@ -84,11 +84,11 @@ for (yr in years) {
 ```
 
 ```{r}
-summer <- hourly %>% filter(Date >= as.Date(paste0(2022,"-06-01")) & Date < as.Date(paste0(2022,"-09-01")))
-summer2 <- summer %>% select(-X) %>% unique()
-  if (nrow(summer2) > 0){
-    write.csv(summer2, paste0(exportpath, "hourly_summer_", 2022, ".csv"))
-  }
+#summer <- hourly %>% filter(date >= as.Date(paste0(2022,"-06-01")) & Date < as.Date(paste0(2022,"-09-01")))
+#summer2 <- summer %>% select(-X) %>% unique()
+#  if (nrow(summer2) > 0){
+#    write.csv(summer2, paste0(exportpath, "hourly_summer_", 2022, ".csv"))
+#  }
 ```
 
 
