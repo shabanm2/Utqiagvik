@@ -1,6 +1,9 @@
 ---
 title: "PCA-EnviroDay25"
 output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ---
@@ -48,7 +51,7 @@ date_end = "2023-11-01" # data ends after November of 2023 (will get data up UNT
 ```{r}
 scree = F # scree plot
 eigen = T # eigenvectors and eigenvalues
-pdf = T # export plots to pdf (in the export path specified above)
+pdf = F # export plots to pdf (in the export path specified above)
 ```
 
 ### Dates (for selecting date ranges; no need to edit)
@@ -106,7 +109,6 @@ for(yur in years){
 colnames(all_dates) = c("szn","start","end")
 ```
 
-
 ## Packages
 
 ```{r message=FALSE}
@@ -116,6 +118,7 @@ library(tidyverse)
 ```
 
 ## Load all data
+
 ```{r}
 daily <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
 daily <- daily %>% select(-X) %>% select(-X.1) # get rid of index columns
@@ -127,7 +130,7 @@ daily <- daily %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullna
 
 =========================
 
-# DEFINE FUNCTIONS 
+# DEFINE FUNCTIONS
 
 =========================
 
@@ -217,7 +220,7 @@ make_eigen <- function(pca){
 
 ===============
 
-# PCA PLOTS 
+# PCA PLOTS
 
 ===============
 
@@ -252,7 +255,7 @@ make_pca <- function(pca_df, szn, yr, cursite){
   xlimit <- seq(xmin, xmax, 1)
   ylimit <- seq(ymin, ymax, 1)
   
-  plot(scores[, 1], scores[, 2], xlab="PCA 1", ylab="PCA 2", type="n", asp=1, 
+  plot(scores[, 1], scores[, 2], xlab="Principal Component 1", ylab="Principal Component 2", type="n", asp=1, 
        las=1, xaxt='n', yaxt='n')
   
   axis(side = 1, at=xlimit)
@@ -398,8 +401,8 @@ make_pca <- function(pca_df, szn, yr, cursite){
 }
 ```
 
-
 Adjust Settings for PCA Plots
+
 ```{r}
 # settings for pca plots
 scaling <<- 2 # scaling the arrows
@@ -409,9 +412,11 @@ limNudge <<- 1.3 # nudge the plot limits
 exp_pdf <<- F
 ```
 
-
 ```{r, fig.width=6, fig.height=6}
 site = "TNHA"
+pca_output = list()
+loads_output = data.frame(matrix(nrow = 0, ncol = 5))
+colnames(loads_output) = c("PC1", "PC2", "PC3", "PC4", "PC5")
 for(i in c(1:nrow(all_dates))){
   # month <- all_dates$months[i]
   startdate <- all_dates$start[i]
@@ -419,7 +424,9 @@ for(i in c(1:nrow(all_dates))){
   szn <<- all_dates$szn[i]
   yr <<- substr(all_dates$start[i], 1, 4)
   
+  sitecounter = 0
   for(site in sites){
+    sitecounter = sitecounter + 1
     big_df <- pick_site(site)
     pca_df <- pick_dates(startdate, enddate, big_df)
     
@@ -427,6 +434,8 @@ for(i in c(1:nrow(all_dates))){
       p <- calc_pca(pca_df)
       pca <- p$pca
       loads <- p$loads
+      pca_output[((3*(i-1)) + sitecounter)] = p
+      loads_output = rbind(loads_output, loads)
       if(scree == T){
         make_scree(pca)
       }
@@ -438,4 +447,40 @@ for(i in c(1:nrow(all_dates))){
   }
   
 }
+```
+
+=============== \# PCA Analysis ===============
+
+Loadings (eigenvectors) of the principal components are the amount of
+variance captured for each variable Scalars (eigenvalues) are the
+leftover scalars after dimensionality reduction
+
+\$ A\vec{v} = \lambda \vec{v} \$ where $\vec{v}$ is an eigenvector and
+$\lambda$ is our eigenvalue scalar.
+
+If we set our equation equal to zero such that \$ A\vec{v} -
+\lambda \vec{v} = 0\$ and solve for $\lambda$.
+
+[Source](https://datascience.stackexchange.com/questions/90007/calculation-of-pca)
+
+## Summer 2022 SSMH
+
+## Summer 2022 TNHA
+
+-   TNHA South has more variation along PC1
+
+    -   Ignores vwc and windspeed
+
+-   TNHA North has more variation along PC2 than south, but generally
+    has variance on both PCs
+
+## Summer 2022 BEO
+
+
+
+## Output Loads
+
+```{r}
+i = 1 # which loads you want to see
+loads_output[c(1 + (5 * (i-1)):(5*i)-1),]
 ```

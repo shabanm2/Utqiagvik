@@ -66,15 +66,6 @@ lmm0 <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect + (1|site),
 summary(lmm0)
 ```
 
-```{r}
-# no longer necessary to exclude windspeed
-#lmm1 <- lmer(groundtemp ~ airtemp + vwc + solar + aspect + (1|site), data = df_10cm)
-#summary(lmm1)
-```
-
-```{r}
-#coef(lmm1)
-```
 It seems like there is not too much of a difference between the two sites, but there is still presence of a difference as shown by the two different intercepts for SSMH vs TNHA.
 
 Graphing linear models:
@@ -99,8 +90,8 @@ pred.mm <- ggpredict(lmm0, terms = c("airtemp"))  # this gives overall predictio
    geom_line(aes(x = x, y = predicted, color = group)) +          # slope
    #geom_ribbon(aes(x = x, ymin = predicted - std.error, ymax = predicted + std.error), 
                #fill = "lightgrey", alpha = 0.5) +  # error band
-   labs(x = "Body Length (indexed)", y = "Test Score", 
-        title = "Body length does not affect intelligence in dragons") + 
+   labs(x = "Air Temperature", y = "Ground Temperature", 
+        title = "Relationship between air temperature and ground temperature") + 
    theme_minimal()
 )
 ```
@@ -128,5 +119,26 @@ stargazer(lmm0, type = "text",
 ```
 
 
+```{r}
+library(effects)
+est<-Effect("airtemp", partial.residuals=T, lmm0)
+plot(est)
 
+plot(lmm0)
+
+#library(remef)
+#y_partial <- remef(model, fix = "x2", ran = "all")
+```
+
+```{r}
+ggplot(df_10cm, aes(x=airtemp, y=solar)) + geom_point()
+```
+
+
+```{r}
+var_df = df_10cm %>% select(groundtemp, airtemp, vwc, solar, windspeed)
+round(cor(var_df),
+  digits = 2 # rounded to 2 decimals
+)
+```
 
