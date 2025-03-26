@@ -246,48 +246,53 @@ summary(summer2022_lmm_correlated)
 From the output, we see that there is a low variance between the different variables. To better conceptualize these numbers, we will make a visualization of the different slopes.
 
 ```{r}
-df <- df_10cm_summer_2022 %>% select(fullname, groundtemp, airtemp, aspect) %>% mutate(x=airtemp) %>% mutate(var="airtemp") %>% select(-airtemp)
-
-ggplot(df, aes(x, groundtemp, group=fullname, colour=fullname)) + 
-  geom_point() + 
-  geom_line(aes(y=datafit), linetype=2) + 
-  facet_wrap(~fullname, ncol=5) + 
-  scale_x_continuous(limits=c(0, 10),breaks=c(0,10)) + 
-  geom_smooth(method=lm,se=FALSE)+
-  theme_minimal()
-
-df_join <- df_10cm_summer_2022 %>% select(fullname, groundtemp, vwc, aspect) %>% mutate(x=vwc) %>% mutate(var="vwc") %>% select(-vwc)
-df <- full_join(df, df_join)
-
-ggplot(df_join, aes(x, groundtemp, group=fullname, colour=fullname)) + 
-  geom_point() + 
-  geom_line(aes(y=datafit), linetype=2) + 
-  facet_wrap(~fullname, ncol=5) + 
-  scale_x_continuous(limits=c(0, 10),breaks=c(0,10)) + 
-  geom_smooth(method=lm,se=FALSE)+
-  theme_minimal()
-
-df_join <- df_10cm_summer_2022 %>% select(fullname, groundtemp, solar, aspect) %>% mutate(x=solar) %>% mutate(var="solar") %>% select(-solar)
-df <- full_join(df, df_join)
-
-df_join <- df_10cm_summer_2022 %>% select(fullname, groundtemp, windspeed, aspect) %>% mutate(x=windspeed) %>% mutate(var="windspeed") %>% select(-windspeed)
-df <- full_join(df, df_join)
-
-df$var = as.factor(df$var)
-
-datafit=fitted(summer2022_lmm_correlated)
+#df <- df_10cm_summer_2022 %>% select(fullname, groundtemp, airtemp, aspect) %>% #mutate(x=airtemp) %>% mutate(var="airtemp") %>% select(-airtemp)
+#
+#ggplot(df, aes(x, groundtemp, group=fullname, colour=fullname)) + 
+#  geom_point() + 
+#  geom_line(aes(y=datafit), linetype=2) + 
+#  facet_wrap(~fullname, ncol=5) + 
+#  scale_x_continuous(limits=c(0, 10),breaks=c(0,10)) + 
+#  geom_smooth(method=lm,se=FALSE)+
+#  theme_minimal()
+#
+#df_join <- df_10cm_summer_2022 %>% select(fullname, groundtemp, vwc, aspect) %>% #mutate(x=vwc) %>% mutate(var="vwc") %>% select(-vwc)
+#df <- full_join(df, df_join)
+#
+#ggplot(df_join, aes(x, groundtemp, group=fullname, colour=fullname)) + 
+#  geom_point() + 
+#  geom_line(aes(y=datafit), linetype=2) + 
+#  facet_wrap(~fullname, ncol=5) + 
+#  scale_x_continuous(limits=c(0, 10),breaks=c(0,10)) + 
+#  geom_smooth(method=lm,se=FALSE)+
+#  theme_minimal()
+#
+#df_join <- df_10cm_summer_2022 %>% select(fullname, groundtemp, solar, aspect) %>% #mutate(x=solar) %>% mutate(var="solar") %>% select(-solar)
+#df <- full_join(df, df_join)
+#
+#df_join <- df_10cm_summer_2022 %>% select(fullname, groundtemp, windspeed, aspect) %>% #mutate(x=windspeed) %>% mutate(var="windspeed") %>% select(-windspeed)
+#df <- full_join(df, df_join)
+#
+#df$var = as.factor(df$var)
+#
+#datafit=fitted(summer2022_lmm_correlated)
 ```
 
 ```{r}
-ggplot(df, aes(x, groundtemp, group=var, colour=var)) + 
-  geom_point() + 
-  geom_line(aes(y=datafit), linetype=2) + 
-  facet_wrap(~var + fullname, ncol=5) + 
-  scale_x_continuous(limits=c(0, 10),breaks=c(0,10)) + 
-  geom_smooth(method=lm,se=FALSE)+
-  theme_minimal()
+#ggplot(df, aes(x, groundtemp, group=var, colour=var)) + 
+#  geom_point() + 
+#  geom_line(aes(y=datafit), linetype=2) + 
+#  facet_wrap(~var + fullname, ncol=5) + 
+#  scale_x_continuous(limits=c(0, 10),breaks=c(0,10)) + 
+#  geom_smooth(method=lm,se=FALSE)+
+#  theme_minimal()
 ```
 
+SOURCES FOR PLOTTING:
+
+-   <https://cdsbasel.github.io/dataanalytics_rsessions/_sessions/CausalInference/intro_lme4.html>
+
+-   <https://strengejacke.github.io/ggeffects/reference/predict_response.html>
 
 After this analysis, I think it would make sense not to use the correlated random intercept and slope. We expect that there may be differences between sites reflected in the intercept, but generally the variables have very similar relationships with groundtemp.
 
