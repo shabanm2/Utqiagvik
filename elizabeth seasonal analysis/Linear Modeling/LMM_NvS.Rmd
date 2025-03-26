@@ -10,7 +10,8 @@ output:
 [Changes]{.underline}
 
 -   1/28/25: loading data
-
+-   2/4/25: updated gap filled data with wind
+-   3/5/25: added explanations about the results and linear modeling of correlated random intercept and slope model
 
 ```{r}
 library(lme4)
@@ -64,7 +65,6 @@ get_dates <- function(df, depth, datemin, datemax) {
 }
 ```
 
-
 ```{r}
 # filter out data from before data collection
 # filter to get only depth of 10cm for now
@@ -82,8 +82,6 @@ fit_lmm <- function(df) {
 }
 ```
 
-
-
 ## Fit LMM - Correlated Random Intercepts
 
 ```{r}
@@ -92,7 +90,6 @@ fit_lmm_correlated <- function(df) {
   return(lmm)
 }
 ```
-
 
 # LMM Example with Summer 2022
 
@@ -103,7 +100,6 @@ summary(summer2022_lmm)
 
 It seems like there is not too much of a difference between the two sites, but there is still presence of a difference as shown by the two different intercepts for SSMH vs TNHA.
 
-
 # Graphing linear models
 
 Random effects have different intercepts, and the fixed effects have different slopes
@@ -112,8 +108,6 @@ Random effects have different intercepts, and the fixed effects have different s
 coeffs = coef(summer2022_lmm)$site
 coeffs
 ```
-
-
 
 ```{r}
 library(ggeffects)  # install the package first if you haven't already, then load it
@@ -136,6 +130,7 @@ pred.mm <- ggpredict(summer2022_lmm, terms = c("airtemp"))  # this gives overall
 ```
 
 # Table Output
+
 ```{r}
 library(stargazer)
 stargazer(summer2022_lmm, type = "text",
@@ -145,6 +140,7 @@ stargazer(summer2022_lmm, type = "text",
 ```
 
 Getting an error from this code chunk because of the aspect variable
+
 ```{r}
 #library(effects)
 #est<-Effect("airtemp", partial.residuals=T, summer2022_lmm)
@@ -160,14 +156,12 @@ Getting an error from this code chunk because of the aspect variable
 ggplot(df_10cm_summer_2022, aes(x=airtemp, y=solar)) + geom_point()
 ```
 
-
 ```{r}
 var_df = df_10cm_summer_2022 %>% select(groundtemp, airtemp, vwc, solar, windspeed)
 round(cor(var_df),
   digits = 2 # rounded to 2 decimals
 )
 ```
-
 
 # Analysis
 
@@ -183,7 +177,7 @@ The formula for our LMM is $groundtemp = airtemp + vwc + solar + windspeed + asp
 
 ## Summer 2022
 
-###  Correlation Matrix of Explanatory Variables
+### Correlation Matrix of Explanatory Variables
 
 ```{r}
 var_df = df_10cm_summer_2022 %>% select(groundtemp, airtemp, vwc, solar, windspeed)
@@ -199,6 +193,7 @@ lmm = summary(summer2022_lmm)
 ```
 
 Variance of Random Effects
+
 ```{r}
 lmm$varcor
 ```
@@ -216,20 +211,20 @@ From our output, we see that there is more variation in values within sites than
 I think we should try doing it with the correlated random intercept and slope, $x + (x|g)$ such that for each variable we have a fixed effect slope and a random effect slope. The full model would be $groundtemp = airtemp + vwc + solar + windspeed + aspect + (airtemp|site) + (vwc|site) + (solar|site) + (windspeed|site) + (aspect|site)$.
 
 Site Intercepts
+
 ```{r}
 coef(summer2022_lmm)$site
 ```
+
 We can look at our intercepts for our two sites to assess whether or not there is a difference in our variables between our two sites. Based on our intercepts, it appears that there is some level of difference in ground temperature between the two sites.
 
 This reinforces the use of correlated random intercept and slope as opposed to uncorrelated random intercept and slope in a subsequent model.
-
 
 ### Fixed Effects
 
 ```{r}
 lmm$coefficients
 ```
-
 
 **Correlation of Fixed Effects**
 
@@ -238,7 +233,6 @@ Note: this one is not super important. We can suppress this output by setting co
 From Clay Ford at the UVA StatLab:
 
 "These are not correlations of the variables and this is not an assessment of collinearity. Instead it’s meant to give you some sense of the uncertainty in the estimated coefficients. For example, the solar coefficient is 0.008 with a standard error of 0.001. In repeated samples of this data, we expect the coefficient estimate to be between about 0.007 and 0.009. Likewise the estimated coefficient for airtmp is 0.504 with a standard error of 0.029. In repeated samples of this data, we expect the coefficient estimate to be between about 0.47 and 0.53. The correlation of those coefficients is about -0.464. This says in repeated samples we would expect one coefficient to go slightly down as the other goes slightly up. This is probably not that important in the grand scheme of things."
-
 
 ### Correlated Random Intercept and Slope Model
 
@@ -249,6 +243,55 @@ summer2022_lmm_correlated <- fit_lmm_correlated(df_10cm_summer_2022)
 summary(summer2022_lmm_correlated)
 ```
 
+From the output, we see that there is a low variance between the different variables. To better conceptualize these numbers, we will make a visualization of the different slopes.
+
+```{r}
+df <- df_10cm_summer_2022 %>% select(fullname, groundtemp, airtemp, aspect) %>% mutate(x=airtemp) %>% mutate(var="airtemp") %>% select(-airtemp)
+
+ggplot(df, aes(x, groundtemp, group=fullname, colour=fullname)) + 
+  geom_point() + 
+  geom_line(aes(y=datafit), linetype=2) + 
+  facet_wrap(~fullname, ncol=5) + 
+  scale_x_continuous(limits=c(0, 10),breaks=c(0,10)) + 
+  geom_smooth(method=lm,se=FALSE)+
+  theme_minimal()
+
+df_join <- df_10cm_summer_2022 %>% select(fullname, groundtemp, vwc, aspect) %>% mutate(x=vwc) %>% mutate(var="vwc") %>% select(-vwc)
+df <- full_join(df, df_join)
+
+ggplot(df_join, aes(x, groundtemp, group=fullname, colour=fullname)) + 
+  geom_point() + 
+  geom_line(aes(y=datafit), linetype=2) + 
+  facet_wrap(~fullname, ncol=5) + 
+  scale_x_continuous(limits=c(0, 10),breaks=c(0,10)) + 
+  geom_smooth(method=lm,se=FALSE)+
+  theme_minimal()
+
+df_join <- df_10cm_summer_2022 %>% select(fullname, groundtemp, solar, aspect) %>% mutate(x=solar) %>% mutate(var="solar") %>% select(-solar)
+df <- full_join(df, df_join)
+
+df_join <- df_10cm_summer_2022 %>% select(fullname, groundtemp, windspeed, aspect) %>% mutate(x=windspeed) %>% mutate(var="windspeed") %>% select(-windspeed)
+df <- full_join(df, df_join)
+
+df$var = as.factor(df$var)
+
+datafit=fitted(summer2022_lmm_correlated)
+```
+
+```{r}
+ggplot(df, aes(x, groundtemp, group=var, colour=var)) + 
+  geom_point() + 
+  geom_line(aes(y=datafit), linetype=2) + 
+  facet_wrap(~var + fullname, ncol=5) + 
+  scale_x_continuous(limits=c(0, 10),breaks=c(0,10)) + 
+  geom_smooth(method=lm,se=FALSE)+
+  theme_minimal()
+```
+
+
+After this analysis, I think it would make sense not to use the correlated random intercept and slope. We expect that there may be differences between sites reflected in the intercept, but generally the variables have very similar relationships with groundtemp.
+
+Further, we think that the LMM model with a random effect of site is good to create a model that could be applied to more sites.
 
 # Fall 2022
 
@@ -261,6 +304,7 @@ summary(fall2022_lmm)
 # Spring 2023
 
 ERROR: missing values from SSMH
+
 ```{r}
 df_10cm_spring_2023 <- get_dates(nvs, 8, "2023-03-01", "2023-06-01")
 # spring2023_lmm <- fit_lmm(df_10cm_spring_2023)
@@ -291,7 +335,6 @@ spring2024_lmm <- fit_lmm(df_10cm_spring_2024)
 summary(spring2024_lmm)
 ```
 
-
 # Summer 2024
 
 ```{r}
@@ -307,4 +350,3 @@ df_10cm_fall_2024 <- get_dates(nvs, 8, "2024-09-01", "2024-12-01")
 fall2024_lmm <- fit_lmm(df_10cm_fall_2024)
 summary(fall2024_lmm)
 ```
-
