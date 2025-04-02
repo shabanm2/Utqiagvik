@@ -493,7 +493,6 @@ exp_pdf <<- F
 ```
 
 ```{r, fig.width=6, fig.height=6}
-site = "TNHA"
 pca_output = list()
 loads_output = data.frame(matrix(nrow = 0, ncol = 5))
 colnames(loads_output) = c("PC1", "PC2", "PC3", "PC4", "PC5")
@@ -535,15 +534,111 @@ for(i in c(1:nrow(all_dates))){
 
 ===============
 
+## What is PCA?
+
+Principle component analysis is an analysis technique that uses linear
+algebra to reduce the dimensionality of a large data set to a smaller
+one that still contains most of the information in the original data
+set. While we do sacrifice some accuracy, it makes the data easier to
+visualize and allows us to understand the relationship between variables
+within our data.
+
+The principal components are new variables that are uncorrelated linear
+combinations of the initial variables. When we reduce the dimensionality
+of the data into a number of principal components, we aim to put as much
+information as possible in the first component, then as much of the
+remaining information as possible into the next component, and so on for
+all the principal components (the number of variables we are examining
+in the data).
+
+The amount of information stored in each principal component is stored
+can be visualized with a scree plot, like the following:
+
+```{r echo=FALSE}
+site = "TNHA"
+startdate <- "2022-06-01"
+enddate <- "2022-09-01"
+szn <<- "Summer"
+yr <<- "2022"
+big_df <- pick_site(site)
+pca_df <- pick_dates(startdate, enddate, big_df)
+p <- calc_pca(pca_df)
+pca <- p$pca
+make_scree(pca)
+```
+
+We see that 50% of the variance in our data is contained in the first
+principal component and around 25% in the second.
+
+### Covariance and Matrices
+
+**Covariance** is a statistical measure of the directional relationship
+between two variables, or vectors. It measures how the mean values of
+the two variables relate. It is similar to variance, as both look at the
+distribution of points in a data set. However, *covariance is different
+from the correlation coefficient* — the correlation coefficient measures
+the *strength* of a relationship between two variables whereas the
+covariance only measures the *direction* of the relationship (as
+positive or negative).
+
+**Positive Covariance:** a value for variable A that is higher than A's
+mean corresponds with the same point in variable B that is also higher
+than B's mean.
+
+**Negative Covariance:** a value for variable A that is higher than A's
+mean corresponds with the same point in variable B that is lower than
+B's mean (or vice versa).
+
+[Source](https://www.investopedia.com/terms/c/covariance.asp)
+
+PCA calculates a covariance matrix of the variance of the vectors and
+the covariance between the vectors, $v_1, v_2, \ldots , v_n$. $Var(v_1)$
+is the variance of the first vector, $v_1$ and $Cov(v_1, v_n)$ is the
+covariance of the first vector, $v_1$, and the last vector, $v_n$.
+
+$$
+\begin{equation} \begin{pmatrix}  
+Var(x_1) & \cdots & Cov(x_1, x_n) \\ 
+\vdots  & \ddots & \vdots  \\  
+Cov(x_n, x_1) & \cdots & Var(x_n)
+\end{pmatrix}\end{equation}
+$$
+
+For example, if we take our five variables: `groundtemp`, `airtemp`,
+`solar`, `vwc`, and `windspeed`, we can make a matrix like this:
+
+$$
+\begin{equation} \begin{pmatrix}  
+Var(groundtemp) & Cov(groundtemp, airtemp) & Cov(groundtemp, solar) & Cov(groundtemp, vwc) & Cov(groundtemp, windspeed) \\ 
+Cov(groundtemp, airtemp)  & Var(airtemp) & Cov(airtemp, solar) & Cov(airtemp, vwc) & Cov(airtemp, windspeed)  \\  
+Cov(groundtemp, solar) & Cov(airtemp, solar) & Var(solar) & Cov(solar, vwc) & Cov(solar, windspeed) \\
+Cov(groundtemp, vwc) & Cov(airtemp, vwc) & Cov(solar, vwc) & Var(vwc) & Cov(vwc, windspeed) \\
+Cov(groundtemp, windspeed) & Cov(airtemp, windspeed) & Cov(solar, windspeed) & Cov(vwc, windspeed) & Var(windspeed)
+\end{pmatrix}\end{equation}
+$$
+
+[Source](https://www.cuemath.com/algebra/covariance-matrix/)
+
+### Eigenvectors and Eigenvalues
+
+Eigenvectors and eigenvalues are computed from the covariance matrix to
+determine the principle components of our data. They come in pairs, such
+that each eigenvector has a corresponding eigenvalue. The number of
+dimensions in the data, or the number of variables, determines the
+number of pairs. For example, we have five variables and therefore we
+look at 5 eigenvector/eigenvalue pairs and thus 5 principle components.
+
 Loadings (eigenvectors) of the principal components are the amount of
 variance captured for each variable Scalars (eigenvalues) are the
 leftover scalars after dimensionality reduction
 
-\$ A\vec{v} = \lambda \vec{v} \$ where $\vec{v}$ is an eigenvector and
+$A \vec{v} = \lambda \vec{v}$ where $\vec{v}$ is an eigenvector and
 $\lambda$ is our eigenvalue scalar.
 
-If we set our equation equal to zero such that \$ A\vec{v} -
-\lambda \vec{v} = 0\$ and solve for $\lambda$.
+If we set our equation equal to zero such that
+$A\vec{v} - \lambda \vec{v} = 0$ and solve for $\lambda$, we can get our
+eigenvectors. Note that this is a complex matrix operation so R does
+this for us!
 
 [Source](https://datascience.stackexchange.com/questions/90007/calculation-of-pca)
 
