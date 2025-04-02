@@ -22,96 +22,22 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ========
 
-# Principal Component Analysis (PCA)
-
-========
-
-This is a Principal Component Analysis conducted on the Summer of 2022
-for Elizabeth's EnviroDay 2025 poster. This file uses a series of
-functions that enable a more streamlined way to output our plots in a
-repetitive manner over longer date ranges. The script is organized as
-follows:
-
-1.  [**Setup**](#setup): specify what output you want.
-    1.  **Set filepaths** - this tells our code where to get the data
-        and where to export it. `filepath` is a link to our data
-        uploaded to GitHub. `exportpath` is a local directory and needs
-        to be updated to somewhere on your own machine.
-    2.  **Pick Date Ranges** - this is where you can specify which dates
-        you are interested in creating PCAs as well as which sites you
-        want to look at.
-    3.  **Pick Output** - you can specify if you want to see scree
-        plots, eigenvector outputs, and if you want the plots to be
-        displayed inline or if you would like to export them to a PDF
-        file in the `exportpath` folder.
-2.  [**Initialize Variables**](#variables): prep all of the variables
-    and dataframes for PCA creation.
-    1.  **Dates** - this creates a dataframe of all the specified dates
-        you are interested in viewing.
-    2.  **Packages** - load packages used in the code.
-    3.  **Load all Data** - loads dataframes from the github and
-        performs some selection and cleaning to get applicable sensors
-        for North vs South PCA plot creation.
-3.  [**Define Functions**](#functions): define functions for each step
-    of PCA to be called in the next section. Each of these functions is
-    stored with a name such that later in the file you can call that
-    function with a specific set of *arguments* or *parameters* that are
-    variables that help the function execute on any data.
-    1.  `pick_sites(cursite)`: given a site (`cursite: string`), returns
-        a df of data only for that site, selected from the `daily` df.
-    2.  `pick_dates(datemin, datemax, big_df)`: given a df (`big_df`)
-        and the min (`datemin: string`) and max (`datemax: string`)
-        dates of interest, returns a df with only that date range.
-    3.  `calc_pca(pca_df)`: given a df (`pca_df`), returns TWO items in
-        a list - (1) `pca`: a pca object; and (2) `loads`: a df of the
-        loadings from the pca.
-    4.  `make_scree(pca)`: given a pca object (`pca`), creates a scree
-        plot.
-    5.  `make_eigen`: given a pca object (`pca`), outputs the
-        eigenvectors and eigenvalues.
-4.  [**Create PCA**](#pca): the logic to iterate through each
-    month/season to output the PCAs.
-    1.  First, we define one more function (`make_pca`) to plot the PCA
-        given:
-        1.  `pca_df`: a df with relevant data
-        2.  `szn`: the season for which you want to plot the PCA, as a
-            string
-        3.  `yr`: the year for which you want to plot the PCA, as a
-            string
-        4.  `cursite`: the site for which you want to plot the PCA, as a
-            string
-    2.  You can adjust the settings for the PCA plot to change the
-        proportional length of the arrows, the amount to nudge the
-        labels with respect to the arrows, the limits of the plots, and
-        whether or not you want to export the plot (IMPORTANT: if you
-        change `exp_pdf` to `TRUE`, it will override the setting in the
-        [SETUP](#setup) section. Only use this for testing so that you
-        do not have to scroll all the way to the top. Set this setting
-        to `FALSE` before you are done.)
-    3.  Finally, the code runs a for-loop to go through all of the
-        specified dates in the [SETUP](#setup) section. This should not
-        need to be modified for any reason, unless to add something else
-        that you want to output with each PCA.
-5.  [**Analysis**](#analysis): explain PCA output
-
-========
-
-# SETUP {#setup}
+# SETUP
 
 ========
 
 ## FILEPATH:
 
 ```{r}
-filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Analysis_Ready_Data/" # where daily avg data are located
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/pca-25/Analysis_Ready_Data/" # where daily avg data are located
 exportpath = "/Users/emvanmetre/Desktop/Arctic/Utqiagvik/elizabeth seasonal analysis/PCA/" # where to export pdf files (if pdf is true)
 ```
 
 ## PICK DATE RANGES:
 
 ```{r}
-years = c("2022", "2023")
-seasons = c("Summer", "Fall", "Spring")
+years = c("2022")
+seasons = c("Summer")
 sites = c("TNHA", "BEO", "SSMH")
 
 # put season values for the season that has the start of the data
@@ -123,16 +49,10 @@ date_end = "2023-11-01" # data ends after November of 2023 (will get data up UNT
 ## PICK OUTPUT:
 
 ```{r}
-scree = T # scree plot
+scree = F # scree plot
 eigen = T # eigenvectors and eigenvalues
 pdf = F # export plots to pdf (in the export path specified above)
 ```
-
-========
-
-# INITIALIZE VARIABLES {#variables}
-
-========
 
 ### Dates (for selecting date ranges; no need to edit)
 
@@ -159,8 +79,8 @@ for(yur in years){
   # spring
   if("Spring" %in% seasons){
     curdate = as.Date(paste0(yur, spring_dates[1, 2]))
-      if(curdate >= as.Date(date_start) && curdate < as.Date(date_end)){
-        all_dates <- rbind(all_dates, (c("Spring", paste0(yur, spring_dates[1, 2]), paste0(yur, spring_dates[3, 3]))))
+      if(curdate >= date_start && curdate < date_end){
+        all_dates <- rbind(all_dates, c("Spring", paste0(yur, spring_dates[1, 2]), paste0(yur, spring_dates[3, 3])))
       }
   }
   
@@ -210,7 +130,7 @@ daily <- daily %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullna
 
 =========================
 
-# DEFINE FUNCTIONS {#functions}
+# DEFINE FUNCTIONS
 
 =========================
 
@@ -300,7 +220,7 @@ make_eigen <- function(pca){
 
 ===============
 
-# PCA PLOTS {#pca}
+# PCA PLOTS
 
 ===============
 
@@ -493,6 +413,7 @@ exp_pdf <<- F
 ```
 
 ```{r, fig.width=6, fig.height=6}
+site = "TNHA"
 pca_output = list()
 loads_output = data.frame(matrix(nrow = 0, ncol = 5))
 colnames(loads_output) = c("PC1", "PC2", "PC3", "PC4", "PC5")
@@ -528,117 +449,17 @@ for(i in c(1:nrow(all_dates))){
 }
 ```
 
-===============
-
-# PCA Analysis {#analysis}
-
-===============
-
-## What is PCA?
-
-Principle component analysis is an analysis technique that uses linear
-algebra to reduce the dimensionality of a large data set to a smaller
-one that still contains most of the information in the original data
-set. While we do sacrifice some accuracy, it makes the data easier to
-visualize and allows us to understand the relationship between variables
-within our data.
-
-The principal components are new variables that are uncorrelated linear
-combinations of the initial variables. When we reduce the dimensionality
-of the data into a number of principal components, we aim to put as much
-information as possible in the first component, then as much of the
-remaining information as possible into the next component, and so on for
-all the principal components (the number of variables we are examining
-in the data).
-
-The amount of information stored in each principal component is stored
-can be visualized with a scree plot, like the following:
-
-```{r echo=FALSE}
-site = "TNHA"
-startdate <- "2022-06-01"
-enddate <- "2022-09-01"
-szn <<- "Summer"
-yr <<- "2022"
-big_df <- pick_site(site)
-pca_df <- pick_dates(startdate, enddate, big_df)
-p <- calc_pca(pca_df)
-pca <- p$pca
-make_scree(pca)
-```
-
-We see that 50% of the variance in our data is contained in the first
-principal component and around 25% in the second.
-
-### Covariance and Matrices
-
-**Covariance** is a statistical measure of the directional relationship
-between two variables, or vectors. It measures how the mean values of
-the two variables relate. It is similar to variance, as both look at the
-distribution of points in a data set. However, *covariance is different
-from the correlation coefficient* — the correlation coefficient measures
-the *strength* of a relationship between two variables whereas the
-covariance only measures the *direction* of the relationship (as
-positive or negative).
-
-**Positive Covariance:** a value for variable A that is higher than A's
-mean corresponds with the same point in variable B that is also higher
-than B's mean.
-
-**Negative Covariance:** a value for variable A that is higher than A's
-mean corresponds with the same point in variable B that is lower than
-B's mean (or vice versa).
-
-[Source](https://www.investopedia.com/terms/c/covariance.asp)
-
-PCA calculates a covariance matrix of the variance of the vectors and
-the covariance between the vectors, $v_1, v_2, \ldots , v_n$. $Var(v_1)$
-is the variance of the first vector, $v_1$ and $Cov(v_1, v_n)$ is the
-covariance of the first vector, $v_1$, and the last vector, $v_n$.
-
-$$
-\begin{equation} \begin{pmatrix}  
-Var(x_1) & \cdots & Cov(x_1, x_n) \\ 
-\vdots  & \ddots & \vdots  \\  
-Cov(x_n, x_1) & \cdots & Var(x_n)
-\end{pmatrix}\end{equation}
-$$
-
-For example, if we take our five variables: `groundtemp`, `airtemp`,
-`solar`, `vwc`, and `windspeed`, we can make a matrix like this:
-
-$$
-\begin{equation} \begin{pmatrix}  
-Var(groundtemp) & Cov(groundtemp, airtemp) & Cov(groundtemp, solar) & Cov(groundtemp, vwc) & Cov(groundtemp, windspeed) \\ 
-Cov(groundtemp, airtemp)  & Var(airtemp) & Cov(airtemp, solar) & Cov(airtemp, vwc) & Cov(airtemp, windspeed)  \\  
-Cov(groundtemp, solar) & Cov(airtemp, solar) & Var(solar) & Cov(solar, vwc) & Cov(solar, windspeed) \\
-Cov(groundtemp, vwc) & Cov(airtemp, vwc) & Cov(solar, vwc) & Var(vwc) & Cov(vwc, windspeed) \\
-Cov(groundtemp, windspeed) & Cov(airtemp, windspeed) & Cov(solar, windspeed) & Cov(vwc, windspeed) & Var(windspeed)
-\end{pmatrix}\end{equation}
-$$
-
-[Source](https://www.cuemath.com/algebra/covariance-matrix/)
-
-### Eigenvectors and Eigenvalues
-
-Eigenvectors and eigenvalues are computed from the covariance matrix to
-determine the principle components of our data. They come in pairs, such
-that each eigenvector has a corresponding eigenvalue. The number of
-dimensions in the data, or the number of variables, determines the
-number of pairs. For example, we have five variables and therefore we
-look at 5 eigenvector/eigenvalue pairs and thus 5 principle components.
+=============== \# PCA Analysis ===============
 
 Loadings (eigenvectors) of the principal components are the amount of
 variance captured for each variable Scalars (eigenvalues) are the
 leftover scalars after dimensionality reduction
 
-$A \vec{v} = \lambda \vec{v}$ where $\vec{v}$ is an eigenvector and
+\$ A\vec{v} = \lambda \vec{v} \$ where $\vec{v}$ is an eigenvector and
 $\lambda$ is our eigenvalue scalar.
 
-If we set our equation equal to zero such that
-$A\vec{v} - \lambda \vec{v} = 0$ and solve for $\lambda$, we can get our
-eigenvectors. Note that this is a complex matrix operation so R does
-this for us!
+If we set our equation equal to zero such that \$ A\vec{v} -
+\lambda \vec{v} = 0\$ and solve for $\lambda$.
 
 [Source](https://datascience.stackexchange.com/questions/90007/calculation-of-pca)
 
