@@ -1,0 +1,351 @@
+---
+title: "LMM_Non_Gap_Filled"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+**Created January 28, 2025**
+
+[Changes]{.underline}
+
+-   4/9/2025: copy script from LMM_NvS.Rmd and update to use old, non-gap-filled data
+
+
+```{r}
+library(lme4)
+library(dplyr)
+library(ggplot2)
+```
+
+## Load Data
+
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/"
+gtfile = "grndtemp_daily.csv"
+airfile = "airtemp_daily.csv"
+vwcfile = "vwc_daily.csv"
+solfile = "solar_daily.csv"
+windspeed = "windspeed_daily.csv"
+winddir = "winddir_daily.csv"
+
+grndtmp = read.csv(paste0(filepath, gtfile))
+airtmp = read.csv(paste0(filepath, airfile))
+vwc = read.csv(paste0(filepath, vwcfile))
+solar = read.csv(paste0(filepath, solfile))
+wind = read.csv(paste0(filepath, windspeed))
+
+combined = full_join(grndtmp, airtmp, by=c("date", "station", "sensor")) %>% select(c(2:5,6,9))
+colnames(combined)[2:6] = c("station","sensor", "grounddepth", "groundtemp", "airtemp")
+combined = full_join(combined, wind, by=c("date", "station", "sensor")) %>% select(c(1:6,9))
+colnames(combined)[7] = c("windspeed")
+combined = full_join(combined, solar, by=c("date", "station", "sensor")) %>% select(c(1:7,10))
+colnames(combined)[8] = c("solar")
+
+combined <- combined %>% mutate(depth = case_when(grounddepth == 7 ~ 1,
+          grounddepth == 8 ~ 1,
+          grounddepth == 9 ~ 2,
+          grounddepth == 10 ~ 3,
+          grounddepth == 11 ~ 3,
+          grounddepth == 12 ~ 4,
+          grounddepth == 13 ~ 4,
+          grounddepth == 14 ~ 5,
+          grounddepth == 15 ~ 6,
+          grounddepth == 16 ~ 6,
+          grounddepth == 17 ~ 6)) %>% filter(grounddepth != 1)
+
+combined = full_join(combined, vwc, by=c("date", "station", "sensor", "depth")) %>% select(c(1:9,11))
+colnames(combined)[c(2:3,9:10)] = c("site", "fullname", "vwcdepth", "vwc")
+```
+
+
+```{r}
+# File from github
+# filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/"
+# 
+# df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
+# df <- df %>% select(-X) %>% select(-X.1)
+df <- combined
+df$Date <- as.POSIXct(df$date, format="%Y-%m-%d")
+df <- df %>% filter(windspeed != -888.88) %>% filter(winddir != -888.88) %>% filter(site != "BUECI")
+```
+
+## Select and Transform Data
+
+North vs South
+
+TNHA:
+
+North = TNHA-SC
+
+South = TNHA-SA
+
+SSMH:
+
+North = SSMH-SB
+
+South = SSMH-SA
+
+BEO (Control): does not have different aspects
+
+```{r}
+nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA") %>% select(-c(date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", .default = "South")) %>% na.omit() %>% filter(windspeed >= 0)
+```
+
+## Filter Date Function
+
+```{r}
+# input:
+# df - original df to get values from
+# depth - what depth you want to filter for (as a number, 7-17)
+# datemin - the start date you want to look at (inclusive) as a string
+# datemax - the day after the last day you want to look at (i.e. exclusive) as a string
+get_dates <- function(df, depth, datemin, datemax) {
+  new_df <- df %>% filter(grounddepth == depth) %>% filter(Date >= datemin) %>% filter(Date < datemax)
+}
+```
+
+
+```{r}
+# filter out data from before data collection
+# filter to get only depth of 10cm for now
+df_10cm_summer_2022 <- get_dates(nvs, 8, "2022-06-19", "2022-09-01")
+```
+
+# LMM Functions
+
+## Fit LMM - Random Intercept
+
+```{r}
+fit_lmm <- function(df) {
+  lmm <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect + (1|site), data = df)
+  return(lmm)
+}
+```
+
+
+
+## Fit LMM - Correlated Random Intercepts
+
+```{r}
+fit_lmm_correlated <- function(df) {
+  lmm <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect + (airtemp|site) + (vwc|site) + (solar|site) + (windspeed|site) + (aspect|site), data = df)
+  return(lmm)
+}
+```
+
+
+# LMM Example with Summer 2022
+
+```{r}
+summer2022_lmm <- fit_lmm(df_10cm_summer_2022)
+summary(summer2022_lmm)
+```
+
+It seems like there is not too much of a difference between the two sites, but there is still presence of a difference as shown by the two different intercepts for SSMH vs TNHA.
+
+
+# Graphing linear models
+
+Random effects have different intercepts, and the fixed effects have different slopes
+
+```{r}
+coeffs = coef(summer2022_lmm)$site
+coeffs
+```
+
+
+
+```{r}
+library(ggeffects)  # install the package first if you haven't already, then load it
+
+# Extract the prediction data frame
+pred.mm <- ggpredict(summer2022_lmm, terms = c("airtemp"))  # this gives overall predictions for the model
+
+# Plot the predictions 
+
+(ggplot(pred.mm) + 
+    geom_point(data = df_10cm_summer_2022,                      # adding the raw data (scaled values)
+              aes(x = airtemp, y = groundtemp, colour = site)) + 
+   geom_line(aes(x = x, y = predicted, color = group)) +          # slope
+   #geom_ribbon(aes(x = x, ymin = predicted - std.error, ymax = predicted + std.error), 
+               #fill = "lightgrey", alpha = 0.5) +  # error band
+   labs(x = "Air Temperature", y = "Ground Temperature", 
+        title = "Relationship between air temperature and ground temperature") + 
+   theme_minimal()
+)
+```
+
+# Table Output
+```{r}
+library(stargazer)
+stargazer(summer2022_lmm, type = "text",
+          digits = 3,
+          star.cutoffs = c(0.05, 0.01, 0.001),
+          digit.separator = "")
+```
+
+Getting an error from this code chunk because of the aspect variable
+```{r}
+#library(effects)
+#est<-Effect("airtemp", partial.residuals=T, summer2022_lmm)
+#plot(est)
+#
+#plot(summer2022_lmm)
+
+#library(remef)
+#y_partial <- remef(model, fix = "x2", ran = "all")
+```
+
+```{r}
+ggplot(df_10cm_summer_2022, aes(x=airtemp, y=solar)) + geom_point()
+```
+
+
+```{r}
+var_df = df_10cm_summer_2022 %>% select(groundtemp, airtemp, vwc, solar, windspeed)
+round(cor(var_df),
+  digits = 2 # rounded to 2 decimals
+)
+```
+
+
+# Analysis
+
+We are particularly interested in five micrometeorological variables to conduct our LMM: ground temperature (`groundtemp`), air temperature (`airtemp`), volumetric water content or ground moisture (`vwc`), solar radiation (`solar`), and wind speed (`windspeed`). We are comparing how the five micrometerological variables may correlate at each of our three sites with varying levels of infrastructure. Our sites are SSMH (commercial/hospital), TNHA (residential), and BEO (tundra control). For our LMM, we will only be comparing SSMH and TNHA because we want to look at differences on the north and south sides of the buildings, and BEO does not have any infrastructure to block or otherwise impact the micrometeorology at the site.
+
+Our model will compare our fixed effects against our response variable of interest, `groundtemp` The fixed effects will include `airtemp`, `vwc`, `solar`, and `windspeed.`
+
+Additionally, want to look at differences in our five variables between the north-facing and south-facing sides of our buildings. This variable, `aspect`, will be the last of our fixed effects.
+
+Our model only has one random effect, which is `site`. This accounts for any "random" differences observed between SSMH and TNHA due to having different geographic locations. At the time, we are not looking at differences between the sites as predictors of ground temperature.
+
+The formula for our LMM is $groundtemp = airtemp + vwc + solar + windspeed + aspect + (1 |site)$
+
+## Summer 2022
+
+###  Correlation Matrix of Explanatory Variables
+
+```{r}
+var_df = df_10cm_summer_2022 %>% select(groundtemp, airtemp, vwc, solar, windspeed)
+round(cor(var_df),
+  digits = 2 # rounded to 2 decimals
+)
+```
+
+### Random Effects
+
+```{r}
+lmm = summary(summer2022_lmm)
+```
+
+Variance of Random Effects
+```{r}
+lmm$varcor
+```
+
+The variance of the random effects show the variation of data (1) between sites and (2) within sites. Note that the standard deviation is the square root of the variance. The standard deviation is the spread of a group of data from the mean.
+
+From our output, we see that there is more variation in values within sites than across from sites. However, there still is a difference in variation between sites.
+
+**We may want to look into other ways of calculating our random effects to see if there are differences in slopes for our variables**
+
+![table of random effects formulas](LMM_Random_Effects.png)
+
+[Source: Fitting Linear Mixed-Effects Models Using lme4 Bates et al., 2015](https://cran.r-project.org/web/packages/lme4/vignettes/lmer.pdf)
+
+I think we should try doing it with the correlated random intercept and slope, $x + (x|g)$ such that for each variable we have a fixed effect slope and a random effect slope. The full model would be $groundtemp = airtemp + vwc + solar + windspeed + aspect + (airtemp|site) + (vwc|site) + (solar|site) + (windspeed|site) + (aspect|site)$.
+
+Site Intercepts
+```{r}
+coef(summer2022_lmm)$site
+```
+We can look at our intercepts for our two sites to assess whether or not there is a difference in our variables between our two sites. Based on our intercepts, it appears that there is some level of difference in ground temperature between the two sites.
+
+This reinforces the use of correlated random intercept and slope as opposed to uncorrelated random intercept and slope in a subsequent model.
+
+
+### Fixed Effects
+
+```{r}
+lmm$coefficients
+```
+
+
+**Correlation of Fixed Effects**
+
+Note: this one is not super important. We can suppress this output by setting corr=FALSE in our lmer model.
+
+From Clay Ford at the UVA StatLab:
+
+"These are not correlations of the variables and this is not an assessment of collinearity. Instead it’s meant to give you some sense of the uncertainty in the estimated coefficients. For example, the solar coefficient is 0.008 with a standard error of 0.001. In repeated samples of this data, we expect the coefficient estimate to be between about 0.007 and 0.009. Likewise the estimated coefficient for airtmp is 0.504 with a standard error of 0.029. In repeated samples of this data, we expect the coefficient estimate to be between about 0.47 and 0.53. The correlation of those coefficients is about -0.464. This says in repeated samples we would expect one coefficient to go slightly down as the other goes slightly up. This is probably not that important in the grand scheme of things."
+
+
+### Correlated Random Intercept and Slope Model
+
+As previously stated, I wanted to try our model with the correlated random intercept and slope, $x + (x|g)$ such that for each variable we have a fixed effect slope and a random effect slope. The full model would be $groundtemp = airtemp + vwc + solar + windspeed + aspect + (airtemp|site) + (vwc|site) + (solar|site) + (windspeed|site) + (aspect|site)$.
+
+```{r}
+summer2022_lmm_correlated <- fit_lmm_correlated(df_10cm_summer_2022)
+summary(summer2022_lmm_correlated)
+```
+
+
+# Fall 2022
+
+```{r}
+df_10cm_fall_2022 <- get_dates(nvs, 8, "2022-09-01", "2022-12-01")
+fall2022_lmm <- fit_lmm(df_10cm_fall_2022)
+summary(fall2022_lmm)
+```
+
+# Spring 2023
+
+ERROR: missing values from SSMH
+```{r}
+df_10cm_spring_2023 <- get_dates(nvs, 8, "2023-03-01", "2023-06-01")
+# spring2023_lmm <- fit_lmm(df_10cm_spring_2023)
+# summary(spring2023_lmm)
+```
+
+# Summer 2023?
+
+```{r}
+df_10cm_summer_2023 <- get_dates(nvs, 8, "2023-06-01", "2023-09-01")
+summer2023_lmm <- fit_lmm(df_10cm_summer_2023)
+summary(summer2023_lmm)
+```
+
+<!-- # Fall 2023 -->
+
+<!-- ```{r} -->
+<!-- df_10cm_fall_2023 <- get_dates(nvs, 8, "2023-09-01", "2023-12-01") -->
+<!-- fall2023_lmm <- fit_lmm(df_10cm_fall_2023) -->
+<!-- summary(fall2023_lmm) -->
+<!-- ``` -->
+
+<!-- # Spring 2024 -->
+
+<!-- ```{r} -->
+<!-- df_10cm_spring_2024 <- get_dates(nvs, 8, "2024-03-01", "2024-06-01") -->
+<!-- spring2024_lmm <- fit_lmm(df_10cm_spring_2024) -->
+<!-- summary(spring2024_lmm) -->
+<!-- ``` -->
+
+
+<!-- # Summer 2024 -->
+
+<!-- ```{r} -->
+<!-- df_10cm_summer_2024 <- get_dates(nvs, 8, "2024-06-01", "2024-09-01") -->
+<!-- summer2024_lmm <- fit_lmm(df_10cm_summer_2024) -->
+<!-- summary(summer2024_lmm) -->
+<!-- ``` -->
+
+<!-- # Fall 2024 -->
+
+<!-- ```{r} -->
+<!-- df_10cm_fall_2024 <- get_dates(nvs, 8, "2024-09-01", "2024-12-01") -->
+<!-- fall2024_lmm <- fit_lmm(df_10cm_fall_2024) -->
+<!-- summary(fall2024_lmm) -->
+<!-- ``` -->
+
