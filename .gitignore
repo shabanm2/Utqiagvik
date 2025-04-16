@@ -18,3 +18,6 @@ rsconnect/
 **/.DS_Store
 **/elizabeth seasonal analysis/.DS_Store
 .DS_Store
+
+# ignore large csv files in Large_Files folder
+/Analysis_Ready_Data/Large_Files/*.csv
