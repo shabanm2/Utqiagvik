@@ -20,4 +20,5 @@ rsconnect/
 .DS_Store
 
 # ignore large csv files in Large_Files folder
-/Analysis_Ready_Data/Large_Files/*.csv
+/Analysis_Ready_Data/Large_Files/*
+!/Analysis_Ready_Data/Large_Files/README.md
