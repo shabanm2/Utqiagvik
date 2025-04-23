@@ -476,8 +476,6 @@ If we set our equation equal to zero such that \$ A\vec{v} -
 
 ## Summer 2022 BEO
 
-
-
 ## Output Loads
 
 ```{r}
