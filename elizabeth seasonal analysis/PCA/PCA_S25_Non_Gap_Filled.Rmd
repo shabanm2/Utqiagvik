@@ -41,6 +41,7 @@ date_end = "2024-11-01" # data ends after November of 2023 (will get data up UNT
 ## PICK OUTPUT:
 
 ```{r}
+monthly = T # pick T for monthly or F for seasonally
 scree = F # scree plot
 eigen = T # eigenvectors and eigenvalues
 pdf = F # export plots to pdf (in the export path specified above)
@@ -66,39 +67,96 @@ winter_dates = data.frame(months=winter_months, start=c("-12-01","-01-01","-02-0
 ```
 
 ```{r}
-all_dates = data.frame(matrix(nrow = 0, ncol = 3))
+if (monthly) {
+  all_dates = data.frame(matrix(nrow = 0, ncol = 4)) # 4 columns for month and season
+} else {
+  all_dates = data.frame(matrix(nrow = 0, ncol = 3)) # 3 columns for season
+}
 for(yur in years){
   # spring
   if("Spring" %in% seasons){
-    curdate = as.Date(paste0(yur, spring_dates[1, 2]))
+    if (monthly) {
+      for(i in c(1:3)){
+        curdate = as.Date(paste0(yur, spring_dates[i, 2]))
+        if(curdate >= date_start && curdate < date_end){
+          all_dates <- rbind(all_dates, c(spring_dates[i,1], paste0(yur, spring_dates[i, 2]), 
+                                          paste0(yur, spring_dates[i, 3]),"Spring"))
+        }
+      }
+    }
+    else {
+      curdate = as.Date(paste0(yur, spring_dates[1, 2]))
       if(curdate >= date_start && curdate < date_end){
         all_dates <- rbind(all_dates, c("Spring", paste0(yur, spring_dates[1, 2]), paste0(yur, spring_dates[3, 3])))
       }
+    }
+    
   }
   
   if("Summer" %in% seasons){
-    curdate = as.Date(paste0(yur, summer_dates[1, 2]))
-      if(curdate >= date_start && curdate < date_end){
-        all_dates <- rbind(all_dates, c("Summer", paste0(yur, summer_dates[1, 2]), paste0(yur, summer_dates[3, 3])))
+    if (monthly) { 
+            for(i in c(1:3)){
+        curdate = as.Date(paste0(yur, summer_dates[i, 2]))
+        if(curdate >= date_start && curdate < date_end){
+          all_dates <- rbind(all_dates, c(summer_dates[i,1], paste0(yur, summer_dates[i, 2]), 
+                                          paste0(yur, summer_dates[i, 3]),"Summer"))
+        }
       }
+    } else {
+      curdate = as.Date(paste0(yur, summer_dates[1, 2]))
+        if(curdate >= date_start && curdate < date_end){
+          all_dates <- rbind(all_dates, c("Summer", paste0(yur, summer_dates[1, 2]),
+                                          paste0(yur, summer_dates[3, 3])))
+        }
+    }
+
   }
   
   if("Fall" %in% seasons){
-    curdate = as.Date(paste0(yur, fall_dates[1, 2]))
-      if(curdate >= date_start && curdate < date_end){
-        all_dates <- rbind(all_dates, c("Fall", paste0(yur, fall_dates[1, 2]), paste0(yur, fall_dates[3, 3])))
+    if (monthly) { 
+      for(i in c(1:3)){
+        curdate = as.Date(paste0(yur, fall_dates[i, 2]))
+        if(curdate >= date_start && curdate < date_end){
+          all_dates <- rbind(all_dates, c(fall_dates[i,1], paste0(yur, fall_dates[i, 2]),
+                                          paste0(yur, fall_dates[i, 3]),"Fall"))
+        }
       }
+    } else {
+        curdate = as.Date(paste0(yur, fall_dates[1, 2]))
+        if(curdate >= date_start && curdate < date_end){
+          all_dates <- rbind(all_dates, c("Fall", paste0(yur, fall_dates[1, 2]), 
+                                          paste0(yur, fall_dates[3, 3])))
+        }
+    }
+
   }
   
   if("Winter" %in% seasons){
-    curdate = as.Date(paste0(yur, winter_dates[1, 2]))
-      if(curdate >= date_start && curdate < date_end){
-        all_dates <- rbind(all_dates, c("Winter", paste0(yur, winter_dates[1, 2]), paste0(yur, winter_dates[3, 3])))
-      }
+    if (monthly) { 
+      for(i in c(1:3)){
+        curdate = as.Date(paste0(yur, winter_dates[i, 2]))
+        if(curdate >= date_start && curdate < date_end){
+          all_dates <- rbind(all_dates, c(winter_dates[i,1], paste0(yur, winter_dates[i, 2]),
+                                          paste0(yur, winter_dates[i, 3]),"Winter"))
+        }
+    }
+    } else {
+        curdate = as.Date(paste0(yur, winter_dates[1, 2]))
+        if(curdate >= date_start && curdate < date_end){
+          all_dates <- rbind(all_dates, c("Winter", paste0(yur, winter_dates[1, 2]),
+                                          paste0(yur, winter_dates[3, 3])))
+        }
+    }
+
   }
   
 }
-colnames(all_dates) = c("szn","start","end")
+if (monthly) {
+  colnames(all_dates) = c("months","start","end","szn")
+} else {
+  colnames(all_dates) = c("szn","start","end")
+}
+
 ```
 
 ## Packages
@@ -160,7 +218,10 @@ pick_dates <- function(datemin, datemax, big_df){
 
 ```{r}
 calc_pca <- function(pca_df){
-  pca <<- prcomp(pca_df[,7:(ncol(pca_df)-1)], center=TRUE, scale.=TRUE)
+  tryCatch({ pca <<- prcomp(pca_df[,7:(ncol(pca_df)-1)], center=TRUE, scale.=TRUE) }, error = function(msg){
+    print(paste("There was an issue with making the PCA:", msg))
+            return(NA)
+        })
 
   #take out variables
   sd <- pca$sdev
@@ -227,7 +288,8 @@ make_pca <- function(pca_df, szn, yr, cursite){
    
   if (cursite == "BEO")
   {
-    SOUTH <<- pca_df$site == cursite
+    # SOUTH <<- pca_df$site == cursite
+    SOUTH <<- rep(TRUE, length(scores[,1]))
     # n <- "BEO"
   } else {
     SOUTH <<- pca_df$site == cursite & pca_df$aspect == "South"
