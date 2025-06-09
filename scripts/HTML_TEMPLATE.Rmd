@@ -1,0 +1,86 @@
+---
+title: "HTML Template for Utqiagvik Research at UVA"
+author: "Template created by Elizabeth Van Metre"
+date: "5/31/2025"
+output: 
+  html_document:
+    theme: yeti
+    toc: true
+    toc_float: true
+    df_print: paged
+    code_folding: hide
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+```
+
+# R Markdown Guide
+
+You can use this as a template for R Markdown files to output HTML files in a clean, concise, and consistent way.
+
+There are many options you can use in your document, detailed in the following sections.
+You can also find a cheatsheet directly from posit (the creators of RStudio) [here](https://rstudio.github.io/cheatsheets/html/rmarkdown.html).
+
+## HTML Doc Settings
+
+This template is using the following settings:
+
+-   theme: yeti - theme for the html document
+
+-   toc: true - the page displays a table of contents
+
+-   toc_float: true - the table of contents floats on the side of the page so you can see it when you scroll
+
+-   df_print: paged - dataframes are printed with page options for the user to navigate
+
+-   code_folding: hide - default to hidden code, but user can show code if desired (for cleanliness)
+
+# Formatting
+
+## Chunks
+
+Chunk settings can be set either in an individual chunk or in the initial r setup, using `knitr::opts_chunk$set()`.
+
+The following chunk options are most helpful, but more can be found [here](https://rstudio.github.io/cheatsheets/html/rmarkdown.html#chunk-options).
+
+| Option | Default | Description |
+|-----------------|-----------------|--------------------------------------|
+| `echo` | `TRUE` | Display code in the html output. |
+| `error` | `FALSE` | Display error messages in the render, when an error occurs. |
+| `include` | `TRUE` | Include chunk in the output after running. |
+| `message` | `TRUE` | Display code messages in the output. |
+| `warning` | `TRUE` | Display code warnings in the output. |
+| `results` | `"markup"` | `"asis"` (pass through results), `"hide"` (don't display results), `"hold"` (put results below all code), `"markup"` (will format output with markdown, if applicable) |
+
+## Graphs & Figures
+
+| Option | Default | Description |
+|-----------------|-----------------|--------------------------------------|
+| `fig.align` | "default" | `"left"`, `"right"`, or `"center"` |
+| `fig.alt` | NULL | alt text for a figure (good for accessibility!) |
+| `fig.cap` | NULL | figure caption |
+| `fig.path` | "figure/" | prefix for generating file paths |
+| `fig.width` & `fig.height` | 7 | plot dimensions (inches) |
+| `out.width` |  | rescales output width, e.g. `"75%"`, `"300px"` |
+
+## Tables
+
+| Option | Value Type | Description |
+|-------------------|-------------------|-----------------------------------|
+| max.print | number | The number of rows to print. |
+| rows.print | number | The number of rows to display. |
+| cols.print | number | The number of columns to display. |
+| cols.min.print | number | The minimum number of columns to display. |
+| pages.print | number | The number of pages to display under page navigation. |
+| paged.print | boolean | When set to FALSE turns off paged tables. |
+| rownames.print | boolean | When set to FALSE turns off row names. |
+
+An Example Code Chunk with `cols.print=3, rows.print=6`:
+
+```{r cols.print=3, rows.print=6}
+mtcars
+```

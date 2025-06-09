@@ -10,8 +10,19 @@ output:
 [Changes]{.underline}
 
 -   4/9/2025: copy script from LMM_NvS.Rmd and update to use old, non-gap-filled data
+-   5/30/2025: change filepath to use daily csv exported by Daily_Avg_All_Seasons_2025.R
 
 
+## Directory Location
+```{r}
+# location of the current working directory, ending with a '/'
+# this should be the root folder where you cloned the github repository
+# (it should be called "Utqiagvik" unless you renamed it)
+rootpath = "~/Desktop/Arctic/Utqiagvik/"
+```
+
+# CODE
+### NO NEED TO MODIFY
 ```{r}
 library(lme4)
 library(dplyr)
@@ -20,6 +31,10 @@ library(ggplot2)
 
 ## Load Data
 
+This code is for reading data directly from the github, if the local files are not working.
+This does NOT need to be run.
+
+TODO: DELETE THIS SECTION
 ```{r}
 filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/elizabeth%20seasonal%20analysis/sourcedata/"
 gtfile = "grndtemp_daily.csv"
@@ -56,7 +71,19 @@ combined <- combined %>% mutate(depth = case_when(grounddepth == 7 ~ 1,
 
 combined = full_join(combined, vwc, by=c("date", "station", "sensor", "depth")) %>% select(c(1:9,11))
 colnames(combined)[c(2:3,9:10)] = c("site", "fullname", "vwcdepth", "vwc")
+df <- combined
 ```
+
+```{r}
+filepath = paste0(rootpath, "Analysis_Ready_Data/Daily/")
+daily <- read.csv(paste0(filepath, "All_Variables_Summer2022_Fall2024_DAILY.csv"))
+daily <- daily %>% select(-X) # %>% select(-X.1) # get rid of index columns
+daily$Date <- as.POSIXct(daily$Date, format="%Y-%m-%d") # format dates
+daily$fullname[daily$site == "BEO"] <- "BEO-BASE"
+daily <- daily %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA" | fullname == "BEO-BASE") %>% select(-c(winddirection)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", fullname == "TNHA-SA" | fullname == "SSMH-SA" ~ "South", .default = "N/A")) %>% filter(grounddepth == "10cm") %>% filter(Date >= "2022-06-19") %>% na.omit()
+df <- daily
+```
+
 
 
 ```{r}
@@ -65,9 +92,9 @@ colnames(combined)[c(2:3,9:10)] = c("site", "fullname", "vwcdepth", "vwc")
 # 
 # df <- read.csv(paste0(filepath, "daily_2022_2024.csv"))
 # df <- df %>% select(-X) %>% select(-X.1)
-df <- combined
-df$Date <- as.POSIXct(df$date, format="%Y-%m-%d")
-df <- df %>% filter(windspeed != -888.88) %>% filter(winddir != -888.88) %>% filter(site != "BUECI")
+
+df$Date <- as.POSIXct(df$Date, format="%Y-%m-%d")
+df <- df %>% filter(site != "BUECI")
 ```
 
 ## Select and Transform Data
@@ -89,7 +116,7 @@ South = SSMH-SA
 BEO (Control): does not have different aspects
 
 ```{r}
-nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA") %>% select(-c(date)) %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", .default = "South")) %>% na.omit() %>% filter(windspeed >= 0)
+nvs <- df %>% filter(fullname == "TNHA-SA" | fullname == "TNHA-SC" | fullname == "SSMH-SB" | fullname == "SSMH-SA") %>% mutate(aspect = case_when(fullname == "TNHA-SC" | fullname == "SSMH-SB" ~ "North", .default = "South")) %>% na.omit() %>% filter(windspeed >= 0)
 ```
 
 ## Filter Date Function
@@ -109,7 +136,7 @@ get_dates <- function(df, depth, datemin, datemax) {
 ```{r}
 # filter out data from before data collection
 # filter to get only depth of 10cm for now
-df_10cm_summer_2022 <- get_dates(nvs, 8, "2022-06-19", "2022-09-01")
+df_10cm_summer_2022 <- get_dates(nvs, "10cm", "2022-06-19", "2022-09-01")
 ```
 
 # LMM Functions
@@ -118,8 +145,17 @@ df_10cm_summer_2022 <- get_dates(nvs, 8, "2022-06-19", "2022-09-01")
 
 ```{r}
 fit_lmm <- function(df) {
-  lmm <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect + (1|site), data = df)
-  return(lmm)
+  if (nrow(df) == 0) {
+    return (NA)
+  }
+  if (length(levels(as.factor(df$site))) > 1) {
+    lmm <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect + (1|site), data = df)
+  } else {
+    # lmm <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect, data = df)
+    return(NA)
+  }
+  
+  return (lmm)
 }
 ```
 
@@ -129,8 +165,16 @@ fit_lmm <- function(df) {
 
 ```{r}
 fit_lmm_correlated <- function(df) {
-  lmm <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect + (airtemp|site) + (vwc|site) + (solar|site) + (windspeed|site) + (aspect|site), data = df)
+  # need to check if there is enough data in the df
+  # check if there are any observations in df
+  if (nrow(df) > 0) {
+    lmm <- lmer(groundtemp ~ airtemp + vwc + solar + windspeed + aspect + (airtemp|site) + (vwc|site) + (solar|site) + (windspeed|site) + (aspect|site), data = df)
   return(lmm)
+  } else {
+    return(NA)
+  }
+  
+  
 }
 ```
 
@@ -139,7 +183,12 @@ fit_lmm_correlated <- function(df) {
 
 ```{r}
 summer2022_lmm <- fit_lmm(df_10cm_summer_2022)
-summary(summer2022_lmm)
+if (is.na(summer2022_lmm)) {
+  print("Error with LMM - either no valid data or not enough valid levels of 'site'")
+} else {
+  summary(summer2022_lmm)
+}
+
 ```
 
 It seems like there is not too much of a difference between the two sites, but there is still presence of a difference as shown by the two different intercepts for SSMH vs TNHA.
