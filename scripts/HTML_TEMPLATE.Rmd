@@ -29,15 +29,15 @@ You can also find a cheatsheet directly from posit (the creators of RStudio) [he
 
 This template is using the following settings:
 
--   theme: yeti - theme for the html document
+-   `theme: yeti` - theme for the html document
 
--   toc: true - the page displays a table of contents
+-   `toc: true` - the page displays a table of contents
 
--   toc_float: true - the table of contents floats on the side of the page so you can see it when you scroll
+-   `toc_float: true` - the table of contents floats on the side of the page so you can see it when you scroll
 
--   df_print: paged - dataframes are printed with page options for the user to navigate
+-   `df_print: paged` - dataframes are printed with page options for the user to navigate
 
--   code_folding: hide - default to hidden code, but user can show code if desired (for cleanliness)
+-   `code_folding: hide` - default to hidden code, but user can show code if desired (for cleanliness)
 
 # Formatting
 
@@ -48,7 +48,7 @@ Chunk settings can be set either in an individual chunk or in the initial r setu
 The following chunk options are most helpful, but more can be found [here](https://rstudio.github.io/cheatsheets/html/rmarkdown.html#chunk-options).
 
 | Option | Default | Description |
-|-----------------|-----------------|--------------------------------------|
+|------------------|------------------|-------------------------------------|
 | `echo` | `TRUE` | Display code in the html output. |
 | `error` | `FALSE` | Display error messages in the render, when an error occurs. |
 | `include` | `TRUE` | Include chunk in the output after running. |
@@ -59,25 +59,25 @@ The following chunk options are most helpful, but more can be found [here](https
 ## Graphs & Figures
 
 | Option | Default | Description |
-|-----------------|-----------------|--------------------------------------|
+|------------------|------------------|-------------------------------------|
 | `fig.align` | "default" | `"left"`, `"right"`, or `"center"` |
-| `fig.alt` | NULL | alt text for a figure (good for accessibility!) |
-| `fig.cap` | NULL | figure caption |
+| `fig.alt` | `NULL` | alt text for a figure (good for accessibility!) |
+| `fig.cap` | `NULL` | figure caption |
 | `fig.path` | "figure/" | prefix for generating file paths |
-| `fig.width` & `fig.height` | 7 | plot dimensions (inches) |
+| `fig.width` & `fig.height` | `7` | plot dimensions (inches) |
 | `out.width` |  | rescales output width, e.g. `"75%"`, `"300px"` |
 
 ## Tables
 
 | Option | Value Type | Description |
-|-------------------|-------------------|-----------------------------------|
-| max.print | number | The number of rows to print. |
-| rows.print | number | The number of rows to display. |
-| cols.print | number | The number of columns to display. |
-| cols.min.print | number | The minimum number of columns to display. |
-| pages.print | number | The number of pages to display under page navigation. |
-| paged.print | boolean | When set to FALSE turns off paged tables. |
-| rownames.print | boolean | When set to FALSE turns off row names. |
+|-------------------|-------------------|----------------------------------|
+| `max.print` | `number` | The number of rows to print. |
+| `rows.print` | `number` | The number of rows to display. |
+| `cols.print` | `number` | The number of columns to display. |
+| `cols.min.print` | `number` | The minimum number of columns to display. |
+| `pages.print` | `number` | The number of pages to display under page navigation. |
+| `paged.print` | `boolean` | When set to `FALSE` turns off paged tables. |
+| `rownames.print` | `boolean` | When set to `FALSE` turns off row names. |
 
 An Example Code Chunk with `cols.print=3, rows.print=6`:
 
