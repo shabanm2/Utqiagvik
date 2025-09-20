@@ -1,9 +1,38 @@
-#Daily Averages for All Seasons
+# Daily Averages for All Seasons
 
 
-filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/RECENT_CSV_DOWNLOADS/" #raw data filepath
+#============================================#
+# SETUP
+#============================================#
+
+# This script is automated to be able to read data provided in a specific format.
+# The files need to be downloaded to a single folder, which you can provide a filepath for below.
+
+# To run this script you need to do the following:
+# 1. Update the variable 'filepath' to the folder on your local machine containing the datasets.
+# 2. Update the variable 'export_to' to the folder you want to put the exported data.
+#    NOTE: if you are using version control through GitHub, you should make this the
+#    Analysis_Ready_Data folder in your local copy of the git repo.
+# 3. Update the variable 'large_file_export' to the corresponding folder on your machine.
+# 4. Make sure that the following variables are correct for your needs:
+#    - years: the years for which you want to extract data
+#    - seasons: of "Summer", "Fall", "Winter", and "Spring", supply the seasons
+#      for your data collection
+#    - sznstart: the starting season and year of your data to avoid exporting empty datasets
+#    - sznend: the last season and year of your data to avoid exporting empty datasets
+# 5. If there have been any changes in the sensor array or the sensor naming,
+#    you will need to update the sensor variables beginning on line [XX]
+#    NOTE: to find a list of all the sensors with copy-friendly text, refer to the
+#    metadata sheet https://docs.google.com/spreadsheets/d/18X2YglxaPQeADujtZxG_fCtrwWgBFn8_/edit?gid=249467241#gid=249467241&range=A344
+
+# path to the folder to load the data:
 filepath = "~/Desktop/Arctic/Utqiagvik/Meteorological_Seasons_Data/RECENT_CSV_DOWNLOADS/"
-export_to = "~/Desktop/Arctic/Utqiagvik/Analysis_Ready_Data/" #Directory to export clean data sets
+
+# folder for the script to export cleaned data sets:
+export_to = "~/Desktop/Arctic/Utqiagvik/Analysis_Ready_Data/"
+
+# separate folder to export large data sets that you do NOT want to upload to the GitHub
+# note: GitHub has a limited amount of space as well as a limit to file sizes
 large_file_export = "~/Desktop/Arctic/Utqiagvik/Analysis_Ready_Data/Large_Files/"
 
 years <- c(2022, 2023, 2024) # the years covered by the data
@@ -14,9 +43,14 @@ seasons <- c("Summer","Fall","Winter","Spring") # don't need to change this
 sznstart <- "Summer2022"
 sznend <- "Fall2024"
 
-# Find Files
+# The Data from GitHub have been uploaded here: https://github.com/shabanm2/Utqiagvik/tree/main/Meteorological_Seasons_Data/RECENT_CSV_DOWNLOADS
+# the following filepath can be used to obtain the CSVs directly from GitHub,
+# however this script is set up to be able to read all the files in a folder
+# and that only works on your local files
+# filepath: "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/RECENT_CSV_DOWNLOADS/"
 
-all_files = list.files(filepath, pattern="*.csv", full.names=F)
+
+# Sensors (for renaming serial #s):
 
 vwcgroundsensors <- c('21393048'='BEO-B06','21398591'='BEO-B05','21393045'='BEO-B07','21398585'='BUECI-BASE','21398590'='BUECI-SA','21398583'='BUECI-SB','21393042'='BUECI-SC','21398584'='BUECI-SD','21398579'='BUECI-SE','21398578'='BUECI-SF01','21398598'='BUECI-SF02','21398588'='SSMH-BASE','21398599'='SSMH-SA','21393044'='SSMH-SB','21393049'='SSMH-SD','21398594'='SSMH-SE','21393043'='SSMH-SF','21398586'='SSMH-SG','21398580'='SSMH-SH','21398581'='SSMH-SI','21206939'='TNHA-BASE','21398593'='TNHA-SA','21398587'='TNHA-SB','21393047'='TNHA-SC','21398601'='TNHA-SD','21398577'='TNHA-SE','21398576'='BEO-B08','21393046'='TNHA-SC','21166008'='SSMH-SC','21212510'='REMOVE')
 airtempsensors <- c('21398585'='BUECI-BASE','21398659'='BUECI-__','21398661'='BUECI-__','21390851'='BUECI-BASE','21397542'='BUECI-__','21398671'='BUECI-SA','21362254'='BUECI-SB','21398668'='BUECI-SC','21362256'='BUECI-SD','21187245'='BUECI-SE','21390849'='SSMH-BASE','21398670'='SSMH-SA','21398665'='SSMH-SB','21398667'='SSMH-SI','21212510'='TNHA-SF','21218018'='TNHA-BASE','21390850'='TNHA-BASE','21380919'='TNHA-SA','21398676'='TNHA-SB','21398664'='TNHA-SB','21398674'='TNHA-SC','21398666'='TNHA-SD','21981318'='BEO-BASE','21187247'='REMOVE','21397541'='REMOVE')
@@ -28,52 +62,62 @@ winddir_ids <- c('21350855','21350894','21398590','21398729','21398724','2139866
 
 windspeed_ids <- c('21350915','21350894','21398590','21398729','21398724','21398660','21398719','21350901','21350910','21206911','21206912','21398711','21176861','21398709','21181033','21398715','21206909','21398712','21398716')
 
-# put all the files you want to clean in this vector
-# all_files = c(
-# "Fall_2023_SOLAR_2023_12_05_20_06_48_UTC_1.csv",
-# "Fall_2023_VWC_2023_12_05_20_06_01_UTC_1.csv",
-# "Fall_2023_airtemp_2023_12_05_20_08_48_UTC_1.csv",
-# "Fall_2023_grndtmp_2023_12_05_19_47_18_UTC.zip",
-# "Fall_2023_grndtmp_2023_12_05_19_47_18_UTC_1.csv",
-# "Fall_2023_grndtmp_2023_12_05_19_47_18_UTC_2.csv",
-# "Fall_2023_winddirection_2023_12_05_20_07_48_UTC_1.csv",
-# "Fall_2023_windspeed_2023_12_05_20_07_20_UTC_1.csv",
-# "Fall_22_VWC_2023_11_14_21_46_41_UTC_1.csv",
-# "Fall_22_airtmp_2023_11_14_21_43_57_UTC_1.csv",
-# "Fall_22_grndtmp_2023_11_14_21_31_58_UTC_1.csv",
-# "Fall_22_solar_2023_11_14_21_56_42_UTC_1.csv",
-# "New_Spring_2023_AIRTMP_2023_11_01_18_30_56_UTC_1.csv",
-# "New_Spring_2023_SOLAR_2023_11_01_18_29_33_UTC_1.csv",
-# "New_Spring_2023_VWC_2023_11_01_18_26_40_UTC_1.csv",
-# "New_Spring_2023_grndtmp_2023_11_01_18_20_38_UTC_1.csv",
-# "New_Summer_2023_AIRTMP_2023_11_01_18_31_41_UTC_1.csv",
-# "New_Summer_2023_GRNDTMP_2023_11_01_18_32_40_UTC_1.csv",
-# "New_Summer_2023_SOLAR_2023_11_01_18_33_40_UTC_1.csv",
-# "New_Summer_2023_VWC_2023_11_01_18_34_52_UTC_1.csv",
-# "Spring_24_VWC_2024_09_05_18_35_56_UTC_1.csv",
-# "Spring_24_airtmp_2024_09_05_18_35_01_UTC_1.csv",
-# "Spring_24_grndtmp_2024_09_05_18_29_26_UTC_1.csv",
-# "Spring_24_solar_2024_09_05_18_39_10_UTC_1.csv",
-# "Spring_24_wind_2024_09_05_18_41_48_UTC_1.csv",
-# "Summer_22_VWC_2023_11_14_21_00_08_UTC_1.csv",
-# "Summer_22_airtmp_2023_11_14_20_57_51_UTC_1.csv",
-# "Summer_22_grndtmp_2023_11_14_20_50_46_UTC_1.csv",
-# "Summer_22_solar_2023_11_14_21_01_06_UTC_1.csv",
-# "Summer_24_VWC_2024_09_05_18_46_46_UTC_1.csv",
-# "Summer_24_airtmp_2024_09_05_18_48_59_UTC_1.csv",
-# "Summer_24_grndtmp_2024_09_05_18_47_49_UTC_1.csv",
-# "Summer_24_solar_2024_09_05_18_46_02_UTC_1.csv",
-# "Summer_24_wind_2024_09_05_18_42_55_UTC_1.csv",
-# "Winter_VWC_2023_04_06_12_36_52_UTC_1.csv",
-# "Winter_VWC_2024_2024_04_15_16_29_21_UTC_1.csv",
-# "Winter_airtemp_2023_04_06_12_02_30_UTC_1.csv",
-# "Winter_airtemp_2024_2024_04_15_15_57_35_UTC_1.csv",
-# "Winter_grndtmp_2023_04_06_12_18_43_UTC_1.csv",
-# "Winter_grndtmp_2024_2024_04_15_15_48_46_UTC_1.csv",
-# "Winter_solar_2023_04_06_12_55_01_UTC_1.csv",
-# "Winter_solar_2024_2024_04_15_16_00_03_UTC_1.csv",
-# "Winter_winddir_2024_2024_04_15_16_34_22_UTC_1.csv",
-# "Winter_windspeed_2024_2024_04_15_16_31_27_UTC_1.csv")
+#===============================#
+# HOW THIS SCRIPT WORKS
+#===============================#
+
+# Section 1: Loading & Cleaning Data [Lines 161-680]
+
+# Each of the variables (ground temp, air temp, vwc, solar radiation, wind speed,
+# and wind direction) are cleaned from their respective files.
+
+# First, an empty dataframe is created, then each file for that variable is loaded,
+# transposed, and cleaned, then appended onto the empty dataframe.
+# The script removes unnecessary gibberish from the sensor serial numbers
+# for improved readability in the end result.
+
+# We refactor the depths of the ground temperature and vwc sensors to 
+# measurements in cm.
+# The final columns are Date, value, fullname, site, station, sensor, plus a
+# metadata column.
+
+# ---------------------------------#
+
+# Section 2: Exporting Raw Data [Lines 680-751]
+
+# Due to the nature of the size of the resulting dataframes, they are split
+# by season, according to the seasons and years listed above between sznstart
+# and sznend. Then they are exported into the large file folder.
+
+# ---------------------------------#
+
+# Section 3: Aggregating and Exporting Hourly Data [Lines 755-877]
+
+# Each of the variables are aggregated by each hour and summarized with the min,
+# max, average, and amplitude. The resulting dfs are exported by season and year.
+
+# ---------------------------------#
+
+# Section 4: Aggregating and Exporting Daily Data [Lines 879-979]
+
+# Each of the variables are aggregated by each day and summarized with the min,
+# max, average, and amplitude. The resulting dfs are exported by season and year.
+
+# ---------------------------------#
+
+# Section 5: Final Exports [Lines 981-1065]
+
+# For both the hourly and the daily averages, each of the variables are joined together
+# into a single df with columns representing the average measurement for each variable.
+# The hourly and daily combined dfs are then exported.
+
+# ************************************************
+# YOU DO NOT NEED TO EDIT ANY CODE BELOW THIS LINE.
+# ************************************************
+
+# Find Files
+
+all_files = list.files(filepath, pattern="*.csv", full.names=F)
 
 # select ground temperature files
 gtf = grepl("grnd", all_files, ignore.case=T)
