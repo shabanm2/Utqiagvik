@@ -19,6 +19,34 @@ library(caret)
 ```
 
 ```{r}
+#if getting from github
+filepath <- "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/PM/25/25_Data/"
+file1 <- "Hourly_June1_17.csv"
+file2 <- "July1to30.csv"
+file3 <- "SUM_PM_618_712.csv"
+file4 <- "july30tosep1.csv"
+
+a <- read_csv(paste0(filepath, file1))
+b <- read_csv(paste0(filepath, file2))  # Changed to read_csv
+c <- read_csv(paste0(filepath, file3))  # Changed to read_csv
+d <- read_csv(paste0(filepath, file4))  # Changed to read_csv
+
+df_unique <- bind_rows(a, b, c, d)
+
+df_unique$Time <- as.POSIXct(df_unique$Time, format = "%m-%d-%Y %H:%M")
+
+df_unique <- df_unique %>%
+  pivot_longer(
+    cols = -Time,                  # Target all columns except 'Time' for pivoting
+    names_to = c("node_number", "data_type"), # Create two new columns from old column names
+    names_sep = " / ",             # Split the old column names by " / "
+    values_to = "value"            # Name the column where the actual measurements will go
+  )
+
+```
+
+```{r}
+#if getting off of desktop
 Sum_PM_25_61_617 <- read_csv("~/Desktop/PM_VIS_TEMP/Hourly_June1_17.csv")
 Sum_PM_25_618_712 <- read_csv("~/Desktop/PM_VIS_TEMP/SUM_PM_618_712.csv")
 Sum_PM_25_71_730 <- read_csv("~/Desktop/PM_VIS_TEMP/July1to30.csv")
@@ -31,6 +59,7 @@ Sum_PM_25_730_91$Time <- as.POSIXct(Sum_PM_25_730_91$Time, format = "%m-%d-%Y %H
 ```
 
 ```{r}
+#only run if getting off of desktop
 data_long <- Sum_PM_25_61_617 %>%
   pivot_longer(
     cols = -Time,                  # Target all columns except 'Time' for pivoting
