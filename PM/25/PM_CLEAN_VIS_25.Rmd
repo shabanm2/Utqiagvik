@@ -1,7 +1,7 @@
 ---
 title: "PM_CLEAN_VIS_25"
 author: "Mirella Shaban"
-date: "2025-06-18"
+date: "2025-10-10"
 output: html_document
 ---
 ```{r}
@@ -27,7 +27,7 @@ Sum_PM_25_730_91 <- read_csv("~/Desktop/PM_VIS_TEMP/july30tosep1.csv")
 Sum_PM_25_61_617$Time <- as.POSIXct(Sum_PM_25_61_617$Time, format = "%m-%d-%Y %H:%M") #already in AKST from Datacake report
 Sum_PM_25_618_712$Time <- as.POSIXct(Sum_PM_25_618_712$Time, format = "%m-%d-%Y %H:%M")
 Sum_PM_25_71_730$Time <- as.POSIXct(Sum_PM_25_71_730$Time, format = "%m-%d-%Y %H:%M")
-Sum_PM_25_730_91$Time <- as.POSIXct(Sum_PM_25_71_91$Time, format = "%m-%d-%Y %H:%M")
+Sum_PM_25_730_91$Time <- as.POSIXct(Sum_PM_25_730_91$Time, format = "%m-%d-%Y %H:%M")
 ```
 
 ```{r}
@@ -68,6 +68,10 @@ Sum_PM_25 <- rbind(data_long, data_long_1, data_long_2, data_long_3)
 df_unique <- unique(Sum_PM_25)
 
 #write.csv(df_unique, "~/Desktop/PM_VIS_TEMP/fullsummer25_PM_AND_Temp_dataset.csv")
+
+#number of times values were = 999
+#x <- df_unique %>% filter(value >= 999)
+#count(x$node_number)
 
 ```
 
@@ -147,7 +151,7 @@ node_counts
 # NAAQS-2024 24-h thresholds (2.5 = 35, 10= 150)
 limits <- tibble(
   data_type = c("PM2_5", "PM10_0"),
-  threshold = c(35,        150)     # µg/m³
+  threshold = c(15,        45)     # µg/m³
 )
 
 exceed_totals <- xy %>%
@@ -193,23 +197,23 @@ result_wide
 
 #specific selections of nodes for Todd & Bryan
 
-```{r fig, fig.height = 20, fig.width = 28}
+```{r fig, fig.height = 15, fig.width = 28}
 #figures of just todds sensors
 
-xy <- xy %>% filter(node_number == "node-06" | node_number == "node-08") 
+Todd_Sensors <- xy %>% filter(node_number == "node-06" | node_number == "node-08") 
   
   
 
-  ggplot(xy, aes(x = Time, y = value, color = data_type)) +
+  ggplot(Todd_Sensors, aes(x = Time, y = value, color = data_type)) +
   geom_line() +
-  guides(color = guide_legend(override.aes = list(size=0))) +
+  guides(color = guide_legend(override.aes = list(size=20))) +
   theme(legend.title = element_text(size = 40, face = "bold"),legend.text = element_text(size = 30)) +
   facet_wrap(~ node_number, scales = "free", ncol = 1) +  # Facet by source, scales = "free" allows each part of the facet to have its own x and y axis based on that particular locations scale/range
-  labs(title = "PM Levels Over Time, 6/1/25-9/1/25",
+  labs(title = "Cakeeater Rd Sensor PM, 6/1/25-9/1/25",
        x = "Time",
        y = "Pollutant Level",
        color = "Pollutant") +
-    scale_x_datetime(date_breaks = "1 week", date_labels = "%m-%d") +  # Set breaks every 1 week
+    scale_x_datetime(date_breaks = "1 day", date_labels = "%m-%d") +  # Set breaks every 1 week
     # scale_y_continuous(breaks = seq(0, max(node03$value, na.rm = TRUE), by = 20)) +  # Tick marks every X units
   theme_bw() +
   theme(axis.text.y =element_text(size = 20) ,
@@ -218,25 +222,27 @@ xy <- xy %>% filter(node_number == "node-06" | node_number == "node-08")
         axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
   theme(plot.title = element_text(hjust = 0.5, size = 30),
         axis.title.x = element_text(size = 25),
-        axis.title.y = element_text(size = 25)) 
+        axis.title.y = element_text(size = 25)) +
+  theme(legend.text = element_text(size = 14),      # Legend labels text size
+    legend.title = element_text(size = 16)      # Legend title text size (optional)
+    )
 ```
-```{r fig, fig.height = 20, fig.width = 28}
+```{r fig, fig.height = 10, fig.width = 28}
 #Bryan's only
-xy <- data_long %>% filter(data_type != "Temperature" & value != "999")
-xy <- xy %>% filter(node_number == "node-04") 
+Bryan_sensor <- xy %>% filter( node_number == "node-04") 
   
   
 
-  ggplot(xy, aes(x = Time, y = value, color = data_type)) +
+  ggplot(Bryan_sensor, aes(x = Time, y = value, color = data_type)) +
   geom_line() +
-  guides(color = guide_legend(override.aes = list(size=0))) +
+  guides(color = guide_legend(override.aes = list(size=40))) +
   theme(legend.title = element_text(size = 40, face = "bold"),legend.text = element_text(size = 30)) +
   facet_wrap(~ node_number, scales = "free", ncol = 1) +  # Facet by source, scales = "free" allows each part of the facet to have its own x and y axis based on that particular locations scale/range
-  labs(title = "PM Levels Over Time, 6/1/25-6/17/25",
+  labs(title = "NOAA Sensor PM, 6/1/25-9/1/25",
        x = "Time",
        y = "Pollutant Level",
        color = "Pollutant") +
-    scale_x_datetime(date_breaks = "1 hours", date_labels = "%m-%d") +  # Set breaks every 6 hours
+    scale_x_datetime(date_breaks = "1 day", date_labels = "%m-%d") +  # Set breaks every 6 hours
    # scale_y_continuous(breaks = seq(0, max(node03$value, na.rm = TRUE), by = 20)) +  # Tick marks every X units
   theme_bw() +
   theme(axis.text.y =element_text(size = 20) ,
@@ -245,11 +251,45 @@ xy <- xy %>% filter(node_number == "node-04")
         axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
   theme(plot.title = element_text(hjust = 0.5, size = 30),
         axis.title.x = element_text(size = 25),
-        axis.title.y = element_text(size = 25)) 
+        axis.title.y = element_text(size = 25))+
+  theme(legend.text = element_text(size = 14),      # Legend labels text size
+    legend.title = element_text(size = 16)      # Legend title text size (optional)
+    )
   
 ```
 
 ```{r}
 #chunk to pick out dates, sensor names for PM2.5 & PM 10 when above threshold
+```
+
+```{r fig, fig.height = 20, fig.width = 28}
+#3,4,9,14
+#Bryan's only
+Poster <- xy %>% filter( node_number == "node-03" |node_number == "node-04" |node_number == "node-14" |node_number == "node-17"  ) 
+  
+  
+
+  ggplot(Poster, aes(x = Time, y = value, color = data_type)) +
+  geom_line() +
+  guides(color = guide_legend(override.aes = list(size=40))) +
+  theme(legend.title = element_text(size = 40, face = "bold"),legend.text = element_text(size = 30)) +
+  facet_wrap(~ node_number, scales = "free", ncol = 1) +  # Facet by source, scales = "free" allows each part of the facet to have its own x and y axis based on that particular locations scale/range
+  labs(title = "Selection of PM Sensors, 6/1/25-9/1/25",
+       x = "Time",
+       y = "Pollutant Level",
+       color = "Pollutant") +
+    scale_x_datetime(date_breaks = "1 day", date_labels = "%m-%d") +  # Set breaks every 6 hours
+   # scale_y_continuous(breaks = seq(0, max(node03$value, na.rm = TRUE), by = 20)) +  # Tick marks every X units
+  theme_bw() +
+  theme(axis.text.y =element_text(size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, size = 18), 
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25))+
+  theme(legend.text = element_text(size = 14),      # Legend labels text size
+    legend.title = element_text(size = 16)      # Legend title text size (optional)
+    )
 ```
 
