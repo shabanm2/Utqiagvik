@@ -1,0 +1,305 @@
+---
+title: "Gap_Fill_Clean_Transpose_VWC_Solar_Wind"
+author: "Mirella Shaban"
+date: "2026-01-08"
+output: html_document
+---
+
+Switch out the file names in the first chunk, and in the subsequent chunks change the CSV name in the write.csv() line 
+```{r}
+library(dplyr)
+library(tidyr)
+library(splitstackshape)
+
+path <- "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/"
+
+#switch these out as needed
+moistfile <- "TNHA_moisture_Data_merged_2022-05-17_to_2025-09-04_CLEANED_KNN_SAVGOL.csv"
+solarfile <- "TNHA_solar_Data_merged_2022-05-17_to_2025-09-04_KNN_SAVGOL.csv"
+windspfile <- "TNHA_wind_sp_Data_merged_2022-05-17_to_2025-09-04_CLEANED_KNN_SAVGOL.csv"
+winddirfile <- "TNHA_wind_dir_Data_merged_2022-05-17_to_2025-09-04_CLEANED_KNN_SAVGOL.csv"
+
+# filenames
+  # TNHA_moisture_Data_merged_2022-05-17_to_2025-09-04_CLEANED_KNN_SAVGOL.csv
+  # SSMH_moisture_Data_CLEAN_OLDplusNEW_merged_2022-06-08_to_2025-01-18.csv
+  # BEO_moisture_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-07-08_KNN_KNN_SAVGOL.csv
+  
+  # BEO_solar_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-09-20_KNN_KNN_SAVGOL.csv
+  # TNHA_solar_Data_merged_2022-05-17_to_2025-09-04_KNN_SAVGOL.csv  
+
+  # BEO_temp_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-09-20_KNN_KNN_SAVGOL.csv
+  # TNHA_temp_Data_CLEAN_OLDplusNEW_merged_from_OLDstart_to_2025-09-04_KNN_SAVGOL.csv  
+  # SSMH_temp_Data_CLEAN_OLDplusNEW_merged_2022-06-08_to_2025-10-16.csv  
+  
+  # BEO_wind_dir_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-09-20_KNN_KNN_SAVGOL.csv  
+  # SSMH_wind_dir_Data_CLEAN_OLDplusNEW_merged_2022-06-08_to_2025-10-16.csv  
+  # TNHA_wind_dir_Data_merged_2022-05-17_to_2025-09-04_CLEANED_KNN_SAVGOL.csv  
+  
+  # BEO_wind_sp_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-09-20_KNN_KNN_SAVGOL.csv  
+  # SSMH_wind_sp_Data_CLEAN_OLDplusNEW_merged_2022-06-08_to_2025-10-16.csv  
+  # TNHA_wind_sp_Data_merged_2022-05-17_to_2025-09-04_CLEANED_KNN_SAVGOL.csv
+
+
+
+moist <- read.csv(paste0(path, moistfile))
+windsp <- read.csv(paste0(path, windspfile))
+solar <- read.csv(paste0(path, solarfile))
+winddir <- read.csv(paste0(path, winddirfile))
+
+```
+
+
+VWC
+```{r}
+# Your initial reshaping
+grndtmp <- gather(moist, variable, response, 2:ncol(moist)) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+grndtmp <- cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(grndtmp)[2:4] <- c("value", "sensor", "depth")
+grndtmp$sensor <- gsub('X', '', grndtmp$sensor)
+grndtmp$Date <- as.POSIXct(grndtmp$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+
+# Define sensor mappings
+vwc_sensors <- c('21393048'='BEO-B06','21398591'='BEO-B05','21393045'='BEO-B07','21398588'='SSMH-BASE','21398599'='SSMH-SA','21393044'='SSMH-SB','21393049'='SSMH-SD','21398594'='SSMH-SE','21393043'='SSMH-SF','21398586'='SSMH-SG','21398580'='SSMH-SH','21398581'='SSMH-SI','21206939'='TNHA-BASE','21398593'='TNHA-SA','21398587'='TNHA-SB','21393047'='TNHA-SC','21398601'='TNHA-SD','21398577'='TNHA-SE','21398576'='BEO-B08','21393046'='TNHA-SC','21166008'='SSMH-SC')
+
+
+# Rename depth values
+grndtmp$depth <- as.character(grndtmp$depth)
+grndtmp$depth <- revalue(grndtmp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", 
+                                           "10" = "30cm", "11" = "40cm", "12" = "50cm", 
+                                           "13" = "55cm", "14" = "65cm", "15" = "75cm", 
+                                           "16" = "85cm", "17" = "90cm"))
+
+# Depth mapping
+depth_mapping <- c("7"="3.5cm","8"="10cm","9"="20cm","10"="30cm","11"="40cm",
+                   "12"="50cm","13"="55cm","14"="65cm","15"="75cm","16"="85cm","17"="90cm")
+
+# VWC (with depth)
+  df_vwc <- grndtmp %>%
+    filter(sensor %in% names(vwc_sensors)) %>%
+    mutate(
+      sensor_name = vwc_sensors[sensor],
+      depth = revalue(as.character(depth), depth_mapping)
+    ) %>%
+    filter(sensor_name != "REMOVE") %>%
+    group_by(Date, sensor_name, depth) %>%
+    summarise(vwc = mean(value, na.rm = TRUE), .groups = "drop")
+  
+
+write.csv(df_vwc, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_VWC.csv")
+
+```
+
+
+
+SOLAR
+```{r}
+grndtmp <- gather(solar, variable, response, 2:ncol(solar)) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+grndtmp <- cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(grndtmp)[2:4] <- c("value", "sensor", "depth")
+grndtmp$sensor <- gsub('X', '', grndtmp$sensor)
+grndtmp$Date <- as.POSIXct(grndtmp$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+
+solar_sensors <- c('21390415'='BEO-BASE','21390413'='SSMH-BASE','21398622'='SSMH-SA','21362319'='SSMH-SB','21398619'='SSMH-SI','21362318'='TNHA-SB','21176526'='TNHA-BASE','21398620'='TNHA-SA','21398616'='TNHA-SB','21362317'='TNHA-SC','21362315'='TNHA-SD')
+
+
+# SOLAR
+  df_solar <- grndtmp %>%
+    filter(sensor %in% names(solar_sensors)) %>%
+    mutate(sensor_name = solar_sensors[sensor]) %>%
+    filter(sensor_name != "REMOVE") %>%
+    group_by(Date, sensor_name) %>%
+    summarise(solar = mean(value, na.rm = TRUE), .groups = "drop")
+write.csv(df_solar, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_Solar.csv")
+```
+
+
+
+WINDSP
+```{r}
+grndtmp <- gather(windsp, variable, response, 2:ncol(windsp)) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+grndtmp <- cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(grndtmp)[2:4] <- c("value", "sensor", "depth")
+grndtmp$sensor <- gsub('X', '', grndtmp$sensor)
+grndtmp$Date <- as.POSIXct(grndtmp$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+
+wind_sensors <- c('21350915'='BEO-BASE','21350901'='SSMH-BASE','21350910'='SSMH-BASE','21206911'='SSMH-SA','21206912'='SSMH-SB','21398711'='SSMH-SI','21176861'='TNHA-BASE','21398709'='TNHA-SA','21181033'='TNHA-SB','21398715'='TNHA-SB','21206909'='TNHA-SC','21398712'='TNHA-SD','21350855'='BEO-BASE','21350820'='SSMH-BASE','21167037'='TNHA-BASE','21398716'='TNHA-SD')
+
+winddir_ids <- c('21350855','21350894','21398590','21398729','21398724','21398660','21398719','21350820','21206911','21206912','21398711','21181033','21167037','21398709','21398715','21206909','21398712','21398716')
+
+windspeed_ids <- c('21350915','21350894','21398590','21398729','21398724','21398660','21398719','21350901','21350910','21206911','21206912','21398711','21176861','21398709','21181033','21398715','21206909','21398712','21398716')
+
+  # WIND SPEED
+  df_windspeed <- grndtmp %>%
+    filter(sensor %in% windspeed_ids & sensor %in% names(wind_sensors)) %>%
+    mutate(sensor_name = wind_sensors[sensor]) %>%
+    filter(sensor_name != "REMOVE") %>%
+    group_by(Date, sensor_name) %>%
+    summarise(wind_speed = mean(value, na.rm = TRUE), .groups = "drop")
+write.csv(df_windspeed, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_Windsp.csv")
+```
+
+
+WINDDIR
+```{r}
+grndtmp <- gather(winddir, variable, response, 2:ncol(winddir)) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+grndtmp <- cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(grndtmp)[2:4] <- c("value", "sensor", "depth")
+grndtmp$sensor <- gsub('X', '', grndtmp$sensor)
+grndtmp$Date <- as.POSIXct(grndtmp$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+
+wind_sensors <- c('21350915'='BEO-BASE','21350901'='SSMH-BASE','21350910'='SSMH-BASE','21206911'='SSMH-SA','21206912'='SSMH-SB','21398711'='SSMH-SI','21176861'='TNHA-BASE','21398709'='TNHA-SA','21181033'='TNHA-SB','21398715'='TNHA-SB','21206909'='TNHA-SC','21398712'='TNHA-SD','21350855'='BEO-BASE','21350820'='SSMH-BASE','21167037'='TNHA-BASE','21398716'='TNHA-SD')
+
+winddir_ids <- c('21350855','21350894','21398590','21398729','21398724','21398660','21398719','21350820','21206911','21206912','21398711','21181033','21167037','21398709','21398715','21206909','21398712','21398716')
+
+windspeed_ids <- c('21350915','21350894','21398590','21398729','21398724','21398660','21398719','21350901','21350910','21206911','21206912','21398711','21176861','21398709','21181033','21398715','21206909','21398712','21398716')
+  
+  # WIND DIRECTION
+  df_winddir <- grndtmp %>%
+    filter(sensor %in% winddir_ids & sensor %in% names(wind_sensors)) %>%
+    mutate(sensor_name = wind_sensors[sensor]) %>%
+    filter(sensor_name != "REMOVE") %>%
+    group_by(Date, sensor_name) %>%
+    summarise(wind_dir = mean(value, na.rm = TRUE), .groups = "drop")
+
+write.csv(df_winddir, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_Winddir.csv")
+
+```
+
+```{r}
+#Combining files of same type into 1 large file per variable
+
+path_1 <- "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/"
+
+
+a1 <- "BEO_Air.csv"
+d1 <- "BEO_Ground.csv"
+g1 <- "BEO_Solar.csv"
+i1 <- "BEO_VWC.csv"
+l1 <- "BEO_Winddir.csv"
+o1 <- "BEO_Windsp.csv"
+b1 <- "SSMH_Air.csv"
+e1 <- "SSMH_Ground.csv"
+j1 <- "SSMH_VWC.csv"
+m1 <- "SSMH_Winddir.csv"
+p1 <- "SSMH_Windsp.csv"
+c1 <- "TNHA_Air.csv"
+f1 <- "TNHA_Ground.csv"
+h1 <- "TNHA_Solar.csv"
+k1 <- "TNHA_VWC.csv"
+n1 <- "TNHA_Winddir.csv"
+q1 <- "TNHA_Windsp.csv"
+
+a <- read.csv(paste0(path_1, a1))
+b <- read.csv(paste0(path_1, b1))
+c <- read.csv(paste0(path_1, c1))
+d <- read.csv(paste0(path_1, d1))
+e <- read.csv(paste0(path_1, e1))
+f <- read.csv(paste0(path_1, f1))
+g <- read.csv(paste0(path_1, g1))
+h <- read.csv(paste0(path_1, h1))
+i <- read.csv(paste0(path_1, i1))
+j <- read.csv(paste0(path_1, j1))
+k <- read.csv(paste0(path_1, k1))
+l <- read.csv(paste0(path_1, l1))
+m <- read.csv(paste0(path_1, m1))
+n <- read.csv(paste0(path_1, n1))
+o <- read.csv(paste0(path_1, o1))
+p <- read.csv(paste0(path_1, p1))
+q <- read.csv(paste0(path_1, q1))
+
+gap_fill_air <- bind_rows(a,b,c)
+gap_fill_ground <- bind_rows(d,e,f)
+gap_fill_vwc <- bind_rows(i,j,k)
+gap_fil_solar <- bind_rows(g,h)
+gap_fill_wind_dir <- bind_rows(l,m,n)
+gap_fill_wind_sp <- bind_rows(o,p,q)
+
+write.csv(gap_fil_solar, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/solar_22_25.csv")
+write.csv(gap_fill_air, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/air_22_25.csv")
+write.csv(gap_fill_ground, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/ground_22_25.csv")
+write.csv(gap_fill_vwc, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/vwc_22_25.csv")
+write.csv(gap_fill_wind_dir, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/winddir_22_25.csv")
+write.csv(gap_fill_wind_sp, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/windsp_22_25.csv")
+
+```
+
+```{r}
+ground <- read.csv("~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/ground_22_25.csv")
+air <- read.csv("~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/air_22_25.csv")
+vwc <- read.csv("~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/vwc_22_25.csv")
+solar <- read.csv("~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/solar_22_25.csv")
+windsp <- read.csv("~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/windsp_22_25.csv")
+winddir <- read.csv("~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/winddir_22_25.csv")
+```
+
+
+mapping
+```{r}
+# Create a mapping from ground sensor names to their associated air sensor names
+air_ground_mapping <- c(
+  'TNHA-BASE' = 'TNHA-BASE',
+  'TNHA-SA' = 'TNHA-SA',
+  'TNHA-SB' = 'TNHA-SB',
+  'TNHA-SC' = 'TNHA-SC',
+  'TNHA-SD' = 'TNHA-SD',
+  'SSMH-BASE' = 'SSMH-BASE',
+  'SSMH-SA' = 'SSMH-SA',
+  'SSMH-SB' = 'SSMH-SB',
+  'SSMH-SD' = 'SSMH-BASE',    # No SSMH-SD air, use SSMH-BASE?
+  'BEO-B05' = 'BEO-BASE',      # Map BEO ground sensors to BEO-BASE air
+  'BEO-B06' = 'BEO-BASE'  
+)
+
+# Add air_sensor_name to ground data for joining
+df_ground <- ground %>%
+  mutate(sensor_name = air_ground_mapping[sensor_name])
+
+# Join using the mapped name
+df_combined <- df_ground %>%
+  left_join(air, by = c("Date", "sensor_name" = "sensor_name")) %>%
+  select(Date, sensor_name, depth, ground_temp, air_temp)
+```
+
+```{r}
+#Daily combination?? taken from daily_Avg_All_Seasons_2025.... script
+
+#need to map the BEO-BASE to BEO-B05, B06, B07, B08...
+
+gt_daily <- ground %>% group_by(as.Date(Date), sensor_name, depth) 
+colnames(gt_daily)[1] <- "Date"
+
+at_daily <- air %>% group_by(as.Date(day), sensor_name, depth) %>% 
+  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
+colnames(at_daily)[1] <- "Date"
+
+solar_daily <- solar %>% group_by(as.Date(day), sensor_name, depth) %>% 
+  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
+colnames(solar_daily)[1] <- "Date"
+
+vwc_daily <- vwc %>% group_by(as.Date(day), sensor_name, depth) %>% 
+  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
+colnames(vwc_daily)[1] <- "Date"
+
+ws_daily <- windsp %>% group_by(as.Date(day), sensor_name, depth) %>% 
+  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
+colnames(ws_daily)[1] <- "Date"
+
+wd_daily <- winddir %>% group_by(as.Date(day), sensor_name, depth) %>% 
+  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
+colnames(wd_daily)[1] <- "Date"
+```
+
+
+
