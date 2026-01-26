@@ -1,0 +1,80 @@
+---
+title: "Freeze_Thaw_Dates_Ch2"
+author: "Mirella Shaban"
+date: "2026-01-21"
+output: html_document
+---
+
+
+```{r}
+#load nongapfilled data
+
+#GITHUB ACCESS:
+#filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/"
+#some issue occurred when merging everything together, using the seasonal files now until a proper merge can be conducted
+
+#Desktop access
+filepath = "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/ALL_COMBINED/Daily/"
+  
+summ22 <- read.csv(paste0(filepath, "GroundTemperature_Summer2022_DAILY.csv"))
+fall22 <- read.csv(paste0(filepath, "GroundTemperature_Fall2022_DAILY.csv")) #for some reason there is only data for 09/01/2022 in this file??
+summ23 <- read.csv(paste0(filepath, "GroundTemperature_Summer2023_DAILY.csv"))
+fall23 <- read.csv(paste0(filepath, "GroundTemperature_Fall2023_DAILY.csv")) #for some reason there is only data for 09/01/2022 in this file??
+summ24 <- read.csv(paste0(filepath, "GroundTemperature_Summer2024_DAILY.csv"))
+fall24 <- read.csv(paste0(filepath, "GroundTemperature_Fall2024_DAILY.csv")) # regular fall data for entire season here
+summ25 <- read.csv(paste0(filepath, "GroundTemperature_Summer2025_DAILY.csv"))
+
+summ22$Date <- as.POSIXct(summ22$Date, format = "%Y-%m-%d")
+fall22$Date <- as.POSIXct(fall22$Date, format = "%Y-%m-%d")
+summ23$Date <- as.POSIXct(summ23$Date, format = "%Y-%m-%d")
+fall23$Date <- as.POSIXct(fall23$Date, format = "%Y-%m-%d")
+summ24$Date <- as.POSIXct(summ24$Date, format = "%Y-%m-%d")
+fall24$Date <- as.POSIXct(fall24$Date, format = "%Y-%m-%d")
+summ25$Date <- as.POSIXct(summ25$Date, format = "%Y-%m-%d")
+
+### *Freeze dates (after value passes 0) --> depends on season you look at*
+
+```
+
+
+#wait on fall 2023 -- see what went wrong in averaging and combining script***
+```{r}
+freeze_dates <- fall22 %>% filter(fullname == "SSMH-BASE" & avg < 0.5, depth =="90cm") %>% filter(Date > "2022-09-01" & Date < "2022-12-01")
+
+list(freeze_dates)
+```
+
+### THAW (Summer)
+```{r}
+thaw_dates <- summ23 %>% filter( fullname == "BEO-B06" & avg > -0.6, depth == "90cm") %>% filter(Date > "2023-06-01" & Date < "2023-09-01")
+list(thaw_dates)
+
+
+x <- SUMM24_ALLDEPTHS %>% filter( fullname == "BEO-B08" & depth == "10cm") 
+list(x)
+```
+
+FIGURE OF ALL STATIONS DURING YEAR = X VARIATION
+```{r fig1, fig.height = 70, fig.width = 26}
+VARIATION <- fall24 %>% filter( avg > -1 & avg < 1)
+
+ggplot(VARIATION, aes(x= Date, y=avg)) +
+  geom_point() +
+  theme_bw() +
+  labs(title= "FALL 2024 THAW VARIATION", x = "Date", y="Ground Temperature (°C)")  +
+  facet_wrap(depth~fullname,ncol=5,drop=FALSE)
+
+#add facet wrapping here to tidy up figure
+  
+```
+
+```{r fig2, fig.height = 30, fig.width = 20}
+VARIATION <- SUMM24_ALLDEPTHS %>% filter(fullname == "TNHA-BASE", value > -1 & value < 1)
+
+ggplot(VARIATION, aes(x= date, y=value)) +
+  geom_point() +
+  theme_bw() +
+  labs(title= "SUMMER 2024 THAW VARIATION - TNHA-BASE", x = "Date", y="Ground Temperature (°C)")  +
+  facet_wrap(depth~fullname,nrow=5,drop=FALSE)
+  
+```

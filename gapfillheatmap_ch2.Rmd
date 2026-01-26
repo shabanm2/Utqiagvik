@@ -1,0 +1,485 @@
+---
+title: "gapfillheatmap_ch2"
+author: "Mirella Shaban"
+date: "2026-01-19"
+output: html_document
+---
+
+Load in data and aggregate by station
+------
+Load packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+Load gap filled daily average data from GIT
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/"
+
+gapfilldata = "all_var_combined_22_25_BEO_COMP.csv"
+
+allvargapfill =read.csv(paste0(filepath, gapfilldata))
+```
+
+
+Separate each variable into its own dataframe
+```{r}
+grndtmp = allvargapfill %>% subset() %>% select(Date, sensor_name, grounddepth, groundtemp) %>% filter( !groundtemp == "-888.8") 
+
+grndtmp$grounddepth <- as.factor(as.character(grndtmp$grounddepth))
+grndtmp$grounddepth <- revalue(grndtmp$grounddepth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", "10" = "30cm", "11" = "40cm", "12" = "50cm", "13" = "55cm", "14" = "65cm", "15" = "75cm", "16" = "85cm", "17" = "90cm"))
+
+vwc = allvargapfill %>% subset() %>% select(Date, sensor_name, grounddepth, vwc) %>% filter( !vwc == "-888.8")
+
+solar = allvargapfill %>% subset() %>% select(Date, sensor_name, solar) %>% filter( !solar == "-888.8")
+
+air = allvargapfill %>% subset() %>% select(Date, sensor_name, airtemp) %>% filter( !airtemp == "-888.8")
+
+wind = allvargapfill %>% subset() %>% select(Date, sensor_name, windspeed, winddirection) %>% filter( !winddirection == "-888.8", !windspeed == "-888.8")
+```
+
+
+AVERAGE BY STATION (can compare sensors at the same site, such as N & S) by Date
+```{r}
+#date constraint so averaging only occurs over the time period we're interested in -- is this necessary?
+#season <- plot1 %>% filter(Date > "2022-06-09" & Date <= "2022-09-01")
+
+
+averaged_by_station <- grndtmp %>% filter(sensor_name == "TNHA-BASE") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station$sensor_name <- c("TNHA-BASE")
+
+averaged_by_station1 <- grndtmp %>% filter(sensor_name == "TNHA-SA") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station1$sensor_name <- c("TNHA-SA")
+
+averaged_by_station2 <- grndtmp %>% filter(sensor_name == "TNHA-SB") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station2$sensor_name <- c("TNHA-SB")
+
+averaged_by_station3 <- grndtmp %>% filter(sensor_name == "TNHA-SC") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station3$sensor_name <- c("TNHA-SC")
+
+
+averaged_by_station4 <- grndtmp %>% filter(sensor_name == "TNHA-SD") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station4$sensor_name <- c("TNHA-SD")
+
+averaged_by_station5 <- grndtmp %>% filter(sensor_name == "SSMH-BASE") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station5$sensor_name <- c("SSMH-BASE")
+
+averaged_by_station6 <- grndtmp %>% filter(sensor_name == "SSMH-SA") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station6$sensor_name <- c("SSMH-SA")
+
+averaged_by_station7 <- grndtmp %>% filter(sensor_name == "SSMH-SB") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station7$sensor_name <- c("SSMH-SB")
+
+
+averaged_by_station8 <- grndtmp %>% filter(sensor_name == "SSMH-SD") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station8$sensor_name <- c("SSMH-SD")
+
+
+averaged_by_station9 <- grndtmp %>% filter(sensor_name == "SSMH-SE") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station9$sensor_name <- c("SSMH-SE")
+
+averaged_by_station10 <- grndtmp %>% filter(sensor_name == "SSMH-SF") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station10$sensor_name <- c("SSMH-SF")
+
+averaged_by_station11 <- grndtmp %>% filter(sensor_name == "SSMH-SG") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station11$sensor_name <- c("SSMH-SG")
+
+averaged_by_station12 <- grndtmp %>% filter(sensor_name == "SSMH-SH") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station12$sensor_name <- c("SSMH-SH")
+
+averaged_by_station13 <- grndtmp %>% filter(sensor_name == "SSMH-SI") %>% aggregate(groundtemp~Date+grounddepth, mean)
+averaged_by_station13$sensor_name <- c("SSMH-SI")
+
+#2022 THROUGH 2023
+averaged_by_station14 <- grndtmp %>% filter(sensor_name == "BEO-B05" | sensor_name == "BEO-B06" ) %>% aggregate(groundtemp~Date+grounddepth, mean)
+ averaged_by_station14$sensor_name <- c("BEO1")
+
+ #2023 AND BEYOND 
+averaged_by_station19 <- grndtmp %>% filter(sensor_name == "BEO-B07" | sensor_name == "BEO-B08") %>% aggregate(groundtemp~Date+grounddepth, mean)
+ averaged_by_station19$sensor_name <- c("BEO2")
+
+
+averaged_by_station15 <- grndtmp %>% filter(sensor_name == "BEO-B05") %>% aggregate(groundtemp~Date+grounddepth, mean)
+ averaged_by_station15$sensor_name <- c("BEO-B05")
+ 
+averaged_by_station16 <- grndtmp %>% filter( sensor_name == "BEO-B06" ) %>% aggregate(groundtemp~Date+grounddepth, mean)
+ averaged_by_station16$sensor_name <- c("BEO-B06")
+ 
+averaged_by_station17 <- grndtmp %>% filter( sensor_name == "BEO-B07") %>% aggregate(groundtemp~Date+grounddepth, mean)
+ averaged_by_station17$sensor_name <- c("BEO-B07")
+ 
+averaged_by_station18 <- grndtmp %>% filter( sensor_name == "BEO-B08") %>% aggregate(groundtemp~Date+grounddepth, mean)
+ averaged_by_station18$sensor_name <- c("BEO-B08")
+
+
+Daily_grndtmp_avgs<- rbind(averaged_by_station, averaged_by_station1, averaged_by_station2, averaged_by_station3,averaged_by_station4,averaged_by_station6,averaged_by_station7,averaged_by_station9,averaged_by_station8,averaged_by_station11,averaged_by_station13,averaged_by_station14,averaged_by_station15,averaged_by_station16,averaged_by_station18,averaged_by_station19)
+
+Daily_grndtmp_avgs$Date <- as.Date(Daily_grndtmp_avgs$Date, format= "%Y-%m-%d",tz="UTC")
+
+```
+
+-----
+Select / refine criteria
+
+summer 22
+```{r}
+#data transformation
+Daily_grndtmp_avgs$groundtemp <- as.numeric(Daily_grndtmp_avgs$groundtemp)
+Daily_grndtmp_avgs$sensor_name <- as.factor(Daily_grndtmp_avgs$sensor_name)
+Daily_grndtmp_avgs$grounddepth <- Daily_grndtmp_avgs$grounddepth
+
+#depth and station(sensor_name) constraint
+plot1 <- Daily_grndtmp_avgs %>% 
+  filter(grounddepth=="10cm" | grounddepth=="30cm" | grounddepth=="40cm"|grounddepth=="50cm"| grounddepth=="55cm" | grounddepth=="65cm" |grounddepth=="75cm" |grounddepth=="85cm" |grounddepth=="90cm") %>% 
+  filter(sensor_name =="BEO1" |sensor_name =="BEO2" | sensor_name == "TNHA-BASE" | sensor_name == "TNHA-SA" |sensor_name =="TNHA-SB"|sensor_name =="TNHA-SC" |sensor_name == "TNHA-SD" |sensor_name == "SSMH-BASE" |sensor_name =="SSMH-SA"|sensor_name =="SSMH-SB" |sensor_name =="SSMH-SD")  %>% 
+  mutate(grounddepth = factor(grounddepth, levels = c("10cm", "30cm","40cm", "50cm","55cm","65cm","75cm","85cm", "90cm")))  %>% 
+  mutate(sensor_name = factor(sensor_name, levels = c("BEO1","BEO2", "TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD", "SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SD")))
+
+
+#BELOW INCLUDES SEPARATED STATIONS FOR BEO, WHILE ABOVE IS USING THE AVERAGE OF ALL OF THE STATIONS FOR BEO PER THE TIME FRAME SELECTED IN THE CHUNK BELOW
+
+plot1 <- Daily_grndtmp_avgs %>% 
+  filter(grounddepth=="10cm" | grounddepth=="30cm" | grounddepth=="40cm"|grounddepth=="50cm"| grounddepth=="55cm" | grounddepth=="65cm" |grounddepth=="75cm" |grounddepth=="85cm" |grounddepth=="90cm") %>% 
+  filter(sensor_name =="BEO-B05" | sensor_name =="BEO-B06" | sensor_name =="BEO-B07" | sensor_name =="BEO-B08" |sensor_name =="BEO1" |sensor_name =="BEO2" |sensor_name == "TNHA-BASE" | sensor_name == "TNHA-SA" |sensor_name =="TNHA-SB"|sensor_name =="TNHA-SC" |sensor_name == "TNHA-SD" |sensor_name == "SSMH-BASE" |sensor_name =="SSMH-SA"|sensor_name =="SSMH-SB" |sensor_name =="SSMH-SD")  %>% 
+  mutate(grounddepth = factor(grounddepth, levels = c("10cm", "30cm","40cm", "50cm","55cm","65cm","75cm","85cm", "90cm")))  %>% 
+  mutate(sensor_name = factor(sensor_name, levels = c("BEO-B05", "BEO-B06", "BEO-B07", "BEO-B08", "BEO1","BEO2","TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD", "SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SD")))
+
+#RENAME ALL STATIONS FOR PLOTTING
+# Create a named vector for renaming stations
+station_names <- c(
+  "BEO-B05" = "Tundra-1",
+  "BEO-B06" = "Tundra-2",
+  "BEO-B07" = "Tundra-3",
+  "BEO-B08" = "Tundra-4",
+  "BEO1" = "Tundra-OMIT1",
+  "BEO2" = "Tundra-OMIT2",
+  "TNHA-BASE" = "RESIDENTIAL-S1",
+  "TNHA-SA" = "RESIDENTIAL-S2",
+  "TNHA-SB" = "RESIDENTIAL-W",
+  "TNHA-SC" = "RESIDENTIAL-N",
+  "TNHA-SD" = "RESIDENTIAL-E",
+  "SSMH-BASE" = "HOSPITAL-S1",
+  "SSMH-SA" = "HOSPITAL-S2",
+  "SSMH-SB" = "HOSPITAL-N",
+  "SSMH-SD" = "HOSPITAL-E"
+)
+
+# Rename stations for display
+plot1$sensor_name <- recode(plot1$sensor_name, !!!station_names)
+```
+
+
+```{r}
+#date constraint
+season <- plot1 %>% filter(Date > "2022-06-09" & Date <= "2022-09-01")
+
+
+#rounding and getting seasonal average for each station
+season %>%
+  group_by(sensor_name,groundtemp,grounddepth) %>%
+  summarize(mean_X1 = mean(groundtemp)) %>% 
+  aggregate( groundtemp ~ sensor_name + grounddepth, mean ) %>%
+  group_by(sensor_name)
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+
+df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
+
+```
+
+
+Summer 22 plot
+```{r fig1, fig.height = 6, fig.width = 8}
+#data plotting 
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "75cm","85cm","90cm")))
+df_new <- df_new %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2")
+df_new$groundtemp <- round(df_new$groundtemp, 1)
+#df_new$sensor_name <- factor(df_new$sensor_name, levels=rev(c("BEO-05", "BEO-06", "TNHA-BASE", "TNHA-SA", "TNHA-SB", "TNHA-SC", "TNHA-SD", "SSMH-BASE", "SSMH-SA", "SSMH-SB", "SSMH-SD")))
+
+ggplot(df_new, aes(y= grounddepth, x = sensor_name, fill = groundtemp)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=groundtemp, color = ifelse(groundtemp < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Summer 2022 Average Ground Temperatures (°C)", y = "Depth", x= "Station", fill= "Ground Temperatures") +
+  theme_bw() +
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
+
+```
+
+
+FALL
+```{r}
+#date constraint
+season <- plot1 %>% filter(Date >= "2022-09-01" & Date <= "2022-12-01")
+
+
+#rounding and getting seasonal average for each station
+season %>%
+  group_by(sensor_name,groundtemp,grounddepth) %>%
+  summarize(mean_X1 = mean(groundtemp)) %>% 
+  aggregate( groundtemp ~ sensor_name + grounddepth, mean ) %>%
+  group_by(sensor_name)
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
+```
+
+Fall 22 plot
+```{r fig2, fig.height = 6, fig.width = 8}
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "75cm","85cm","90cm")))
+df_new <- df_new %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2" & !sensor_name == "Tundra-4")
+df_new$groundtemp <- round(df_new$groundtemp, 1)
+#data plotting 
+ggplot(df_new, aes(x= sensor_name, y = grounddepth, fill = groundtemp)) + 
+  geom_tile() + 
+   scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=groundtemp, color = ifelse(groundtemp < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Fall 2022 Average Ground Temperatures (°C)", y = "Depth", x= "Station", fill= "Ground Temperatures") +
+  theme_bw()+ 
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
+```
+
+SPRING
+```{r}
+#date constraint
+season <- plot1 %>% filter(Date >= "2025-03-01" & Date <= "2025-06-01")
+
+
+#rounding and getting seasonal average for each station
+season %>%
+  group_by(sensor_name,groundtemp,grounddepth) %>%
+  summarize(mean_X1 = mean(groundtemp)) %>% 
+  aggregate( groundtemp ~ sensor_name + grounddepth, mean ) %>%
+  group_by(sensor_name)
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
+```
+
+Spring 23 plot
+```{r fig3, fig.height = 6, fig.width = 8}
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "75cm","85cm","90cm")))
+df_new <- df_new %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2")
+df_new$groundtemp <- round(df_new$groundtemp, 1)
+#data plotting 
+ggplot(df_new, aes(x= sensor_name, y = grounddepth, fill = groundtemp)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=groundtemp, color = ifelse(groundtemp < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Spring 2025 Average Ground Temperatures (°C)", y = "Depth", x= "Station", fill = "Ground Temperatures") +
+  theme_bw()+  
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10)) 
+  
+```
+
+Summer 23 ( CANT RUN, NOT ENOUGH DATA)
+
+Fall 23
+```{r}
+#date constraint
+season <- plot1 %>% filter(Date >= "2023-09-01" & Date <= "2023-12-01")
+
+
+#rounding and getting seasonal average for each station
+season %>%
+  group_by(sensor_name,groundtemp,grounddepth) %>%
+  summarize(mean_X1 = mean(groundtemp)) %>% 
+  aggregate( groundtemp ~ sensor_name + grounddepth, mean ) %>%
+  group_by(sensor_name)
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
+```
+
+Fall 23 plot
+```{r fig4, fig.height = 6, fig.width = 8}
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "75cm","85cm","90cm")))
+df_new <- df_new %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2" & !sensor_name == "Tundra-3" & !sensor_name == "Tundra-4")
+df_new$groundtemp <- round(df_new$groundtemp, 1)
+#data plotting 
+ggplot(df_new, aes(x= sensor_name, y = grounddepth, fill = groundtemp)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=groundtemp, color = ifelse(groundtemp < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Fall 2023 Average Ground Temperatures (°C)", y = "Depth", x= "Station", fill = "Ground Temperatures") +
+  theme_bw()+  
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
+
+```
+
+
+
+
+Spring 24
+```{r}
+#date constraint
+season <- plot1 %>% filter(Date >= "2024-03-01" & Date <= "2024-06-01")
+
+
+#rounding and getting seasonal average for each station
+season %>%
+  group_by(sensor_name,groundtemp,grounddepth) %>%
+  summarize(mean_X1 = mean(groundtemp)) %>% 
+  aggregate( groundtemp ~ sensor_name + grounddepth, mean ) %>%
+  group_by(sensor_name)
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
+```
+```{r fig5, fig.height = 6, fig.width = 8}
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "75cm","85cm","90cm")))
+df_new <- df_new %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2" & !sensor_name == "Tundra-3" & !sensor_name == "Tundra-4")
+df_new$groundtemp <- round(df_new$groundtemp, 1)
+#data plotting 
+ggplot(df_new, aes(x= sensor_name, y = grounddepth, fill = groundtemp)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=groundtemp, color = ifelse(groundtemp < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Spring 2024 Average Ground Temperatures (°C)", y = "Depth", x= "Station", fill= "Ground Temperatures") +
+  theme_bw()+  
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
+  
+```
+
+Summer 24
+```{r}
+#date constraint
+season <- plot1 %>% filter(Date >= "2024-06-01" & Date <= "2024-09-01")
+
+
+#rounding and getting seasonal average for each station
+season %>%
+  group_by(sensor_name,groundtemp,grounddepth) %>%
+  summarize(mean_X1 = mean(groundtemp)) %>% 
+  aggregate( groundtemp ~ sensor_name + grounddepth, mean ) %>%
+  group_by(sensor_name)
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
+```
+
+```{r fig6, fig.height = 6, fig.width = 8}
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "75cm","85cm","90cm")))
+df_new <- df_new %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2" & !sensor_name == "Tundra-3" & !sensor_name == "Tundra-4")
+df_new$groundtemp <- round(df_new$groundtemp, 1)
+#data plotting 
+ggplot(df_new, aes(x= sensor_name, y = grounddepth, fill = groundtemp)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=groundtemp, color = ifelse(groundtemp < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Summer 2024 Average Ground Temperatures (°C)", y = "Depth", x= "Station", fill = "Ground Temperatures") +
+  theme_bw()+  
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
+  
+```
+Fall 24
+```{r}
+#date constraint
+season <- plot1 %>% filter(Date >= "2024-09-01" & Date <= "2024-12-01")
+
+
+#rounding and getting seasonal average for each station
+season %>%
+  group_by(sensor_name,groundtemp,grounddepth) %>%
+  summarize(mean_X1 = mean(groundtemp)) %>% 
+  aggregate( groundtemp ~ sensor_name + grounddepth, mean ) %>%
+  group_by(sensor_name)
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+df_new <- season1 %>% mutate(across(c("groundtemp"), round, 2))
+```
+
+```{r fig7, fig.height = 6, fig.width = 8}
+df_new$grounddepth<-factor(df_new$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "75cm","85cm","90cm")))
+df_new <- df_new %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2" & !sensor_name == "Tundra-3" & !sensor_name == "Tundra-4")
+df_new$groundtemp <- round(df_new$groundtemp, 1)
+#data plotting 
+ggplot(df_new, aes(x= sensor_name, y = grounddepth, fill = groundtemp)) + 
+  geom_tile() + 
+    scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=groundtemp, color = ifelse(groundtemp < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Fall 2024 Average Ground Temperatures (°C)", y = "Depth", x= "Station", fill = "Ground Temperatures") +
+  theme_bw()+  
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
+  
+```
