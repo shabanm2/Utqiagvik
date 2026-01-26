@@ -1,9 +1,11 @@
 ---
-title: "Gap_Fill_Clean_Transpose_VWC_Solar_Wind"
+title: "Gap_Fill_Transpose_and_Join"
 author: "Mirella Shaban"
 date: "2026-01-08"
 output: html_document
 ---
+
+This code combines 2022-2025 data for three sites (TNHA, SSMH, BEO) and then gathers daily averages for each variable, maps depths for VWC to Grounddepth, and joins all variables (averaged daily) into one master dataframe
 
 Switch out the file names in the first chunk, and in the subsequent chunks change the CSV name in the write.csv() line 
 ```{r}
@@ -25,7 +27,8 @@ winddirfile <- "TNHA_wind_dir_Data_merged_2022-05-17_to_2025-09-04_CLEANED_KNN_S
   # BEO_moisture_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-07-08_KNN_KNN_SAVGOL.csv
   
   # BEO_solar_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-09-20_KNN_KNN_SAVGOL.csv
-  # TNHA_solar_Data_merged_2022-05-17_to_2025-09-04_KNN_SAVGOL.csv  
+  # TNHA_solar_Data_merged_2022-05-17_to_2025-09-04_KNN_SAVGOL.csv 
+  # SSMH_solar_Data_FINAL_CLEAN_KNN_Nov2025.csv
 
   # BEO_temp_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-09-20_KNN_KNN_SAVGOL.csv
   # TNHA_temp_Data_CLEAN_OLDplusNEW_merged_from_OLDstart_to_2025-09-04_KNN_SAVGOL.csv  
@@ -88,7 +91,7 @@ depth_mapping <- c("7"="3.5cm","8"="10cm","9"="20cm","10"="30cm","11"="40cm",
     summarise(vwc = mean(value, na.rm = TRUE), .groups = "drop")
   
 
-write.csv(df_vwc, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_VWC.csv")
+#write.csv(df_vwc, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_VWC.csv")
 
 ```
 
@@ -107,6 +110,7 @@ grndtmp$Date <- as.POSIXct(grndtmp$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
 
 solar_sensors <- c('21390415'='BEO-BASE','21390413'='SSMH-BASE','21398622'='SSMH-SA','21362319'='SSMH-SB','21398619'='SSMH-SI','21362318'='TNHA-SB','21176526'='TNHA-BASE','21398620'='TNHA-SA','21398616'='TNHA-SB','21362317'='TNHA-SC','21362315'='TNHA-SD')
 
+grndtmp <- grndtmp %>% filter(!value < 0)
 
 # SOLAR
   df_solar <- grndtmp %>%
@@ -115,7 +119,7 @@ solar_sensors <- c('21390415'='BEO-BASE','21390413'='SSMH-BASE','21398622'='SSMH
     filter(sensor_name != "REMOVE") %>%
     group_by(Date, sensor_name) %>%
     summarise(solar = mean(value, na.rm = TRUE), .groups = "drop")
-write.csv(df_solar, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_Solar.csv")
+#write.csv(df_solar, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_Solar.csv")
 ```
 
 
@@ -144,7 +148,7 @@ windspeed_ids <- c('21350915','21350894','21398590','21398729','21398724','21398
     filter(sensor_name != "REMOVE") %>%
     group_by(Date, sensor_name) %>%
     summarise(wind_speed = mean(value, na.rm = TRUE), .groups = "drop")
-write.csv(df_windspeed, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_Windsp.csv")
+#write.csv(df_windspeed, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_Windsp.csv")
 ```
 
 
@@ -173,10 +177,11 @@ windspeed_ids <- c('21350915','21350894','21398590','21398729','21398724','21398
     group_by(Date, sensor_name) %>%
     summarise(wind_dir = mean(value, na.rm = TRUE), .groups = "drop")
 
-write.csv(df_winddir, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_Winddir.csv")
+#write.csv(df_winddir, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/TNHA_Winddir.csv")
 
 ```
 
+Load all sites variable dataframes into R
 ```{r}
 #Combining files of same type into 1 large file per variable
 
@@ -191,6 +196,7 @@ l1 <- "BEO_Winddir.csv"
 o1 <- "BEO_Windsp.csv"
 b1 <- "SSMH_Air.csv"
 e1 <- "SSMH_Ground.csv"
+x1 <- "SSMH_solar.csv"
 j1 <- "SSMH_VWC.csv"
 m1 <- "SSMH_Winddir.csv"
 p1 <- "SSMH_Windsp.csv"
@@ -218,23 +224,25 @@ n <- read.csv(paste0(path_1, n1))
 o <- read.csv(paste0(path_1, o1))
 p <- read.csv(paste0(path_1, p1))
 q <- read.csv(paste0(path_1, q1))
+x <- read.csv(paste0(path_1 ,x1))
 
 gap_fill_air <- bind_rows(a,b,c)
 gap_fill_ground <- bind_rows(d,e,f)
 gap_fill_vwc <- bind_rows(i,j,k)
-gap_fil_solar <- bind_rows(g,h)
+gap_fill_solar <- bind_rows(g,h,x)
 gap_fill_wind_dir <- bind_rows(l,m,n)
 gap_fill_wind_sp <- bind_rows(o,p,q)
 
-write.csv(gap_fil_solar, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/solar_22_25.csv")
-write.csv(gap_fill_air, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/air_22_25.csv")
-write.csv(gap_fill_ground, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/ground_22_25.csv")
-write.csv(gap_fill_vwc, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/vwc_22_25.csv")
-write.csv(gap_fill_wind_dir, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/winddir_22_25.csv")
-write.csv(gap_fill_wind_sp, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/windsp_22_25.csv")
+#write.csv(gap_fill_solar, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/solar_22_25.csv")
+#write.csv(gap_fill_air, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/air_22_25.csv")
+#write.csv(gap_fill_ground, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/ground_22_25.csv")
+#write.csv(gap_fill_vwc, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/vwc_22_25.csv")
+#write.csv(gap_fill_wind_dir, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/winddir_22_25.csv")
+#write.csv(gap_fill_wind_sp, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/windsp_22_25.csv")
 
 ```
 
+load csv's created earlier in script (jump straight here if you want to just run a daily averaging and combination of all the scripts)
 ```{r}
 ground <- read.csv("~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/ground_22_25.csv")
 air <- read.csv("~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/air_22_25.csv")
@@ -245,61 +253,135 @@ winddir <- read.csv("~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/
 ```
 
 
-mapping
-```{r}
-# Create a mapping from ground sensor names to their associated air sensor names
-air_ground_mapping <- c(
-  'TNHA-BASE' = 'TNHA-BASE',
-  'TNHA-SA' = 'TNHA-SA',
-  'TNHA-SB' = 'TNHA-SB',
-  'TNHA-SC' = 'TNHA-SC',
-  'TNHA-SD' = 'TNHA-SD',
-  'SSMH-BASE' = 'SSMH-BASE',
-  'SSMH-SA' = 'SSMH-SA',
-  'SSMH-SB' = 'SSMH-SB',
-  'SSMH-SD' = 'SSMH-BASE',    # No SSMH-SD air, use SSMH-BASE?
-  'BEO-B05' = 'BEO-BASE',      # Map BEO ground sensors to BEO-BASE air
-  'BEO-B06' = 'BEO-BASE'  
-)
 
-# Add air_sensor_name to ground data for joining
-df_ground <- ground %>%
-  mutate(sensor_name = air_ground_mapping[sensor_name])
-
-# Join using the mapped name
-df_combined <- df_ground %>%
-  left_join(air, by = c("Date", "sensor_name" = "sensor_name")) %>%
-  select(Date, sensor_name, depth, ground_temp, air_temp)
-```
-
+Daily averages 
 ```{r}
 #Daily combination?? taken from daily_Avg_All_Seasons_2025.... script
 
 #need to map the BEO-BASE to BEO-B05, B06, B07, B08...
 
-gt_daily <- ground %>% group_by(as.Date(Date), sensor_name, depth) 
+gt_daily <- ground %>% group_by(as.Date(Date), sensor_name, depth) %>%
+  summarize(max = max(ground_temp), min = min(ground_temp)) %>% mutate(avg = (max+min)/2, amp = max-min)
 colnames(gt_daily)[1] <- "Date"
+colnames(gt_daily)[6] <- "groundtemp"
 
-at_daily <- air %>% group_by(as.Date(day), sensor_name, depth) %>% 
-  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
-colnames(at_daily)[1] <- "Date"
+air_daily <- air %>% group_by(as.Date(Date), sensor_name) %>%
+  summarize(max = max(air_temp), min = min(air_temp)) %>% mutate(avg = (max+min)/2, amp = max-min)
+colnames(air_daily)[1] <- "Date"
+colnames(air_daily)[5] <- "airtemp"
 
-solar_daily <- solar %>% group_by(as.Date(day), sensor_name, depth) %>% 
-  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
+solar_daily <- solar %>% group_by(as.Date(Date), sensor_name) %>% 
+  summarize(max = max(solar), min = min(solar)) %>% mutate(avg = (max+min)/2, amp = max-min)
 colnames(solar_daily)[1] <- "Date"
+colnames(solar_daily)[5] <- "solar"
 
-vwc_daily <- vwc %>% group_by(as.Date(day), sensor_name, depth) %>% 
-  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
+vwc_daily <- vwc %>% group_by(as.Date(Date), sensor_name, depth) %>% 
+  summarize(max = max(vwc), min = min(vwc)) %>% mutate(avg = (max+min)/2, amp = max-min)
 colnames(vwc_daily)[1] <- "Date"
+colnames(vwc_daily)[6] <- "vwc"
 
-ws_daily <- windsp %>% group_by(as.Date(day), sensor_name, depth) %>% 
-  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
+ws_daily <- windsp %>% group_by(as.Date(Date), sensor_name) %>% 
+  summarize(max = max(wind_speed), min = min(wind_speed)) %>% mutate(avg = (max+min)/2, amp = max-min)
 colnames(ws_daily)[1] <- "Date"
+colnames(ws_daily)[5] <- "windspeed"
 
-wd_daily <- winddir %>% group_by(as.Date(day), sensor_name, depth) %>% 
-  summarize(max = max(max), min = min(min)) %>% mutate(avg = (max+min)/2, amp = max-min)
+
+wd_daily <- winddir %>% group_by(as.Date(Date), sensor_name) %>% 
+  summarize(max = max(wind_dir), min = min(wind_dir)) %>% mutate(avg = (max+min)/2, amp = max-min)
 colnames(wd_daily)[1] <- "Date"
+colnames(wd_daily)[5] <- "winddirection"
+
+
+#DAILY AVERAGED FOR EACH VARIABLE
+
+# write.csv(solar_daily, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/solar_22_25_DAILY.csv")
+# write.csv(air_daily, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/air_22_25_DAILY.csv")
+# write.csv(gt_daily, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/ground_22_25_DAILY.csv")
+# write.csv(vwc_daily, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/vwc_22_25_DAILY.csv")
+# write.csv(wd_daily, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/winddir_22_25_DAILY.csv")
+# write.csv(ws_daily, "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/windsp_22_25_DAILY.csv")
 ```
 
+Recode VWC depths, match to ground depths, join all variables together into one dataframe
+Newest workflow
+```{r}
+# Step 1: Recode vwcdepth in vwc_daily
+vwc_daily$vwcdepth <- recode(as.character(vwc_daily$depth), 
+                              "1" = "0-15cm", 
+                              "2" = "15-30cm", 
+                              "3" = "30-45cm",
+                              "4" = "45-60cm", 
+                              "5" = "60-75cm", 
+                              "6" = "75-90cm")
 
+# Step 2: Apply vwcdepth mapping to gt_daily
+colnames(gt_daily)[3] = "grounddepth"
+gt_daily <- gt_daily %>% 
+  mutate(vwcdepth = case_when(
+    grounddepth == "3.5cm" ~ "0-15cm",
+    grounddepth == "10cm" ~ "0-15cm",
+    grounddepth == "20cm" ~ "15-30cm",
+    grounddepth == "30cm" ~ "30-45cm",
+    grounddepth == "40cm" ~ "30-45cm",
+    grounddepth == "50cm" ~ "45-60cm",
+    grounddepth == "55cm" ~ "45-60cm",
+    grounddepth == "65cm" ~ "60-75cm",
+    grounddepth == "75cm" ~ "75-90cm",
+    grounddepth == "85cm" ~ "75-90cm",
+    grounddepth == "90cm" ~ "75-90cm"
+  ))
+
+# Step 3: Expand BEO-BASE for air, solar, wind ONLY
+beo_ground_sensors <- c('BEO-B05', 'BEO-B06', 'BEO-B07', 'BEO-B08')
+
+expand_beo_base <- function(df) {
+  beo_base_rows <- df %>% filter(sensor_name == "BEO-BASE")
+  non_beo_rows <- df %>% filter(sensor_name != "BEO-BASE")
+  
+  beo_expanded <- beo_base_rows %>%
+    crossing(new_sensor = beo_ground_sensors) %>%
+    mutate(sensor_name = new_sensor) %>%
+    select(-new_sensor)
+  
+  bind_rows(non_beo_rows, beo_expanded)
+}
+
+# Apply ONLY to datasets with BEO-BASE (NOT gt_daily or vwc_daily)
+air_daily <- air_daily %>% expand_beo_base()
+ws_daily <- ws_daily %>% expand_beo_base()
+wd_daily <- wd_daily %>% expand_beo_base()
+solar_daily <- solar_daily %>% expand_beo_base()
+
+# Step 4: Verify sensor names
+gt_daily %>% filter(grepl("BEO", sensor_name)) %>% distinct(sensor_name)
+vwc_daily %>% filter(grepl("BEO", sensor_name)) %>% distinct(sensor_name)
+air_daily %>% filter(grepl("BEO", sensor_name)) %>% distinct(sensor_name)
+
+# Step 5: Join
+join <- full_join(gt_daily, vwc_daily, by = c("Date", "sensor_name", "vwcdepth"), relationship = "many-to-many") %>%
+  full_join(air_daily, by = c("Date", "sensor_name"), relationship = "many-to-many") %>%
+  full_join(solar_daily, by = c("Date", "sensor_name"), relationship = "many-to-many") %>%
+  full_join(ws_daily, by = c("Date", "sensor_name"), relationship = "many-to-many") %>%
+  full_join(wd_daily, by = c("Date", "sensor_name"), relationship = "many-to-many") %>%
+  select(Date, sensor_name, grounddepth, vwcdepth, groundtemp, vwc, airtemp, solar, windspeed, winddirection) %>%
+  distinct() 
+
+#write.csv(join, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/all_var_combined_22_25_BEO_COMP.csv")
+
+
+# Try without the intermediate unique() calls
+join_test <- full_join(gt_daily, vwc_daily, by = c("Date", "sensor_name", "vwcdepth"), relationship = "many-to-many") %>%
+  full_join(air_daily, by = c("Date", "sensor_name"), relationship = "many-to-many") %>%
+  full_join(solar_daily, by = c("Date", "sensor_name"), relationship = "many-to-many") %>%
+  full_join(ws_daily, by = c("Date", "sensor_name"), relationship = "many-to-many") %>%
+  full_join(wd_daily, by = c("Date", "sensor_name"), relationship = "many-to-many") %>%
+  select(Date, sensor_name, grounddepth, vwcdepth, groundtemp, vwc, airtemp, solar, windspeed, winddirection) %>%
+  distinct()  # Use distinct() instead of unique()
+
+# Check results
+sum(!is.na(join_test$airtemp))
+head(join_test)
+
+
+```
 
