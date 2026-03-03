@@ -1,0 +1,556 @@
+---
+title: "zero-curtain-regime-chapter2"
+author: "Mirella Shaban"
+Date: "2026-01-19"
+output: html_document
+---
+
+This script requires either LOAD AND CLEAN or gap filled differences .RMD to be run in order to work (needs those scripts for the daily averaging and loading in the data)
+
+This script will bind temperatures between -0.5 °C and +0.5 °C to observe the start, end, and duration of the zero curtain regime across seasons
+
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+```{r}
+filepath = "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/all_years/"
+
+gapfilldata = "ground_22_25_DAILY.csv"
+
+Daily_grndtmp_avgs =read.csv(paste0(filepath, gapfilldata))
+
+Daily_grndtmp_avgs$Date <-as.POSIXct(Daily_grndtmp_avgs$Date,format="%Y-%m-%d" ,tz="UTC")
+
+```
+
+
+```{r}
+#Constrain by season
+
+#daily_ground_22_23_24 --> non gap filled
+#Daily_grndtmp_avgs -- gap filled
+
+#gap filled
+zero_curtain<- Daily_grndtmp_avgs %>% filter( groundtemp < 0.5 & groundtemp > -0.5 & Date >= "2022-09-01" & Date <= "2022-12-01", na.rm = TRUE) %>% subset(depth == "10cm" | depth == "30cm"| depth == "55cm" | depth == "65cm" | depth == "90cm")
+
+#nongap filled
+zero_curtain<- Daily_grndtmp_avgs %>% filter( groundtemp < 0.5 & groundtemp > -0.5 & Date >= "2022-09-01" & Date <= "2022-12-01", na.rm = TRUE) %>% subset(depth == "10cm" | depth == "30cm"| depth == "55cm" | depth == "65cm" | depth == "90cm")
+
+
+list(zero_curtain)
+
+zero_curtain$depth <- zero_curtain$depth %>% factor(levels = c("10cm", "30cm", "55cm", "65cm", "90cm"))
+
+```
+
+```{r fig1, fig.height = 20, fig.width = 18}
+zero_curtain %>% 
+  ggplot(aes(x=Date, y=groundtemp, color = sensor_name)) +
+  geom_point(na.rm = TRUE) +
+  geom_line(na.rm = TRUE) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw() +
+  facet_wrap(depth~. , nrow=6) +
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "Zero Curtain Regime Durations, Fall 2022",y="Temperature (°C)", x="Date",color="sensor_name") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-0.5,0,0.5), limits=c(-0.5, 0.5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        strip.text= element_text(size=35, face = "bold"),
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) 
+#+
+  scale_color_manual(groundtemps =c("TNHA-BASE" = "#1B9E77" ,"TNHA-SA" = "#D95F02", "TNHA-SC" ="#E7298A", "TNHA-SD"="#66A61E", "BEO"= "#084594","SSMH-BASE"="#807DBA", "SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6", "SSMH-SD"="#7A0177")) 
+
+#TNHA-SB (add)
+# BEO (add)
+
+```
+
+```{r}
+#Checking duration of regime by start & end Dates
+#Note, you need to ensure there is not thaw occurring between the start and end Date --> look at the dataframe to confirm continuous >=0.5 °C measurements
+
+x<- zero_curtain %>% filter(depth == "10cm" & sensor_name == "BEO-B05")
+
+maxi<- max(x$Date)
+mini<- min(x$Date)
+
+w<- list(mini,maxi)
+
+print(w)
+```
+```{r}
+#if within range of zero curtain, we will have a groundtemp of 1. if not, groundtemp of 0
+
+# Add a new column groundtemp_binary with transformed groundtemps
+
+Daily_grndtmp_avgs$Date <- as.Date(Daily_grndtmp_avgs$Date, format = "%Y-%m-%d", tz = "UTC")
+transformed_df <- Daily_grndtmp_avgs %>%
+  mutate(groundtemp_binary = if_else(groundtemp >= -0.5 & groundtemp <= 0.5, 1, 0))
+
+transformed_df$Date <- as.Date(transformed_df$Date, format = "%Y-%m-%d", tz = "UTC")
+transformed_df <- transformed_df %>% filter(Date >= "2022-06-08")
+```
+
+```{r fig2, fig.height = 14, fig.width = 18}
+#plot this now with depth on the y and Date on the x
+transformed_df$depth <- transformed_df$depth %>% factor(levels = rev(c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")))
+
+transformed_df %>% filter(sensor_name == "SSMH-SA"  & groundtemp_binary =="1" & Date >= "2022-09-01" & Date <= "2022-12-01") %>%
+  ggplot(aes(x=Date, y=depth, fill=groundtemp_binary)) +
+  geom_point() +
+  geom_line()+
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_classic() +
+  theme(legend.title = element_text(size = 25),legend.text = element_text(size = 20)) +
+  labs(title = "Zero-curtain regime duration, SSMH-BASE", y = "Temperature (°C)", x= "Week", color = "Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+    scale_y_discrete(limits = rev(c("3.5cm", "10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))) + # Force y-axis levels +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25))
+```
+
+```{r fig3, fig.height = 14, fig.width = 18}
+transformed_df$depth <- transformed_df$depth %>% 
+  factor(levels = rev(c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")))
+
+transformed_df %>% 
+  filter(sensor_name == "TNHA-BASE" & groundtemp_binary == "1" & Date >= "2024-06-01" & Date <= "2024-09-01") %>%
+  ggplot(aes(x = Date, y = depth, fill = groundtemp_binary)) +
+  geom_point() +
+ # geom_line(linewidth = 3, colour = "darkgrey") +
+  scale_y_discrete(limits = rev(c("3.5cm", "10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))) +
+  theme_classic() +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 20),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 30),
+    axis.title.x = element_text(size = 25),
+    axis.title.y = element_text(size = 25)
+  ) +
+  labs(
+    title = "Zero-curtain regime duration, TNHA-BASE",
+    y = "Depth",
+    x = "Week",
+    fill = "zero curtain present"
+  ) +
+  scale_x_date(date_breaks = "1 week")
+
+```
+
+```{r fig4, fig.height = 14, fig.width = 10}
+#we want to see where there is actual thaw (or freeze) verus where we are just approaching 0 but not crossing over or under (so, a real zero curtain)
+#to do this, constrain +/- 2.0°C
+
+#what is the best way to go about this? Should I 
+
+#maybe i print out the CSV's of the data grouped by depth, station, and increasing in Date so i can see the progression of the zero curtain? But isnt this already what im doing in my code above with the constraint?
+
+
+library(ggalt)
+sample1 <- Daily_grndtmp_avgs %>% filter(Daily_grndtmp_avgs$groundtemp >=-5 & Daily_grndtmp_avgs$groundtemp <= 5 & sensor_name == "TNHA-BASE" & Date >= "2022-06-08" & Date <= "2022-09-01") 
+
+#sample1$depth <- sample1$depth %>% factor(levels = rev(c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")))
+
+sample_select <- sample1 %>% filter(sample1$groundtemp >= -0.5 & sample1$groundtemp <= 0.5 & sensor_name == "TNHA-BASE") 
+#sample_select$depth <- sample_select$depth %>% factor(levels = rev(c("3.5cm","10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")))
+
+# Plot
+ggplot(sample1, aes(x= Date, y=groundtemp)) + 
+  geom_point() +   # draw points
+  facet_wrap(~factor(depth, levels = c("3.5cm", "10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm")), ncol=2) +
+  geom_smooth(method="loess", se=F) + 
+ # scale_y_discrete(limits = rev(c("3.5cm", "10cm", "20cm", "30cm", "40cm", "50cm", "55cm", "65cm", "75cm", "85cm", "90cm"))) +
+  theme_bw() +
+  geom_encircle(aes(x=Date, y=groundtemp), 
+                data=sample_select, 
+                color="red", 
+                size=1,
+                ) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 30),
+    axis.title.x = element_text(size = 25),
+    axis.title.y = element_text(size = 25)
+  ) +
+  labs(
+    title = "Zero-curtain regime duration, TNHA-BASE",
+    y = "Depth",
+    x = "Week",
+    fill = "Temperature"
+  ) +
+  scale_x_date(date_breaks = "1 week")
+  
+  
+  
+```
+
+
+
+
+
+#adjust this figure so the legend goes in descending order of depths
+```{r fig5, fig.height = 13, fig.width = 12}
+#the above visual doesnt seem to be doing what i need from it because i cant group off just the small points where we fit the range (Date range issue)
+
+# how do i want to fix this 
+
+#maybe as a visual pull out of it*
+xyz <- Daily_grndtmp_avgs %>% filter(depth == "10cm" | depth == "20cm" | depth == "30cm" | depth == "40cm" | depth == "50cm" | depth == "55cm") 
+
+xyz <- xyz %>% filter(Date >= "2022-09-01" & Date <= "2022-12-01" & sensor_name == "TNHA-BASE")
+
+xyz %>%
+  ggplot(aes(x=Date, y=groundtemp, color = depth), size = 0.2) +
+ geom_point() +
+  geom_line() +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 15),legend.text = element_text(size = 10)) +
+  labs(title = "Zero curtain, TNHA-BASE, ",y="Temperature (°C)",x="Week",color="depth") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-2.5,-1, -0.5, 0,0.5, 1, 2.5), limits=c(-3, 3)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) 
+
+#+
+  scale_color_manual(name = "Station", labels = c("BEO (Control)",  "SSMH (South)", "SSMH (North)","TNHA (South)", "TNHA (North)"),groundtemps =c("TNHA-SA" = "#D95F02", "TNHA-SC" ="#E7298A", "BEO-B06"= "#084594","SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6")) 
+
+
+```
+
+THAWING
+```{r fig6, fig.height = 13, fig.width = 12}
+station_names <- c(
+  "BEO-B05" = "Tundra-1",
+  "BEO-B06" = "Tundra-2",
+  "BEO-B07" = "Tundra-3",
+  "BEO-B08" = "Tundra-4",
+  "BEO1" = "Tundra-OMIT1",
+  "BEO2" = "Tundra-OMIT2",
+  "TNHA-BASE" = "RESIDENTIAL-S1",
+  "TNHA-SA" = "RESIDENTIAL-S2",
+  "TNHA-SB" = "RESIDENTIAL-W",
+  "TNHA-SC" = "RESIDENTIAL-N",
+  "TNHA-SD" = "RESIDENTIAL-E",
+  "SSMH-BASE" = "HOSPITAL-S1",
+  "SSMH-SA" = "HOSPITAL-S2",
+  "SSMH-SB" = "HOSPITAL-N",
+  "SSMH-SD" = "HOSPITAL-E",
+  "SSMH-SE" = "OMIT",
+  "SSMH-SF" = "OMIT",
+  "SSMH-SG" = "OMIT",
+  "SSMH-SH" = "OMIT",
+  "SSMH-SI" = "OMIT"
+)
+
+xyz <- Daily_grndtmp_avgs %>% filter(depth == "10cm" & !sensor_name == "SSMH-SE" & !sensor_name == "SSMH-SF" & !sensor_name =="SSMH-SG" & !sensor_name =="SSMH-SH" & !sensor_name =="SSMH-SI") 
+
+#& !sensor_name == "BEO-B07" & !sensor_name == "BEO-B08"
+
+# Rename stations for display
+xyz$sensor_name <- recode(xyz$sensor_name, !!!station_names)
+
+# SET THE FACTOR LEVELS TO CONTROL LEGEND ORDER
+xyz$sensor_name <- factor(xyz$sensor_name, levels = c(
+  "Tundra-1",
+  "Tundra-2",
+  "Tundra-3",
+  "Tundra-4",
+  "RESIDENTIAL-N",
+  "RESIDENTIAL-E",
+  "RESIDENTIAL-S1",
+  "RESIDENTIAL-S2",
+  "RESIDENTIAL-W",
+  "HOSPITAL-N",
+  "HOSPITAL-E",
+  "HOSPITAL-S1",
+  "HOSPITAL-S2"
+))
+
+xyz <- xyz %>% filter(Date >= "2024-05-01" & Date <= "2024-09-01")
+
+xyz %>%
+  ggplot(aes(x=Date, y=groundtemp, color = sensor_name)) +
+# geom_point() +
+  geom_line(size =1) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 15),legend.text = element_text(size = 10)) +
+  labs(title = "Zero curtain thawing, 10cm ",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-5,-2.5,-1, -0.5, 0,0.5, 1, 2.5), limits=c(-5, 5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  geom_hline(yintercept = c(0.5, -0.5), color = "black", size = 0.5) +
+  geom_hline(yintercept = c(0.25, -0.25), color = "black", linetype = "dashed", size = 0.5)
+```
+
+
+
+```{r fig6, fig.height = 13, fig.width = 12}
+station_names <- c(
+  "BEO-B05" = "Tundra-1",
+  "BEO-B06" = "Tundra-2",
+  "BEO-B07" = "Tundra-3",
+  "BEO-B08" = "Tundra-4",
+  "BEO1" = "Tundra-OMIT1",
+  "BEO2" = "Tundra-OMIT2",
+  "TNHA-BASE" = "RESIDENTIAL-S1",
+  "TNHA-SA" = "RESIDENTIAL-S2",
+  "TNHA-SB" = "RESIDENTIAL-W",
+  "TNHA-SC" = "RESIDENTIAL-N",
+  "TNHA-SD" = "RESIDENTIAL-E",
+  "SSMH-BASE" = "HOSPITAL-S1",
+  "SSMH-SA" = "HOSPITAL-S2",
+  "SSMH-SB" = "HOSPITAL-N",
+  "SSMH-SD" = "HOSPITAL-E",
+  "SSMH-SE" = "OMIT",
+  "SSMH-SF" = "OMIT",
+  "SSMH-SG" = "OMIT",
+  "SSMH-SH" = "OMIT",
+  "SSMH-SI" = "OMIT"
+)
+
+xyz <- Daily_grndtmp_avgs %>% filter(depth == "10cm" & !sensor_name == "SSMH-SE" & !sensor_name == "SSMH-SF" & !sensor_name =="SSMH-SG" & !sensor_name =="SSMH-SH" & !sensor_name =="SSMH-SI") 
+#& !sensor_name == "BEO-B07" & !sensor_name == "BEO-B08"
+
+# Rename stations for display
+xyz$sensor_name <- recode(xyz$sensor_name, !!!station_names)
+
+# SET THE FACTOR LEVELS TO CONTROL LEGEND ORDER
+xyz$sensor_name <- factor(xyz$sensor_name, levels = c(
+  "Tundra-1",
+  "Tundra-2",
+  "Tundra-3",
+  "Tundra-4",
+  "RESIDENTIAL-N",
+  "RESIDENTIAL-E",
+  "RESIDENTIAL-S1",
+  "RESIDENTIAL-S2",
+  "RESIDENTIAL-W",
+  "HOSPITAL-N",
+  "HOSPITAL-E",
+  "HOSPITAL-S1",
+  "HOSPITAL-S2"
+))
+
+xyz <- xyz %>% filter(Date >= "2023-09-01" & Date <= "2023-12-01")
+
+xyz %>%
+  ggplot(aes(x=Date, y=groundtemp, color = sensor_name)) +
+# geom_point() +
+  geom_line(size =1) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 15),legend.text = element_text(size = 10)) +
+  labs(title = "Zero curtain freezing, 10cm ",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-5,-2.5,-1, -0.5, 0,0.5, 1, 2.5), limits=c(-5, 5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  geom_hline(yintercept = c(0.5, -0.5), color = "black", size = 0.5) +
+  geom_hline(yintercept = c(0.25, -0.25), color = "black", linetype = "dashed", size = 0.5)
+
+#+scale_color_manual(name = "Station", labels = c("BEO (Control)",  "SSMH (South)", "SSMH (North)","TNHA (South)", "TNHA (North)"), groundtemps=c("TNHA-SA" = "#D95F02", "TNHA-SC" ="#E7298A", "BEO-B06"= "#084594","SSMH-SA"="#A6761D", "SSMH-SB"= "#4292C6")) +
+    
+
+```
+
+### calculate how long each sensor exists between the 0.5 to -0.5 range for xys (df) above
+```{r}
+
+
+filtered <- xyz %>%
+  filter(between(groundtemp, -0.5, 0.5))
+
+# 3. Print the matching Dates
+cat("Dates with groundtemp between -0.5 and +0.5:\n")
+print(
+  filtered %>%
+    select(Date, sensor_name, groundtemp) %>%
+    arrange(Date)
+)
+
+# 4a. For each station, list all matching Dates
+Dates_per_station <- filtered %>%
+  group_by(sensor_name) %>%
+  summarise(Dates_list = list(Date), .groups = "drop")
+
+cat("\nDates per station:\n")
+print(Dates_per_station)
+
+# 4b. For each station, count the number of matching Dates
+counts_per_station <- filtered %>%
+  group_by(sensor_name) %>%
+  dplyr::summarise(num_Dates = n(), .groups = "drop")
+
+cat("\nNumber of Dates per station:\n")
+print(counts_per_station)
+```
+
+
+### TNHA Site only
+CHANGE THE DEPTH IN FIRST FILTERING
+```{r fig7, fig.height = 13, fig.width = 12}
+station_names <- c(
+  "BEO-B05" = "Tundra-1",
+  "BEO-B06" = "Tundra-2",
+  "BEO-B07" = "Tundra-3",
+  "BEO-B08" = "Tundra-4",
+  "BEO1" = "Tundra-OMIT1",
+  "BEO2" = "Tundra-OMIT2",
+  "TNHA-BASE" = "RESIDENTIAL-S1",
+  "TNHA-SA" = "RESIDENTIAL-S2",
+  "TNHA-SB" = "RESIDENTIAL-W",
+  "TNHA-SC" = "RESIDENTIAL-N",
+  "TNHA-SD" = "RESIDENTIAL-E",
+  "SSMH-BASE" = "HOSPITAL-S1",
+  "SSMH-SA" = "HOSPITAL-S2",
+  "SSMH-SB" = "HOSPITAL-N",
+  "SSMH-SD" = "HOSPITAL-E",
+  "SSMH-SE" = "OMIT",
+  "SSMH-SF" = "OMIT",
+  "SSMH-SG" = "OMIT",
+  "SSMH-SH" = "OMIT",
+  "SSMH-SI" = "OMIT"
+)
+
+xyz <- Daily_grndtmp_avgs %>% filter(depth == "10cm" & !sensor_name == "SSMH-SE" & !sensor_name == "SSMH-SF" & !sensor_name =="SSMH-SG" & !sensor_name =="SSMH-SH" & !sensor_name =="SSMH-SI" & !sensor_name =="SSMH-BASE" & !sensor_name =="SSMH-SA" & !sensor_name =="SSMH-SB" & !sensor_name =="SSMH-SD" & !sensor_name == "BEO-B07" & !sensor_name == "BEO-B08")
+
+# Rename stations for display
+xyz$sensor_name <- recode(xyz$sensor_name, !!!station_names)
+
+# SET THE FACTOR LEVELS TO CONTROL LEGEND ORDER
+xyz$sensor_name <- factor(xyz$sensor_name, levels = c(
+  "Tundra-1",
+  "Tundra-2",
+  "RESIDENTIAL-N",
+  "RESIDENTIAL-E",
+  "RESIDENTIAL-S1",
+  "RESIDENTIAL-S2",
+  "RESIDENTIAL-W"
+))
+
+xyz <- xyz %>% filter(Date >= "2022-09-01" & Date <= "2022-12-01")
+
+xyz %>%
+  ggplot(aes(x=Date, y=groundtemp, color = sensor_name)) +
+# geom_point() +
+  geom_line(size =1) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 15),legend.text = element_text(size = 10)) +
+  labs(title = "Zero curtain freezing at 10cm (Residential site) ",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-5,-2.5,-1, -0.5, 0,0.5, 1, 2.5), limits=c(-5, 5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  geom_hline(yintercept = c(0.5, -0.5), color = "black", size = 0.5) +
+  geom_hline(yintercept = c(0.25, -0.25), color = "black", linetype = "dashed", size = 0.5)
+    
+```
+
+SSMH site only
+CHANGE THE DEPTH IN FIRST FILTERING
+```{r fig8, fig.height = 13, fig.width = 12}
+station_names <- c(
+  "BEO-B05" = "Tundra-1",
+  "BEO-B06" = "Tundra-2",
+  "BEO-B07" = "Tundra-3",
+  "BEO-B08" = "Tundra-4",
+  "BEO1" = "Tundra-OMIT1",
+  "BEO2" = "Tundra-OMIT2",
+  "TNHA-BASE" = "RESIDENTIAL-S1",
+  "TNHA-SA" = "RESIDENTIAL-S2",
+  "TNHA-SB" = "RESIDENTIAL-W",
+  "TNHA-SC" = "RESIDENTIAL-N",
+  "TNHA-SD" = "RESIDENTIAL-E",
+  "SSMH-BASE" = "HOSPITAL-S1",
+  "SSMH-SA" = "HOSPITAL-S2",
+  "SSMH-SB" = "HOSPITAL-N",
+  "SSMH-SD" = "HOSPITAL-E",
+  "SSMH-SE" = "OMIT",
+  "SSMH-SF" = "OMIT",
+  "SSMH-SG" = "OMIT",
+  "SSMH-SH" = "OMIT",
+  "SSMH-SI" = "OMIT"
+)
+
+xyz <- Daily_grndtmp_avgs %>% filter(depth == "10cm" & !sensor_name == "SSMH-SE" & !sensor_name == "SSMH-SF" & !sensor_name =="SSMH-SG" & !sensor_name =="SSMH-SH" & !sensor_name =="SSMH-SI" & !sensor_name =="TNHA-BASE" & !sensor_name =="TNHA-SA" & !sensor_name =="TNHA-SB" & !sensor_name =="TNHA-SC" & !sensor_name =="TNHA-SD" & !sensor_name == "BEO-B07" & !sensor_name == "BEO-B08") 
+
+# Rename stations for display
+xyz$sensor_name <- recode(xyz$sensor_name, !!!station_names)
+
+# SET THE FACTOR LEVELS TO CONTROL LEGEND ORDER
+xyz$sensor_name <- factor(xyz$sensor_name, levels = c(
+  "Tundra-1",
+  "Tundra-2",
+  "Tundra-3",
+  "Tundra-4",
+  "HOSPITAL-N",
+  "HOSPITAL-E",
+  #"HOSPITAL-S1",
+  "HOSPITAL-S2"
+))
+
+xyz <- xyz %>% filter(Date >= "2022-09-01" & Date <= "2022-12-01")
+
+xyz %>%
+  ggplot(aes(x=Date, y=groundtemp, color = sensor_name)) +
+# geom_point() +
+  geom_line(size =1) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 15),legend.text = element_text(size = 10)) +
+  labs(title = "Zero curtain freezing at 10cm (Hospital site) ",y="Temperature (°C)",x="Week",color="Station") +
+  scale_x_date(date_breaks = "1 weeks") +
+  scale_y_continuous(breaks=c(-5,-2.5,-1, -0.5, 0,0.5, 1, 2.5), limits=c(-5, 5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25)) +
+  geom_hline(yintercept = c(0.5, -0.5), color = "black", size = 0.5) +
+  geom_hline(yintercept = c(0.25, -0.25), color = "black", linetype = "dashed", size = 0.5)
+
+```

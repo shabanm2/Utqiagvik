@@ -1,0 +1,146 @@
+---
+title: "AirtempGroundtempPlots_Ch2"
+author: "Mirella Shaban"
+date: "2026-01-20"
+output: html_document
+---
+
+
+# 8 = 10cm
+# 10 = 30cm
+
+#need to switch out winddirection & Date (Ch1 data, daily_2022_2024.csv) to winddirectionection & Date (Ch2 data, all_var_combined_22_25_BEO_COMP.csv)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/" # where daily avg data are located
+#for Ch1, Utqiagvik/main/Analysis ready data/
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(purrr)
+```
+
+```{r}
+daily = read.csv(paste0(filepath, "all_var_combined_22_25_BEO_COMP.csv")) #previously daily_2022_2024.csv
+daily = daily %>% select(-c(X))
+daily$site <- sub("-.*", "", daily$sensor_name)
+daily$station <- sub(".*-", "", daily$sensor_name)
+daily$sensor_name[daily$site == "BEO"] = "BEO"
+```
+
+
+
+# Air Temp vs Ground Temp by Site
+
+Variable vs Ground Temp (y-axis)
+Group by north vs south and by site?
+
+```{r}
+df = daily
+df$Date <- as.POSIXct(df$Date, format="%Y-%m-%d")
+df <- df %>% filter(windspeed != -888.88) %>% filter(winddirection != -888.88)
+```
+
+
+THAWING
+```{r}
+nvs <- df %>% filter(sensor_name == "TNHA-SA" | sensor_name == "TNHA-SC" | sensor_name == "SSMH-SB" | sensor_name == "SSMH-SA" | sensor_name == "BEO") %>% select(-c(winddirection)) %>% mutate(aspect = case_when(sensor_name == "TNHA-SC" | sensor_name == "SSMH-SB" ~ "North", sensor_name == "TNHA-SA" | sensor_name == "SSMH-SA" ~ "South", .default = "Control")) %>% filter(grounddepth == "10cm") %>% filter(Date >= "2025-06-01") %>% filter(Date < "2025-09-01")
+
+
+#BELOW IS FOR CHAPTER 1, REMOVES THE EXTRA "DATE" COLUMN abd keeps grounddepth == 10
+
+# nvs <- df %>% filter(sensor_name == "TNHA-SA" | sensor_name == "TNHA-SC" | sensor_name == "SSMH-SB" | sensor_name == "SSMH-SA" | sensor_name == "BEO") %>% select(-c(winddirection, Date)) %>% mutate(aspect = case_when(sensor_name == "TNHA-SC" | sensor_name == "SSMH-SB" ~ "North", sensor_name == "TNHA-SA" | sensor_name == "SSMH-SA" ~ "South", .default = "Control")) %>% na.omit() %>% filter(windspeed >= 0) %>% filter(grounddepth == 10) %>% filter(Date >= "2022-06-18") %>% filter(Date < "2022-09-01")
+
+```
+
+FREEZING
+```{r}
+nvs <- df %>% filter(sensor_name == "TNHA-SA" | sensor_name == "TNHA-SC" | sensor_name == "SSMH-SB" | sensor_name == "SSMH-SA" | sensor_name == "BEO") %>% select(-c(winddirection)) %>% mutate(aspect = case_when(sensor_name == "TNHA-SC" | sensor_name == "SSMH-SB" ~ "North", sensor_name == "TNHA-SA" | sensor_name == "SSMH-SA" ~ "South", .default = "Control")) %>% filter(grounddepth == "10cm") %>% filter(Date >= "2022-09-01") %>% filter(Date <= "2022-12-01")
+
+#remember for Ch1 data to add, Date to " select(-c(winddirection, Date))  "
+
+```
+
+```{r, fig.height=6, fig.width=16}
+# Function to extract slope and format it
+get_slope_label <- function(data) {
+  model <- lm(groundtemp ~ airtemp, data = data)
+  slope <- coef(model)[2]
+  paste("Slope:", round(slope, 2))
+}
+
+# Calculate slopes with fixed positions within plot limits
+label_data <- nvs %>%
+  group_by(site, aspect) %>%
+  do({
+    data = .
+    model = lm(groundtemp ~ airtemp, data = data)
+    slope_label = paste("Slope:", round(coef(model)[2], 2))
+    data.frame(slope_label)
+  }) %>%
+  ungroup() %>%
+  arrange(site, aspect) %>%
+  mutate(
+    x = 1,  # Fixed x position near left of plot
+    y = 9 - (as.numeric(factor(aspect)) - 1) * 1  # Stagger y positions from top
+  )
+
+# Your existing ggplot code with custom colors
+at = ggplot(nvs, aes(x = airtemp, y = groundtemp, color = aspect)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(vars(site)) +
+  theme_bw() +
+  labs(color = "Aspect", title = "Summer 2025 Air Temperature vs Ground Temperature (10 cm)", 
+       y = "Ground Temperature (°C)", x = "Air Temperature (°C)") +
+scale_color_manual(values = c("Control" = "#FFC900",      # gold
+                              "North" = "#229A22",    # forest green
+                              "South" = "#4110F0"))  +  # royal blue 
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 20, face = "bold", margin = margin(t = 0, r = 0, b = 10, l = 0)),
+    axis.title.x = element_text(size = 20, face = "bold", colour = "black", margin = margin(t = 10, r = 0, b = 0, l = 0)), 
+    axis.title.y = element_text(size = 20, face = "bold", colour = "black", margin = margin(t = 0, r = 10, b = 0, l = 0)), 
+    legend.title = element_text(size = 14, face = "bold", colour = "black"),
+    axis.text.x = element_text(size = 14, face = "bold", colour = "black"),
+    axis.text.y = element_text(size = 14, face = "bold", colour = "black"),
+    legend.text = element_text(size = 14, colour = "black"),
+    legend.key.size = unit(1, 'cm'),
+    strip.background = element_rect(fill = "#c7e7ed"),
+    strip.text = element_text(size = 14, face = "bold", colour = "black")
+  ) +
+  geom_abline(slope = 1, intercept = 0, color = "black", linetype = "dashed") +
+  scale_x_continuous(limits = c(0, 10)) +
+  scale_y_continuous(limits = c(0, 10))
+
+# Add slopes to the plot
+at + geom_text(
+  data = label_data,
+  aes(x = x, y = y, label = slope_label, color = aspect),
+  hjust = 0, vjust = 0.5, show.legend = FALSE, fontface = "bold"
+)
+```
+
+
+```{r}
+
+nfactor_thaw_filtered <- nvs %>% filter(groundtemp > 0 & airtemp > 0 & sensor_name == "SSMH-SB") #THAW
+
+#nfactor_thaw_filtered <- nvs %>% filter(groundtemp < 0 & airtemp < 0 & sensor_name == "TNHA-SA") #FREEZE
+
+DDTa <- sum(nfactor_thaw_filtered$airtemp[!is.na(nfactor_thaw_filtered$airtemp) & !is.na(nfactor_thaw_filtered$groundtemp)], na.rm = TRUE)
+DDTs <- sum(nfactor_thaw_filtered$groundtemp[!is.na(nfactor_thaw_filtered$groundtemp) & !is.na(nfactor_thaw_filtered$airtemp)], na.rm = TRUE)
+
+
+nfactor <- DDTs/DDTa
+
+print(nfactor)
+
+```
+

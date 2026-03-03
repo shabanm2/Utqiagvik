@@ -1,0 +1,123 @@
+---
+title: "Gap_Fill_Temperaure_Separating_Air_Ground_Temps_Script"
+author: "Mirella Shaban"
+date: "2026-01-08"
+output: html_document
+---
+
+```{r}
+path <- "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/"
+
+#switch these out as needed
+tempfile <- "SSMH_temp_Data_CLEAN_OLDplusNEW_merged_2022-06-08_to_2025-10-16.csv"
+moistfile <- "SSMH_moisture_Data_CLEAN_OLDplusNEW_merged_2022-06-08_to_2025-01-18.csv"
+
+
+#solarfile <-
+#windspfile <-
+#winddirfile <-
+
+# filenames
+# VWC
+# TNHA_moisture_Data_merged_2022-05-17_to_2025-09-04_CLEANED_KNN_SAVGOL.csv
+# SSMH_moisture_Data_CLEAN_OLDplusNEW_merged_2022-06-08_to_2025-01-18.csv
+# BEO_temp_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-09-20_KNN_KNN_SAVGOL.csv
+
+# Temperature
+# TNHA_temp_Data_CLEAN_OLDplusNEW_merged_from_OLDstart_to_2025-09-04_KNN_SAVGOL.csv
+# SSMH_temp_Data_CLEAN_OLDplusNEW_merged_2022-06-08_to_2025-10-16.csv
+# BEO_temp_Data_CLEANED_OLDplusNEW_merged_2022-06-13_to_2025-09-20_KNN_KNN_SAVGOL.csv
+
+temp <- read.csv(paste0(path, tempfile))
+moist <- read.csv(paste0(path, moistfile))
+
+
+library(dplyr)
+library(tidyr)
+library(splitstackshape)
+library(forcats)
+
+```
+
+
+
+```{r}
+
+# Your initial reshaping
+grndtmp <- gather(temp, variable, response, 2:ncol(temp)) %>%
+  filter(!is.na(response)) %>%
+  mutate(variable = fct_inorder(variable))
+
+grndtmp <- cSplit(grndtmp, 'variable', sep=".", direction = "wide") 
+colnames(grndtmp)[2:4] <- c("value", "sensor", "depth")
+grndtmp$sensor <- gsub('X', '', grndtmp$sensor)
+grndtmp$Date <- as.POSIXct(grndtmp$Date,format="%Y-%m-%d %H:%M:%S",tz="UTC")
+
+# Define sensor mappings
+ground_sensors <- c('21393048'='BEO-B06','21398591'='BEO-B05','21393045'='BEO-B07','21398588'='SSMH-BASE','21398599'='SSMH-SA','21393044'='SSMH-SB','21393049'='SSMH-SD','21398594'='SSMH-SE','21393043'='SSMH-SF','21398586'='SSMH-SG','21398580'='SSMH-SH','21398581'='SSMH-SI','21206939'='TNHA-BASE','21398593'='TNHA-SA','21398587'='TNHA-SB','21393047'='TNHA-SC','21398601'='TNHA-SD','21398577'='TNHA-SE','21398576'='BEO-B08','21393046'='TNHA-SC','21166008'='SSMH-SC')
+
+air_sensors <- c('21390849'='SSMH-BASE','21398670'='SSMH-SA','21398665'='SSMH-SB','21398667'='SSMH-SI','21212510'='TNHA-SF','21218018'='TNHA-BASE','21390850'='TNHA-BASE','21380919'='TNHA-SA','21398676'='TNHA-SB','21398664'='TNHA-SB','21398674'='TNHA-SC','21398666'='TNHA-SD','21981318'='BEO-BASE')
+
+# Rename depth values
+grndtmp$depth <- as.character(grndtmp$depth)
+grndtmp$depth <- plyr::revalue(grndtmp$depth, c("7" = "3.5cm", "8" = "10cm", "9" = "20cm", 
+                                           "10" = "30cm", "11" = "40cm", "12" = "50cm", 
+                                           "13" = "55cm", "14" = "65cm", "15" = "75cm", 
+                                           "16" = "85cm", "17" = "90cm"))
+
+# Create GROUND TEMP dataframe
+df_ground <- grndtmp %>%
+  filter(sensor %in% names(ground_sensors)) %>%
+  mutate(sensor_name = ground_sensors[sensor]) %>%
+  select(Date, sensor_name, depth, value) 
+
+names(df_ground)[4] <- "ground_temp"
+
+#write.csv(df_ground, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/SSMH_Ground_1.csv")
+
+# Create AIR TEMP dataframe (air temp typically doesn't have depth)
+df_air <- grndtmp %>%
+  filter(sensor %in% names(air_sensors)) %>%
+  mutate(sensor_name = air_sensors[sensor]) %>%
+  select(Date, sensor_name, value)
+  
+names(df_air)[3] <- "air_temp"  
+
+df_air <- df_air %>% distinct()  # Remove duplicates if any
+
+#write.csv(df_air, "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/SSMH_Air_1.csv")
+
+# JOIN by Date and sensor_name
+#df_combined <- df_ground %>%
+ # left_join(df_air, by = c("Date", "sensor_name"))
+```
+
+
+Use this later on once ALL variables are good?
+```{r}
+# Create a mapping from ground sensor names to their associated air sensor names
+air_ground_mapping <- c(
+  'TNHA-BASE' = 'TNHA-BASE',
+  'TNHA-SA' = 'TNHA-SA',
+  'TNHA-SB' = 'TNHA-SB',
+  'TNHA-SC' = 'TNHA-SC',
+  'TNHA-SD' = 'TNHA-SD',
+  'SSMH-BASE' = 'SSMH-BASE',
+  'SSMH-SA' = 'SSMH-SA',
+  'SSMH-SB' = 'SSMH-SB',
+  'SSMH-SD' = 'SSMH-BASE',    # No SSMH-SD air, use SSMH-BASE?
+  'BEO-B05' = 'BEO-BASE',      # Map BEO ground sensors to BEO-BASE air
+  'BEO-B06' = 'BEO-BASE'  
+)
+
+# Add air_sensor_name to ground data for joining
+df_ground <- df_ground %>%
+  mutate(air_sensor_name = air_ground_mapping[sensor_name])
+
+# Join using the mapped name
+df_combined <- df_ground %>%
+  left_join(df_air, by = c("Date", "air_sensor_name" = "sensor_name")) %>%
+  select(Date, sensor_name, depth, ground_temp, air_temp)
+```
+
+
