@@ -1,0 +1,61 @@
+---
+title: "NOAA_warmest_yr_highest_precip"
+author: "Mirella Shaban"
+date: "2026-02-25"
+output: html_document
+---
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(readxl)
+```
+
+
+```{r}
+NOAA <- read_xlsx("~/Library/Mobile Documents/com~apple~CloudDocs/Desktop/UVA/RESEARCH/Barrow/NOAA_TEMP_PRECIP_22_26.xlsx")
+
+NOAA$date <- as.Date(NOAA$date, format = "%Y-%m-%d %H:%M:%S")
+
+s.22 <- NOAA %>% filter(date >= "2022-06-01" & date <= "2022-08-31")
+s.23 <- NOAA %>% filter(date >= "2023-06-01" & date <= "2023-08-31")
+s.24 <- NOAA %>% filter(date >= "2024-06-01" & date <= "2024-08-31")
+s.25 <- NOAA %>% filter(date >= "2025-06-01" & date <= "2025-08-31")
+```
+
+
+avg air temp per szn per yr
+```{r}
+t22 <- mean(s.22$tavg)
+t23 <- mean(s.23$tavg)
+t24 <- mean(s.24$tavg)
+t25 <- mean(s.25$tavg)
+```
+
+average precip per szn per yr
+```{r}
+p22 <- mean(s.22$prcp)
+p23 <- mean(s.23$prcp)
+p24 <- mean(s.24$prcp)
+p25 <- mean(s.25$prcp)
+```
+
+growing degree days
+```{r}
+g22 <- s.22 %>% filter(tavg > 0)
+g23 <- s.23 %>% filter(tavg > 0) 
+g24 <- s.24 %>% filter(tavg > 0)
+g25 <- s.25 %>% filter(tavg > 0)
+
+gdd22 <- sum(g22$tavg)
+gdd23 <- sum(g23$tavg)
+gdd24 <- sum(g24$tavg)
+gdd25 <- sum(g25$tavg)
+
+
+```
+
+
+
+

@@ -541,3 +541,118 @@ theme(legend.title = element_text(size = 15), legend.text = element_text(size = 
   
 ```
 
+
+
+### DIFFERENCES IN COLDEST VS WARMEST YEARS HEAT MAPS
+```{r}
+#coldest is 2022
+#warmest is 2023 (based off if NOAA air temp data)
+
+#set up the two dataframes
+#date constraint
+season <- plot1 %>% filter(Date >= "2023-06-01" & Date <= "2023-09-01")
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+warm23 <- season1 %>% mutate(across(c("groundtemp"), round, 2))
+
+#date constraint
+season <- plot1 %>% filter(Date >= "2022-06-01" & Date <= "2022-09-01")
+
+season2 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+cold22 <- season2 %>% mutate(across(c("groundtemp"), round, 2))
+
+#subtract the two dataframes
+
+subtracted <- data.frame(
+  sensor_name = warm23$sensor_name,
+  grounddepth = warm23$grounddepth,
+  groundtemp = warm23$groundtemp - cold22$groundtemp
+)
+
+```
+```{r fig, fig.height = 8, fig.width = 10}
+#Heat map, differences between warmest and coldest years for ground temps
+
+subtracted$grounddepth<-factor(subtracted$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "75cm","85cm","90cm")))
+df_new <- subtracted %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2")
+df_new$groundtemp <- round(df_new$groundtemp, 1)
+#data plotting 
+ggplot(df_new, aes(x= sensor_name, y = grounddepth, fill = groundtemp)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=groundtemp, color = ifelse(groundtemp < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Summer 23-22, Differences in Average Ground Temperatures (°C)", y = "Depth", x= "Station", fill = "Ground Temperatures") +
+  theme_bw()+  
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10)) 
+```
+
+```{r}
+#wettest vs driest yr
+#driest = 25
+#wettest = 23
+
+#date constraint
+season <- plot1 %>% filter(Date >= "2023-06-01" & Date <= "2023-09-01")
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+wet23 <- season1 %>% mutate(across(c("groundtemp"), round, 2))
+
+#date constraint
+season <- plot1 %>% filter(Date >= "2025-06-01" & Date <= "2025-09-01")
+
+season2 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(groundtemp ~sensor_name + grounddepth, mean)
+
+dry25 <- season2 %>% mutate(across(c("groundtemp"), round, 2))
+
+#subtract the two dataframes
+
+subtracted <- data.frame(
+  sensor_name = wet23$sensor_name,
+  grounddepth = wet23$grounddepth,
+  groundtemp = wet23$groundtemp - dry25$groundtemp
+)
+
+```
+
+```{r fig, fig.height = 8, fig.width = 10}
+#Heat map, differences between warmest and coldest years for ground temps
+
+subtracted$grounddepth<-factor(subtracted$grounddepth, levels=rev(c("10cm", "30cm", "40cm","50cm","55cm", "65cm", "75cm","85cm","90cm")))
+df_new <- subtracted %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2")
+df_new$groundtemp <- round(df_new$groundtemp, 1)
+#data plotting 
+ggplot(df_new, aes(x= sensor_name, y = grounddepth, fill = groundtemp)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=groundtemp, color = ifelse(groundtemp < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Summer 23-25, Differences in Average Ground Temperatures (°C)", y = "Depth", x= "Station", fill = "Ground Temperatures") +
+  theme_bw()+  
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10)) 
+
+```
+

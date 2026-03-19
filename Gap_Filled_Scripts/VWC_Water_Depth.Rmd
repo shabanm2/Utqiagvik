@@ -1,0 +1,222 @@
+---
+title: "VWC_Water_Depth"
+author: "Mirella Shaban"
+date: "2026-03-13"
+output: html_document
+---
+
+
+Load in data and aggregate by station
+------
+Load packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+```
+
+Load gap filled daily average data from DESKTOP (VERSIONING GIT - NEED TO UPDATE (02/25/26))
+```{r}
+filepath = "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/"
+
+gapfilldata = "all_var_combined_22_25_BEO_COMP_updated.csv" #is there no SSMH-BASE?? --> FOR SOME REASON IT DIDNT LOAD IN DURING GAP_FILL_TRANSPOSE_AND_JOIN
+
+allvargapfill =read.csv(paste0(filepath, gapfilldata))
+
+allvargapfill$vwc <- round(allvargapfill$vwc, 2)
+
+allvargapfill$Date <- as.Date(allvargapfill$Date, format= "%Y-%m-%d",tz="UTC")
+```
+
+
+Separate each variable into its own dataframe
+```{r}
+vwc = allvargapfill %>% subset() %>% select(Date, sensor_name, vwcdepth, vwc) %>% filter( !vwc == "-888.8") 
+
+```
+
+This is a much more concise way of doing what the chunk below is doing......... sigh.
+```{r}
+averaged_by_station <- vwc %>% aggregate(vwc~sensor_name+Date+vwcdepth, mean)
+```
+
+```{r}
+
+vwc <- averaged_by_station %>%
+filter(sensor_name =="BEO-B05" | sensor_name =="BEO-B06" | sensor_name =="BEO-B07" | sensor_name =="BEO-B08" |sensor_name =="BEO1" |sensor_name =="BEO2" |sensor_name == "TNHA-BASE" | sensor_name == "TNHA-SA" |sensor_name =="TNHA-SB"|sensor_name =="TNHA-SC" |sensor_name == "TNHA-SD" |sensor_name == "SSMH-BASE" |sensor_name =="SSMH-SA"|sensor_name =="SSMH-SB" |sensor_name =="SSMH-SD")
+
+
+#RENAME ALL STATIONS FOR PLOTTING
+# Create a named vector for renaming stations
+station_names <- c(
+  "BEO-B05" = "Tundra-1",
+  "BEO-B06" = "Tundra-2",
+  "BEO-B07" = "Tundra-3",
+  "BEO-B08" = "Tundra-4",
+  "BEO1" = "Tundra-OMIT1",
+  "BEO2" = "Tundra-OMIT2",
+  "TNHA-BASE" = "RESIDENTIAL-S1",
+  "TNHA-SA" = "RESIDENTIAL-S2",
+  "TNHA-SB" = "RESIDENTIAL-W",
+  "TNHA-SC" = "RESIDENTIAL-N",
+  "TNHA-SD" = "RESIDENTIAL-E",
+  "SSMH-BASE" = "HOSPITAL-S1",
+  "SSMH-SA" = "HOSPITAL-S2",
+  "SSMH-SB" = "HOSPITAL-N",
+  "SSMH-SD" = "HOSPITAL-E"
+)
+
+# Rename stations for display
+vwc$sensor_name <- recode(vwc$sensor_name, !!!station_names)
+
+vwc <- vwc %>% mutate(across(c("vwc"), round, 2))
+```
+
+
+```{r}
+#date constraint
+season <- vwc %>% filter(Date >= "2022-06-09" & Date <= "2022-09-01")
+
+
+
+# WATER DEPTH
+#take the average of the water across all depths at each station, get the average for the season. Aggregate by sensor
+waterdepth <- season %>%
+  group_by(sensor_name) %>%
+  aggregate(vwc~sensor_name, mean)
+
+waterdepth <- waterdepth %>% mutate(across(c("vwc"), round, 2))
+waterdepth$vwc_water <- waterdepth$vwc * 90
+
+# SET THE FACTOR LEVELS TO CONTROL LEGEND ORDER
+waterdepth$sensor_name <- factor(waterdepth$sensor_name, levels = c(
+  "Tundra-1",
+  "Tundra-2",
+  "RESIDENTIAL-S1",
+  "RESIDENTIAL-S2",
+  "RESIDENTIAL-W",
+  "RESIDENTIAL-N",
+  "RESIDENTIAL-E",
+  "HOSPITAL-N",
+  "HOSPITAL-E",
+  "HOSPITAL-S1",
+  "HOSPITAL-S2"
+))
+
+water_plot <- waterdepth %>% ggplot() +
+  geom_point(aes(x= sensor_name, y= vwc_water, color = "vwc_depth")) +
+  theme_bw()+
+  theme(legend.title = element_text(size = 8),legend.text = element_text(size = 10)) +
+  labs(title = "Water Depths, averaged across depths + season ", y="Water Depth", x="Station",color="Depth") +
+   theme(axis.text.y =element_text(face="bold",size = 8) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 8), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 12),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
+
+#Next : calculate the porosity of the soil??
+
+```
+Water Depths across the season (daily averages facet wrapped )
+```{r fig, fig.height = 10, fig.width = 15}
+# WATER DEPTH
+#take the average of the water across all depths at each station, get the average for each day Aggregate by sensor
+waterdepth_day <- season %>%
+  group_by(sensor_name) %>%
+  aggregate(vwc~sensor_name + Date, mean)
+
+#xyz$day <- as.Date(xyz$day, format = "%Y-%m-%d")
+
+waterdepth_day %>%
+  ggplot(aes(x=Date, y=vwc, color = sensor_name)) +
+# geom_point() +
+  geom_line(size =1) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 15),legend.text = element_text(size = 10)) +
+  labs(title = "Water Depth per station, Summer 2022", y="Depth (cm)", x="Week", color="Station") +
+  scale_x_date(date_breaks = "1 weeks",
+               date_labels = "%m/%d") +
+ # scale_y_continuous(breaks=c(-5,-2.5,-1, -0.5, 0,0.5, 1, 2.5), limits=c(-5, 5)) +
+  theme(axis.text.y =element_text(face="bold",size = 20) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 20), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        axis.title.x = element_text(size = 25),
+        axis.title.y = element_text(size = 25))
+```
+Now, facet wrapped
+```{r fig, fig.height = 20, fig.width = 10}
+waterdepth_day %>%
+  ggplot(aes(x=Date, y=vwc, color = sensor_name)) +
+  geom_line(size =1) +
+  facet_wrap(sensor_name ~ ., scales = "free_y", ncol=1) +
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  theme_bw()+ 
+  theme(legend.title = element_text(size = 15),legend.text = element_text(size = 10)) +
+  labs(title = "Water Depth per station, Summer 2022", y="Depth (cm)", x="Week", color="Station") +
+  scale_x_date(date_breaks = "1 weeks",
+               date_labels = "%m/%d") +
+ # scale_y_continuous(breaks=c(-5,-2.5,-1, -0.5, 0,0.5, 1, 2.5), limits=c(-5, 5)) +
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 20),
+        axis.title.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15))
+```
+Now, how do i do this to where i have a column for each year?
+```{r fig, fig.height = 18, fig.width = 22}
+season1 <- vwc %>% filter(Date >= "2022-06-09" & Date <= "2022-09-01" |Date >= "2023-06-09" & Date <= "2023-09-01" | Date >= "2024-06-09" & Date <= "2024-09-01" |Date >= "2025-06-09" & Date <= "2025-09-01")
+
+waterdepth_day1 <- season1 %>%
+  group_by(sensor_name) %>%
+  aggregate(vwc~sensor_name + Date, mean)
+
+
+waterdepth_day1 %>%
+  mutate(
+    year = lubridate::year(Date),
+    # Create a common date for comparison (using 2000 as base year)
+    comparison_date = as.Date(paste0("2022-", 
+                                      lubridate::month(Date), "-", 
+                                      lubridate::day(Date)))
+  ) %>%
+  ggplot(aes(x = comparison_date, y = vwc, color = sensor_name)) +
+  geom_line(size = 1) +
+  facet_grid(sensor_name ~ year, scales = "free_y") +
+  guides(color = guide_legend(override.aes = list(size = 10))) +
+  theme_bw() + 
+  theme(
+    legend.title = element_text(size = 15),
+    legend.text = element_text(size = 10),
+    axis.text.y = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 20),
+    axis.title.x = element_text(size = 15),
+    axis.title.y = element_text(size = 15),
+    strip.text = element_text(size = 12, face = "bold"),  # Facet label styling
+    panel.spacing = unit(1, "lines")  # Space between panels
+  ) +
+  labs(
+    title = "Water Depth per Station by Year", 
+    y = "Depth (cm)", 
+    x = "Date (Month/Day)", 
+    color = "Station"
+  ) +
+  scale_x_date(
+    date_breaks = "1 week",
+    date_labels = "%m/%d"
+  )
+```
+

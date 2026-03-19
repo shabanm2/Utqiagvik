@@ -1,0 +1,83 @@
+---
+title: "Freeze_Thaw_Dates_GAPFILL_Ch2"
+author: "Mirella Shaban"
+date: "2026-02-19"
+output: html_document
+---
+
+
+```{r}
+#load apfilled data
+
+#GITHUB ACCESS:
+#filepath = "https://raw.githubusercontent.com/shabanm2/Utqiagvik/main/Meteorological_Seasons_Data/"
+#some issue occurred when merging everything together, using the seasonal files now until a proper merge can be conducted
+
+#Desktop access
+filepath = "/Users/shabangin/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/"
+
+all_data <- read.csv(paste0(filepath, "all_var_combined_22_25_BEO_COMP.csv"))
+all_data$Date <- all_data$Date <- as.POSIXct(all_data$Date, format = "%Y-%m-%d")
+all_data$groundtemp <- round(all_data$groundtemp, 2)
+  
+summ23 <- all_data %>% filter(Date >= "2023-06-01" & Date <= "2023-08-31")
+fall23 <- all_data %>% filter(Date >= "2023-09-01" & Date <= "2023-11-30")
+summ24 <- all_data %>% filter(Date >= "2024-06-01" & Date <= "2024-08-31")
+fall24 <- all_data %>% filter(Date >= "2024-09-01" & Date <= "2024-11-30")
+summ25 <- all_data %>% filter(Date >= "2025-06-01" & Date <= "2025-08-31")
+
+
+summ23$Date <- as.POSIXct(summ23$Date, format = "%Y-%m-%d")
+fall23$Date <- as.POSIXct(fall23$Date, format = "%Y-%m-%d")
+#spr24$Date <- as.POSIXct(spr24$Date, format = "%Y-%m-%d")
+summ24$Date <- as.POSIXct(summ24$Date, format = "%Y-%m-%d")
+fall24$Date <- as.POSIXct(fall24$Date, format = "%Y-%m-%d")
+#spr25$Date <- as.POSIXct(spr25$Date, format = "%Y-%m-%d")
+summ25$Date <- as.POSIXct(summ25$Date, format = "%Y-%m-%d")
+
+### *Freeze dates (after value passes 0) --> depends on season you look at*
+
+```
+
+
+#wait on fall 2023 -- see what went wrong in averaging and combining script***
+```{r}
+freeze_dates <- fall24 %>% filter(sensor_name == "SSMH-SD" & groundtemp < 0.5, grounddepth =="75cm") 
+#B is EAST
+
+list(freeze_dates)
+```
+
+### THAW (Summer)
+```{r}
+thaw_dates <- summ25 %>% filter(sensor_name == "SSMH-SD" & groundtemp > -0.5, grounddepth == "90cm") 
+
+list(thaw_dates)
+```
+
+FIGURE OF ALL STATIONS DURING YEAR = X VARIATION
+```{r fig1, fig.height = 70, fig.width = 26}
+VARIATION <- fall24 %>% filter( groundtemp > -1 & groundtemp < 1)
+
+ggplot(VARIATION, aes(x= Date, y=groundtemp)) +
+  geom_point() +
+  theme_bw() +
+  labs(title= "FALL 2024 THAW VARIATION", x = "Date", y="Ground Temperature (°C)")  +
+  facet_wrap(grounddepth~sensor_name,ncol=5,drop=FALSE)
+
+#add facet wrapping here to tidy up figure
+  
+```
+
+```{r fig2, fig.height = 30, fig.width = 20}
+VARIATION <- SUMM24_ALLgrounddepthS %>% filter(sensor_name == "TNHA-BASE", value > -1 & value < 1)
+
+ggplot(VARIATION, aes(x= date, y=value)) +
+  geom_point() +
+  theme_bw() +
+  labs(title= "SUMMER 2024 THAW VARIATION - TNHA-BASE", x = "Date", y="Ground Temperature (°C)")  +
+  facet_wrap(grounddepth~sensor_name,nrow=5,drop=FALSE)
+  
+```
+
+

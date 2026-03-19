@@ -1,0 +1,302 @@
+---
+title: "gapfill_VWC"
+author: "Mirella Shaban"
+date: "2026-03-05"
+output: html_document
+---
+
+Load in data and aggregate by station
+------
+Load packages
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(gridExtra)
+library(forcats)
+library(splitstackshape) # basically like text to columns
+library(naniar)
+library(RColorBrewer)
+library(caret)
+library(gganimate)
+library(gifski)
+```
+
+Load gap filled daily average data from DESKTOP (VERSIONING GIT - NEED TO UPDATE (02/25/26))
+```{r}
+filepath = "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/"
+
+gapfilldata = "vwc_22_25_DAILY.csv" #is there no SSMH-BASE?? --> FOR SOME REASON IT DIDNT LOAD IN DURING GAP_FILL_TRANSPOSE_AND_JOIN
+
+allvargapfill =read.csv(paste0(filepath, gapfilldata))
+
+allvargapfill$vwc <- round(allvargapfill$vwc, 2)
+
+allvargapfill$Date <- as.Date(allvargapfill$Date, format= "%Y-%m-%d",tz="UTC")
+```
+
+
+Separate each variable into its own dataframe
+```{r}
+vwc = allvargapfill %>% subset() %>% select(Date, sensor_name, vwcdepth, vwc) %>% filter( !vwc == "-888.8") 
+
+```
+
+This is a much more concise way of doing what the chunk below is doing......... sigh.
+```{r}
+averaged_by_station <- vwc %>% aggregate(vwc~sensor_name+Date+vwcdepth, mean)
+```
+
+```{r}
+
+vwc <- averaged_by_station %>%
+filter(sensor_name =="BEO-B05" | sensor_name =="BEO-B06" | sensor_name =="BEO-B07" | sensor_name =="BEO-B08" |sensor_name =="BEO1" |sensor_name =="BEO2" |sensor_name == "TNHA-BASE" | sensor_name == "TNHA-SA" |sensor_name =="TNHA-SB"|sensor_name =="TNHA-SC" |sensor_name == "TNHA-SD" |sensor_name == "SSMH-BASE" |sensor_name =="SSMH-SA"|sensor_name =="SSMH-SB" |sensor_name =="SSMH-SD")
+
+
+#RENAME ALL STATIONS FOR PLOTTING
+# Create a named vector for renaming stations
+station_names <- c(
+  "BEO-B05" = "Tundra-1",
+  "BEO-B06" = "Tundra-2",
+  "BEO-B07" = "Tundra-3",
+  "BEO-B08" = "Tundra-4",
+  "BEO1" = "Tundra-OMIT1",
+  "BEO2" = "Tundra-OMIT2",
+  "TNHA-BASE" = "RESIDENTIAL-S1",
+  "TNHA-SA" = "RESIDENTIAL-S2",
+  "TNHA-SB" = "RESIDENTIAL-W",
+  "TNHA-SC" = "RESIDENTIAL-N",
+  "TNHA-SD" = "RESIDENTIAL-E",
+  "SSMH-BASE" = "HOSPITAL-S1",
+  "SSMH-SA" = "HOSPITAL-S2",
+  "SSMH-SB" = "HOSPITAL-N",
+  "SSMH-SD" = "HOSPITAL-E"
+)
+
+# Rename stations for display
+vwc$sensor_name <- recode(vwc$sensor_name, !!!station_names)
+
+vwc <- vwc %>% mutate(across(c("vwc"), round, 2))
+```
+
+
+```{r}
+#date constraint
+season <- vwc %>% filter(Date > "2022-06-09" & Date <= "2022-09-01")
+
+
+#rounding and getting seasonal average for each station
+
+season1 <- season %>% 
+  group_by(sensor_name, Date) %>%
+  aggregate(vwc~sensor_name + vwcdepth, mean)
+
+
+df_new <- season1 %>% mutate(across(c("vwc"), round, 2))
+
+```
+
+
+Summer 22 plot
+```{r fig1, fig.height = 6, fig.width = 8}
+#data plotting 
+df_new$vwcdepth <-factor(df_new$vwcdepth, levels=rev(c("0-15cm", "15-30cm", "30-45cm", "45-60cm", "60-75cm", "75-90cm")))
+
+df_new <- df_new %>% filter(!sensor_name == "Tundra-OMIT1" & !sensor_name == "Tundra-OMIT2")
+
+sensor_order <- c("Tundra-1", "Tundra-2",
+                  "RESIDENTIAL-S1", "RESIDENTIAL-S2", "RESIDENTIAL-W", "RESIDENTIAL-N", "RESIDENTIAL-E",
+                  "HOSPITAL-S1", "HOSPITAL-S2", "HOSPITAL-N", "HOSPITAL-E")
+df_new$sensor_name <- factor(df_new$sensor_name, levels = sensor_order)
+
+df_new$vwc <- round(df_new$vwc, 2)
+
+ggplot(df_new, aes(y= vwcdepth, x = sensor_name, fill = vwc)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low= "blue", high = "red") + 
+  geom_text(aes(label=vwc, color = ifelse(vwc < -3, "white", "black"))) +
+  scale_color_identity() +
+theme(legend.title = element_text(size = 15), legend.text = element_text(size = 10)) +
+  labs(title = "Summer 2022 Average VWC (m2/m2)", y = "Depth", x= "Station", fill= "Moisture") +
+  theme_bw() +
+  theme(axis.text.y =element_text(face="bold",size = 10) ,
+        axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 10), 
+        axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10))
+
+```
+
+GIF
+```{r}
+# Make sure Date is in Date format
+
+vwc1 <- vwc %>% filter(Date > "2022-06-09" & Date <= "2022-09-01")
+# Set your factor orders (as before)
+vwc1$vwcdepth <- factor(vwc1$vwcdepth, levels = rev(c("0-15cm", "15-30cm", "30-45cm", "45-60cm", "60-75cm", "75-90cm")))
+
+sensor_order <- c("Tundra-1", "Tundra-2", 
+                  "RESIDENTIAL-S1", "RESIDENTIAL-S2", "RESIDENTIAL-W", "RESIDENTIAL-N", "RESIDENTIAL-E",
+                  "HOSPITAL-S1", "HOSPITAL-S2", "HOSPITAL-N", "HOSPITAL-E")
+vwc1$sensor_name <- factor(vwc1$sensor_name, levels = sensor_order)
+
+# Create animated plot
+animated_plot <- ggplot(vwc1, aes(y = vwcdepth, x = sensor_name, fill = vwc)) + 
+  geom_tile() + 
+  scale_fill_gradient2(high = "blue", low = "red") + 
+  geom_text(aes(label = round(vwc, 1), color = ifelse(vwc < -3, "white", "black")), size = 3) +
+  scale_color_identity() +
+  labs(title = "VWC (m²/m²) - Date: {closest_state}", 
+       y = "Depth", 
+       x = "Station", 
+       fill = "Moisture") +
+  theme_bw() +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 18),
+    axis.title.x = element_text(size = 10),
+    axis.title.y = element_text(size = 10)
+  ) +
+transition_states(Date, transition_length = 0, state_length = 1)
+```
+
+
+
+# Render and save the GIF
+animate(animated_plot, 
+        nframes = 100,        # Number of frames
+        fps = 10,             # Frames per second
+        width = 800, 
+        height = 600,
+        renderer = gifski_renderer("vwc_animation.gif"))
+```
+
+GIF
+```{r}
+
+vwc2 <- vwc %>% filter(Date > "2023-06-01" & Date <= "2023-09-01")
+
+vwc2$vwcdepth <- factor(vwc2$vwcdepth, levels = rev(c("0-15cm", "15-30cm", "30-45cm", "45-60cm", "60-75cm", "75-90cm")))
+
+sensor_order <- c("Tundra-1", "Tundra-2", 
+                  "RESIDENTIAL-S1", "RESIDENTIAL-S2", "RESIDENTIAL-W", "RESIDENTIAL-N", "RESIDENTIAL-E",
+                  "HOSPITAL-S1", "HOSPITAL-S2", "HOSPITAL-N", "HOSPITAL-E")
+vwc2$sensor_name <- factor(vwc2$sensor_name, levels = sensor_order)
+
+animated_plot <- ggplot(vwc2, aes(y = vwcdepth, x = sensor_name, fill = vwc)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low = "red", high = "blue") + 
+  geom_text(aes(label = round(vwc, 1), color = ifelse(vwc < -3, "white", "black")), size = 3) +
+  scale_color_identity() +
+  labs(title = "VWC (m²/m²) - Date: {closest_state}",
+       y = "Depth", 
+       x = "Station", 
+       fill = "Moisture") +
+  theme_bw() +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 18),
+    axis.title.x = element_text(size = 10),
+    axis.title.y = element_text(size = 10)
+  ) +
+  transition_states(Date, transition_length = 0, state_length = 1)
+```
+animate(animated_plot, 
+        nframes = length(unique(vwc2$Date)),
+        fps = 5,
+        width = 800, 
+        height = 600,
+        renderer = gifski_renderer("vwc_animation2.gif"))
+```
+
+```{r}
+library(gganimate)
+library(gifski)
+
+vwc3 <- vwc %>% filter(Date > "2024-06-01" & Date <= "2024-09-01")
+
+vwc3$vwcdepth <- factor(vwc3$vwcdepth, levels = rev(c("0-15cm", "15-30cm", "30-45cm", "45-60cm", "60-75cm", "75-90cm")))
+
+sensor_order <- c("Tundra-1", "Tundra-2", 
+                  "RESIDENTIAL-S1", "RESIDENTIAL-S2", "RESIDENTIAL-W", "RESIDENTIAL-N", "RESIDENTIAL-E",
+                  "HOSPITAL-S1", "HOSPITAL-S2", "HOSPITAL-N", "HOSPITAL-E")
+vwc3$sensor_name <- factor(vwc3$sensor_name, levels = sensor_order)
+
+animated_plot <- ggplot(vwc3, aes(y = vwcdepth, x = sensor_name, fill = vwc)) + 
+  geom_tile() + 
+  scale_fill_gradient2(high = "blue", low = "red") + 
+  geom_text(aes(label = round(vwc, 1), color = ifelse(vwc < -3, "white", "black")), size = 3) +
+  scale_color_identity() +
+  labs(title = "VWC (m²/m²) - Date: {closest_state}",
+       y = "Depth", 
+       x = "Station", 
+       fill = "Moisture") +
+  theme_bw() +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 18),
+    axis.title.x = element_text(size = 10),
+    axis.title.y = element_text(size = 10)
+  ) +
+  transition_states(Date, transition_length = 0, state_length = 1)
+
+animate(animated_plot, 
+        nframes = length(unique(vwc3$Date)),
+        fps = 5,
+        width = 800, 
+        height = 600,
+        renderer = gifski_renderer("vwc_animation3.gif"))
+```
+
+```{r}
+library(gganimate)
+library(gifski)
+
+vwc4 <- vwc %>% filter(Date > "2025-06-01" & Date <= "2025-09-01")
+
+vwc4$vwcdepth <- factor(vwc4$vwcdepth, levels = rev(c("0-15cm", "15-30cm", "30-45cm", "45-60cm", "60-75cm", "75-90cm")))
+
+sensor_order <- c("Tundra-1", "Tundra-2", 
+                  "RESIDENTIAL-S1", "RESIDENTIAL-S2", "RESIDENTIAL-W", "RESIDENTIAL-N", "RESIDENTIAL-E",
+                  "HOSPITAL-S1", "HOSPITAL-S2", "HOSPITAL-N", "HOSPITAL-E")
+vwc4$sensor_name <- factor(vwc4$sensor_name, levels = sensor_order)
+
+animated_plot <- ggplot(vwc4, aes(y = vwcdepth, x = sensor_name, fill = vwc)) + 
+  geom_tile() + 
+  scale_fill_gradient2(high = "blue", low = "red") + 
+  geom_text(aes(label = round(vwc, 1), color = ifelse(vwc < -3, "white", "black")), size = 3) +
+  scale_color_identity() +
+  labs(title = "VWC (m²/m²) - Date: {closest_state}",
+       y = "Depth", 
+       x = "Station", 
+       fill = "Moisture") +
+  theme_bw() +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1.0, face = "bold", size = 10),
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid"),
+    plot.title = element_text(hjust = 0.5, size = 18),
+    axis.title.x = element_text(size = 10),
+    axis.title.y = element_text(size = 10)
+  ) +
+  transition_states(Date, transition_length = 0, state_length = 1)
+
+animate(animated_plot, 
+        nframes = length(unique(vwc4$Date)),
+        fps = 5,
+        width = 800, 
+        height = 600,
+        renderer = gifski_renderer("vwc_animation4.gif"))
+```
+
+
+
