@@ -1,0 +1,47 @@
+---
+title: "PM_TEMP_CORRECTION"
+author: "Mirella Shaban"
+date: "2026-03-19"
+output: html_document
+---
+#In this script we are applying the NOAA regional temperature average to PM nodes whose temperatures show erroneous values (Node-03, node-06, node-08)
+
+```{r}
+#where the temperature is >12 or < -12, replace for -03,-06,-08 with the NOAA temperature (ambTmp)
+full <- read.csv("~/Desktop/PM_VIS_TEMP/MERGED_PM_WIND_PRECIP.csv")
+
+
+noaa_tmp_prcp <- read.csv("~/Desktop/PM_VIS_TEMP/noaa.csv")
+bigdot <- read.csv("~/Desktop/PM_VIS_TEMP/BigDot_data_fullseason.csv")
+
+bigdot$date <- ymd_hms(bigdot$date, truncated = 3)
+
+bigdot$date <- as.POSIXct(bigdot$date, format = "%Y-%m-%d %H:%M:%S")
+noaa_tmp_prcp$date <- as.POSIXct(noaa_tmp_prcp$date, format = "%Y-%m-%d %H:%M:%S")
+
+anomalous_nodes <- c("node-03", "node-06", "node-08")
+
+# Create mask
+mask <- !is.na(bigdot$Temperature) & 
+        !is.na(bigdot$site) &
+        bigdot$site %in% anomalous_nodes & 
+        (bigdot$Temperature < -12 | bigdot$Temperature > 12)
+
+# Extract just the DATE portion from hourly datetime for matching
+date_only <- as.Date(bigdot$date[mask])
+
+# Match using date only
+replacement_values <- noaa_tmp_prcp$tavg[match(date_only, as.Date(noaa_tmp_prcp$date))]
+
+# Replace only where valid matches exist
+rows_to_replace <- which(mask)
+valid_replacements <- !is.na(replacement_values)
+
+bigdot$Temperature[rows_to_replace[valid_replacements]] <- replacement_values[valid_replacements]
+```
+```{r}
+#write.csv(bigdot, "~/Desktop/PM_VIS_TEMP/BigDot_NOAA_temp_correction.csv")
+
+
+```
+
