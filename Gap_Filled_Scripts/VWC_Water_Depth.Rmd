@@ -27,7 +27,7 @@ Load gap filled daily average data from DESKTOP (VERSIONING GIT - NEED TO UPDATE
 ```{r}
 filepath = "~/Desktop/UVA/RESEARCH/Barrow/GAP_FILLED_CSV_DOWNLOADS/Sep/"
 
-gapfilldata = "all_var_combined_22_25_BEO_COMP_updated.csv" #is there no SSMH-BASE?? --> FOR SOME REASON IT DIDNT LOAD IN DURING GAP_FILL_TRANSPOSE_AND_JOIN
+gapfilldata = "Merged_oldgap_newgap.csv" #is there no SSMH-BASE?? --> FOR SOME REASON IT DIDNT LOAD IN DURING GAP_FILL_TRANSPOSE_AND_JOIN
 
 allvargapfill =read.csv(paste0(filepath, gapfilldata))
 
@@ -39,7 +39,7 @@ allvargapfill$Date <- as.Date(allvargapfill$Date, format= "%Y-%m-%d",tz="UTC")
 
 Separate each variable into its own dataframe
 ```{r}
-vwc = allvargapfill %>% subset() %>% select(Date, sensor_name, vwcdepth, vwc) %>% filter( !vwc == "-888.8") 
+vwc = allvargapfill %>% subset() %>% dplyr::select(Date, sensor_name, vwcdepth, vwc) %>% filter( !vwc == "-888.8") 
 
 ```
 
@@ -51,7 +51,7 @@ averaged_by_station <- vwc %>% aggregate(vwc~sensor_name+Date+vwcdepth, mean)
 ```{r}
 
 vwc <- averaged_by_station %>%
-filter(sensor_name =="BEO-B05" | sensor_name =="BEO-B06" | sensor_name =="BEO-B07" | sensor_name =="BEO-B08" |sensor_name =="BEO1" |sensor_name =="BEO2" |sensor_name == "TNHA-BASE" | sensor_name == "TNHA-SA" |sensor_name =="TNHA-SB"|sensor_name =="TNHA-SC" |sensor_name == "TNHA-SD" |sensor_name == "SSMH-BASE" |sensor_name =="SSMH-SA"|sensor_name =="SSMH-SB" |sensor_name =="SSMH-SD")
+filter(sensor_name =="BEO-B05" | sensor_name =="BEO-B06" |sensor_name =="BEO1" |sensor_name =="BEO2" |sensor_name == "TNHA-BASE" | sensor_name == "TNHA-SA" |sensor_name =="TNHA-SB"|sensor_name =="TNHA-SC" |sensor_name == "TNHA-SD" | sensor_name == "SSMH-BASE" | sensor_name =="SSMH-SA"| sensor_name =="SSMH-SB" | sensor_name =="SSMH-SD")
 
 
 #RENAME ALL STATIONS FOR PLOTTING
@@ -83,7 +83,7 @@ vwc <- vwc %>% mutate(across(c("vwc"), round, 2))
 
 ```{r}
 #date constraint
-season <- vwc %>% filter(Date >= "2022-06-09" & Date <= "2022-09-01")
+season <- vwc %>% filter(Date >= "2024-06-01" & Date <= "2024-09-01")
 
 
 
@@ -115,7 +115,7 @@ water_plot <- waterdepth %>% ggplot() +
   geom_point(aes(x= sensor_name, y= vwc_water, color = "vwc_depth")) +
   theme_bw()+
   theme(legend.title = element_text(size = 8),legend.text = element_text(size = 10)) +
-  labs(title = "Water Depths, averaged across depths + season ", y="Water Depth", x="Station",color="Depth") +
+  labs(title = "Water Depths, averaged across depths + season ", y="Water Depth (cm)", x="Station",color="Depth") +
    theme(axis.text.y =element_text(face="bold",size = 8) ,
         axis.text.x=element_text(angle = 45, hjust = 1.0, face = "bold", size = 8), 
         axis.line = element_line(colour = "black", size =0.5, linetype = "solid")) +
@@ -143,7 +143,7 @@ waterdepth_day %>%
   guides(color = guide_legend(override.aes = list(size=10)))+
   theme_bw()+ 
   theme(legend.title = element_text(size = 15),legend.text = element_text(size = 10)) +
-  labs(title = "Water Depth per station, Summer 2022", y="Depth (cm)", x="Week", color="Station") +
+  labs(title = "Water Depth per station, Summer 2024", y="Depth (cm)", x="Week", color="Station") +
   scale_x_date(date_breaks = "1 weeks",
                date_labels = "%m/%d") +
  # scale_y_continuous(breaks=c(-5,-2.5,-1, -0.5, 0,0.5, 1, 2.5), limits=c(-5, 5)) +
@@ -163,7 +163,7 @@ waterdepth_day %>%
   guides(color = guide_legend(override.aes = list(size=10)))+
   theme_bw()+ 
   theme(legend.title = element_text(size = 15),legend.text = element_text(size = 10)) +
-  labs(title = "Water Depth per station, Summer 2022", y="Depth (cm)", x="Week", color="Station") +
+  labs(title = "Water Depth per station, Summer 2024", y="Depth (cm)", x="Week", color="Station") +
   scale_x_date(date_breaks = "1 weeks",
                date_labels = "%m/%d") +
  # scale_y_continuous(breaks=c(-5,-2.5,-1, -0.5, 0,0.5, 1, 2.5), limits=c(-5, 5)) +
@@ -218,5 +218,184 @@ waterdepth_day1 %>%
     date_breaks = "1 week",
     date_labels = "%m/%d"
   )
+```
+#Now, do whats above but only for the upper 40cm (everything thaws through at least 40...)
+```{r}
+
+```
+
+##Next, make figure like Todd's suggestion
+```{r fig, fig.height=10 , fig.width=10}
+# Split sensor_name into site and station
+season1 <- season1 %>% filter(!sensor_name == "Tundra-3" & !sensor_name == "Tundra-4")
+season1 <- season1 %>%
+  separate(sensor_name, into = c("site", "station"), sep = "-", remove = FALSE)
+
+# Create year variable
+season1 <- season1 %>%
+  mutate(year = year(Date))
+
+# Filter for upper depths (0-45cm)
+season1_filtered <- season1 %>%
+  filter(vwcdepth %in% c("0-15cm", "15-30cm", "30-45cm"))
+
+
+# Calculate daily mean VWC across depths for each site/station
+daily_means <- season1_filtered %>%
+  group_by(site, station, Date, year) %>%
+  dplyr::summarise(daily_mean_vwc = mean(vwc, na.rm = TRUE), .groups = "drop")
+
+# Calculate overall mean and temporal SD for each site/station/year
+summary_stats <- daily_means %>%
+  group_by(site, station, year) %>%
+  dplyr::summarise(
+    mean_soil_moisture = mean(daily_mean_vwc, na.rm = TRUE),
+    sd_soil_moisture = sd(daily_mean_vwc, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Step 6: Set factor levels
+summary_stats <- summary_stats %>%
+  dplyr::mutate(
+    site = factor(site, levels = c("RESIDENTIAL", "HOSPITAL", "Tundra")),
+    year = factor(year)
+  )
+
+# Step 7: Create the plot
+ggplot(summary_stats, aes(x = mean_soil_moisture, 
+                          y = sd_soil_moisture, 
+                          color = station, 
+                          shape = year)) +
+  geom_point(size = 3, stroke = 1) +
+  facet_wrap(~ site, ncol = 1) +
+  scale_shape_manual(values = c("2022" = 1,
+                                "2023" = 2,
+                                "2024" = 0,
+                                "2025" = 4)) +
+  labs(title = "Summer mean water depth (0-45cm) across years", x = expression("Mean Soil Moisture (cm"^3*"/cm"^3*")"),
+       y = expression("Standard Deviation (cm"^3*"/cm"^3*")"),
+       color = "Station",
+       shape = "Year") +
+  theme_bw() +
+  theme(panel.grid.major = element_line(linetype = "dashed", color = "gray70"),
+        panel.grid.minor = element_blank(),
+        legend.position = "right",
+        strip.background = element_blank(),
+        strip.text = element_text(face = "bold", size = 12))+
+  theme(plot.title = element_text(hjust = 0.5, size = 20),
+        axis.title.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15))
+```
+```{r fig, fig.height=10 , fig.width=10}
+ggplot(summary_stats, aes(x = mean_soil_moisture, 
+                          y = sd_soil_moisture, 
+                          color = site, 
+                          shape = year)) +
+  geom_point(size = 3, stroke = 1) +
+  scale_shape_manual(values = c("2022" = 1,
+                                "2023" = 2,
+                                "2024" = 0,
+                                "2025" = 4)) +
+  labs(title = "Summer mean water depth (0-45cm) across years", x = expression("Mean Soil Moisture (cm"^3*"/cm"^3*")"),
+       y = expression("Standard Deviation (cm"^3*"/cm"^3*")"),
+       color = "Site",
+       shape = "Year") +
+  theme_bw() +
+  theme(panel.grid.major = element_line(linetype = "dashed", color = "gray70"),
+        panel.grid.minor = element_blank(),
+        legend.position = "right")+
+  theme(plot.title = element_text(hjust = 0.5, size = 20),
+        axis.title.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15))
+  
+```
+##Now, for only upper 15cm
+```{r fig, fig.height=10 , fig.width=10}
+# Split sensor_name into site and station
+season1 <- vwc %>% filter(Date >= "2022-06-09" & Date <= "2022-09-01" |Date >= "2023-06-09" & Date <= "2023-09-01" | Date >= "2024-06-09" & Date <= "2024-09-01" |Date >= "2025-06-09" & Date <= "2025-09-01")
+
+season1 <- season1 %>% filter(!sensor_name == "Tundra-3" & !sensor_name == "Tundra-4")
+season1 <- season1 %>%
+  separate(sensor_name, into = c("site", "station"), sep = "-", remove = FALSE)
+
+# Create year variable
+season1 <- season1 %>%
+  mutate(year = year(Date))
+
+# Filter for upper depths (0-45cm)
+season1_filtered <- season1 %>%
+  filter(vwcdepth %in% c("0-15cm"))
+
+
+# Calculate daily mean VWC across depths for each site/station
+daily_means <- season1_filtered %>%
+  group_by(site, station, Date, year) %>%
+  dplyr::summarise(daily_mean_vwc = mean(vwc, na.rm = TRUE), .groups = "drop")
+
+# Calculate overall mean and temporal SD for each site/station/year
+summary_stats <- daily_means %>%
+  group_by(site, station, year) %>%
+  dplyr::summarise(
+    mean_soil_moisture = mean(daily_mean_vwc, na.rm = TRUE),
+    sd_soil_moisture = sd(daily_mean_vwc, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Step 6: Set factor levels
+summary_stats <- summary_stats %>%
+  dplyr::mutate(
+    site = factor(site, levels = c("RESIDENTIAL", "HOSPITAL", "Tundra")),
+    year = factor(year)
+  )
+
+# Step 7: Create the plot
+ggplot(summary_stats, aes(x = mean_soil_moisture, 
+                          y = sd_soil_moisture, 
+                          color = station, 
+                          shape = year)) +
+  geom_point(size = 3, stroke = 1) +
+  facet_wrap(~ site, ncol = 1) +
+  scale_shape_manual(values = c("2022" = 1,
+                                "2023" = 2,
+                                "2024" = 0,
+                                "2025" = 4)) +
+  labs(title = "Summer mean water depth (0-15cm) across years", x = expression("Mean Soil Moisture (cm"^3*"/cm"^3*")"),
+       y = expression("Standard Deviation (cm"^3*"/cm"^3*")"),
+       color = "Station",
+       shape = "Year") +
+  theme_bw() +
+  theme(panel.grid.major = element_line(linetype = "dashed", color = "gray70"),
+        panel.grid.minor = element_blank(),
+        legend.position = "right",
+        strip.background = element_blank(),
+        strip.text = element_text(face = "bold", size = 12))+
+  theme(plot.title = element_text(hjust = 0.5, size = 20),
+        axis.title.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15))
+```
+
+
+```{r fig, fig.height=10 , fig.width=10}
+ggplot(summary_stats, aes(x = mean_soil_moisture, 
+                          y = sd_soil_moisture, 
+                          color = site, 
+                          shape = year)) +
+  geom_point(size = 3, stroke = 1) +
+  scale_shape_manual(values = c("2022" = 1,
+                                "2023" = 2,
+                                "2024" = 0,
+                                "2025" = 4)) +
+  labs(title = "Summer mean water depth (0-15cm) across years", x = expression("Mean Soil Moisture (cm"^3*"/cm"^3*")"),
+       y = expression("Standard Deviation (cm"^3*"/cm"^3*")"),
+       color = "Site",
+       shape = "Year") +
+  theme_bw() +
+  theme(panel.grid.major = element_line(linetype = "dashed", color = "gray70"),
+        panel.grid.minor = element_blank(),
+        legend.position = "right")+
+  theme(plot.title = element_text(hjust = 0.5, size = 20),
+        axis.title.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15))
+  
 ```
 
